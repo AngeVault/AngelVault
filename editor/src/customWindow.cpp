@@ -1,48 +1,103 @@
-#include "CustomWindow.h"
+#include "customWindow.h"
+#include <QMouseEvent>
 #include <QApplication>
-#include <windows.h>
-#include <windowsx.h>
+
+enum ResizeEdge {
+    None = 0,
+    Left = 1,
+    Right = 2,
+    Top = 4,
+    Bottom = 8
+};
 
 CustomWindow::CustomWindow(QWidget* parent) : QMainWindow(parent) {
-    setWindowFlags(Qt::Window | Qt::CustomizeWindowHint);
+    setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
+    qApp->installEventFilter(this);
 }
 
-bool CustomWindow::nativeEvent(const QByteArray& eventType, void* message, qintptr* result) {
-    MSG* msg = static_cast<MSG*>(message);
+bool CustomWindow::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::MouseButtonPress) {
+        QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
+        if (mouseEvent->button() == Qt::LeftButton) {
+            QPoint localPos = mapFromGlobal(mouseEvent->globalPosition().toPoint());
+            QRect r = rect();
+            int borderWidth = 12; 
 
-    if (msg->message == WM_NCCALCSIZE && msg->wParam == TRUE) {
-        *result = 0;
-        return true;
+            bool top = localPos.y() < borderWidth;
+            bool bottom = localPos.y() >= r.height() - borderWidth;
+            bool left = localPos.x() < borderWidth;
+            bool right = localPos.x() >= r.width() - borderWidth;
+
+            if (top || bottom || left || right) {
+                m_resizing = true;
+                m_resizeEdge = ResizeEdge::None;
+                if (top) m_resizeEdge |= ResizeEdge::Top;
+                if (bottom) m_resizeEdge |= ResizeEdge::Bottom;
+                if (left) m_resizeEdge |= ResizeEdge::Left;
+                if (right) m_resizeEdge |= ResizeEdge::Right;
+
+                m_startGeometry = geometry();
+                m_startMousePos = mouseEvent->globalPosition().toPoint();
+                return true;
+            }
+        }
     }
+    else if (event->type() == QEvent::MouseMove) {
+        QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
+        QPoint globalPos = mouseEvent->globalPosition().toPoint();
 
-    if (msg->message == WM_NCHITTEST) {
-        POINT cursor = { GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam) };
-        ScreenToClient(msg->hwnd, &cursor);
+        if (m_resizing) {
+            QPoint delta = globalPos - m_startMousePos;
+            QRect newGeo = m_startGeometry;
 
-        int borderX = 15; // On met une zone un peu large (15 pixels) pour tester facilement
-        int borderY = 15;
+            if (m_resizeEdge & ResizeEdge::Left) {
+                int newWidth = m_startGeometry.width() - delta.x();
+                if (newWidth >= minimumWidth())
+                    newGeo.setLeft(m_startGeometry.left() + delta.x());
+            }
+            if (m_resizeEdge & ResizeEdge::Right) {
+                int newWidth = m_startGeometry.width() + delta.x();
+                if (newWidth >= minimumWidth())
+                    newGeo.setRight(m_startGeometry.right() + delta.x());
+            }
+            if (m_resizeEdge & ResizeEdge::Top) {
+                int newHeight = m_startGeometry.height() - delta.y();
+                if (newHeight >= minimumHeight())
+                    newGeo.setTop(m_startGeometry.top() + delta.y());
+            }
+            if (m_resizeEdge & ResizeEdge::Bottom) {
+                int newHeight = m_startGeometry.height() + delta.y();
+                if (newHeight >= minimumHeight())
+                    newGeo.setBottom(m_startGeometry.bottom() + delta.y());
+            }
 
-        RECT rect;
-        GetClientRect(msg->hwnd, &rect);
-
-        // coin
-        if (cursor.y < borderY) {
-            if (cursor.x < borderX) { *result = HTTOPLEFT; return true; }
-            if (cursor.x >= rect.right - borderX) { *result = HTTOPRIGHT; return true; }
-            *result = HTTOP;
+            setGeometry(newGeo);
             return true;
         }
-        if (cursor.y >= rect.bottom - borderY) {
-            if (cursor.x < borderX) { *result = HTBOTTOMLEFT; return true; }
-            if (cursor.x >= rect.right - borderX) { *result = HTBOTTOMRIGHT; return true; }
-            *result = HTBOTTOM;
+        else {
+            QPoint localPos = mapFromGlobal(globalPos);
+            QRect r = rect();
+            int borderWidth = 12;
+
+            bool top = localPos.y() < borderWidth;
+            bool bottom = localPos.y() >= r.height() - borderWidth;
+            bool left = localPos.x() < borderWidth;
+            bool right = localPos.x() >= r.width() - borderWidth;
+
+            if ((top && left) || (bottom && right)) setCursor(Qt::SizeFDiagCursor);
+            else if ((top && right) || (bottom && left)) setCursor(Qt::SizeBDiagCursor);
+            else if (top || bottom) setCursor(Qt::SizeVerCursor);
+            else if (left || right) setCursor(Qt::SizeHorCursor);
+            else setCursor(Qt::ArrowCursor);
+        }
+    }
+    else if (event->type() == QEvent::MouseButtonRelease) {
+        if (m_resizing) {
+            m_resizing = false;
+            m_resizeEdge = ResizeEdge::None;
             return true;
         }
-
-        // bords
-        if (cursor.x < borderX) { *result = HTLEFT; return true; }
-        if (cursor.x >= rect.right - borderX) { *result = HTRIGHT; return true; }
     }
 
-    return QMainWindow::nativeEvent(eventType, message, result);
+    return QMainWindow::eventFilter(watched, event);
 }

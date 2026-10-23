@@ -1,5 +1,5 @@
 #include "sfml_widget.h"
-#include "CustomWindow.h"
+#include "customWindow.h"
 
 #include <QApplication>
 

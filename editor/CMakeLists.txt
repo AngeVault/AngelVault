@@ -2,8 +2,8 @@ add_executable(AngeVaultEditor WIN32
     src/main.cpp 
     src/sfml_widget.h 
     src/sfml_widget.cpp
-    src/CustomWindow.h
-    src/CustomWindow.cpp
+    "src/customWindow.h"
+    "src/customWindow.cpp"
 )
 
 target_link_libraries(AngeVaultEditor PRIVATE Qt6::Widgets AngeVault::Render2D)
