@@ -1,0 +1,11 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "x64-debug-qt",
+      "displayName": "x64 Debug + Qt (mon chemin)",
+      "inherits": "x64-debug",
+      "cacheVariables": { "CMAKE_PREFIX_PATH": "C:/Qt/6.8.1/msvc2022_64" }
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+if(AV_BUILD_SANDBOX)
+  add_executable(Sandbox main.cpp)
+  target_link_libraries(Sandbox PRIVATE AngeVault::Engine)
+  av_copy_assets(Sandbox ${CMAKE_CURRENT_SOURCE_DIR}/assets)
+endif()
