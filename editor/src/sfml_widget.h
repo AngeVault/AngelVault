@@ -5,14 +5,13 @@
 #include <functional>
 #include <optional>
 
-// Le seul widget Qt de la base : une fenêtre SFML incrustée dans Qt.
-// A VALIDER EN PREMIER sous Windows (voir docs/ROADMAP.md, tâche « Spike »).
-// Plan B si la fenêtre native pose problème : dessiner dans un sf::RenderTexture et afficher une QImage.
 class SfmlWidget : public QWidget {
     Q_OBJECT
 public:
     explicit SfmlWidget(QWidget* parent = nullptr);
 
+    // Appelée une fois, dès que la fenêtre SFML existe (au premier affichage) : créez ici votre Game.
+    std::function<void(sf::RenderWindow&)> onInit;
     // Appelée ~60 fois par seconde : dessinez dans la fenêtre. clear() et display() sont faits pour vous.
     std::function<void(sf::RenderWindow&)> onFrame;
     sf::RenderWindow* window() { return m_window ? &*m_window : nullptr; }
@@ -21,9 +20,11 @@ protected:
     QPaintEngine* paintEngine() const override { return nullptr; }   // SFML dessine, pas Qt
     void paintEvent(QPaintEvent*) override {}
     void showEvent(QShowEvent*) override;
+    void resizeEvent(QResizeEvent*) override;
 
 private:
     void renderFrame();
+    void syncSize();
     std::optional<sf::RenderWindow> m_window;
     QTimer m_timer;
 };

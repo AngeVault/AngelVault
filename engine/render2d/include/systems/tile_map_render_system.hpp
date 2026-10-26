@@ -136,11 +136,11 @@ private:
                 const int n = m_map.vertexPieces(vx, vy, pcs);
                 for (int p = 0; p < n; ++p) {
                     const int type = (int)pcs[p].type;
-                    const auto& slots = m_typeSlots[type];
-                    if (slots.empty()) continue;
+                    const auto& typeSlots = m_typeSlots[type];
+                    if (typeSlots.empty()) continue;
 
                     const uint32_t h = hash3(vx, vy, type);
-                    const int slotIdx = (pcs[p].mask == 15) ? slots[h % slots.size()] : slots[0];
+                    const int slotIdx = (pcs[p].mask == 15) ? typeSlots[h % typeSlots.size()] : typeSlots[0];
                     const Slot& s = m_slots[slotIdx];
                     if (s.animated() != animatedPass) continue;
 
