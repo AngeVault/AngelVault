@@ -21,7 +21,7 @@ private:
     sf::Clock        m_clock;
     Registry         m_registry;
     SystemManager    m_systems;
-    LooseFileLoader  m_textureLoader;   // RenderSystem en a besoin (son constructeur prend 2 arguments)
+    LooseFileLoader  m_textureLoader;  
 
     void handleEvents();
     void update(float dt);

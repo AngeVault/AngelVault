@@ -10,7 +10,7 @@ void test_add_has_get() {
     pool.add(0, Position{ 1.f, 1.f });
     pool.add(3, Position{ 3.f, 3.f }); // indices non contigus, exprès
 
-    (pool.has(0));
+    assert(pool.has(0));
     assert(pool.has(3));
     assert(!pool.has(1));           // jamais ajouté
     assert(pool.size() == 2);
