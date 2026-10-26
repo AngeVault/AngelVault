@@ -20,7 +20,7 @@ class ThemeManager : public QObject {
 public:
     explicit ThemeManager(QWidget* dialogParent);
 
-    // Sous-menu « Thème » prêt à être ajouté à un menu (ex. Édition)
+    // sous-menu Theme prêt à être ajouté à un menu
     QMenu* createMenu(QWidget* parent);
 
     bool apply(const QString& path, bool showErrors = true);
