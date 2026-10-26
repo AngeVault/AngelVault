@@ -175,6 +175,17 @@ void CustomWindow::minimize() {
 #endif
 }
 
+void CustomWindow::setBorderColor(const QColor& color) {
+    if (!color.isValid() || color == m_borderColor) return;
+    m_borderColor = color;
+#ifdef Q_OS_WIN
+    if (const HWND hwnd = hwndOf(this)) {
+        const COLORREF border = RGB(color.red(), color.green(), color.blue());
+        DwmSetWindowAttribute(hwnd, kDwmBorderColor, &border, sizeof(border));
+    }
+#endif
+}
+
 void CustomWindow::changeEvent(QEvent* e) {
     if (e->type() == QEvent::WindowStateChange) {
         m_titleBar->setMaximized(isMaximized());
@@ -220,7 +231,7 @@ void CustomWindow::applyNativeFrame() {
     DwmSetWindowAttribute(hwnd, kDwmUseImmersiveDarkMode, &dark, sizeof(dark));
     const DWORD corner = kCornerRound;
     DwmSetWindowAttribute(hwnd, kDwmWindowCornerPreference, &corner, sizeof(corner));
-    const COLORREF border = RGB(48, 48, 52);
+    const COLORREF border = RGB(m_borderColor.red(), m_borderColor.green(), m_borderColor.blue());
     DwmSetWindowAttribute(hwnd, kDwmBorderColor, &border, sizeof(border));
 
     SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
@@ -350,9 +361,6 @@ bool CustomWindow::nativeEvent(const QByteArray& eventType, void* message, qintp
         *result = 0;
         return true;
     }
-    else if (event->type() == QEvent::MouseMove) {
-        QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
-        QPoint globalPos = mouseEvent->globalPosition().toPoint();
 
     case WM_SIZE:
     case WM_DPICHANGED:

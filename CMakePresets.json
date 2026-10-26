@@ -9,7 +9,10 @@
     {
       "name": "windows-base", "hidden": true, "inherits": "base",
       "cacheVariables": { "CMAKE_C_COMPILER": "cl.exe", "CMAKE_CXX_COMPILER": "cl.exe" },
-      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+      "vendor": {
+        "jetbrains.com/clion": { "toolchain": "Visual Studio" }
+      }
     },
     { "name": "x64-debug", "displayName": "x64 Debug", "inherits": "windows-base",
       "architecture": { "value": "x64", "strategy": "external" },

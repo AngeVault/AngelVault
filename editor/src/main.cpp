@@ -1,5 +1,6 @@
 #include "customWindow.h"
 #include "game_view.h"
+#include "theme_manager.h"
 #include "tilemap_view.h"
 #include "titleBar.h"
 
@@ -22,12 +23,6 @@
 #include <QUrl>
 
 namespace {
-void loadStyleSheet(QApplication& app) {
-    QFile qss(":/resources/style/appstyles.qss");
-    if (qss.open(QIODevice::ReadOnly | QIODevice::Text))
-        app.setStyleSheet(QString::fromUtf8(qss.readAll()));
-}
-
 QAction* addAction(QMenu* menu, const QString& text, const QKeySequence& shortcut = {}) {
     QAction* a = menu->addAction(text);
     a->setShortcut(shortcut);
@@ -52,11 +47,14 @@ auto addLink = [](QMenu* menu, const QString& text, const QString& url) {
 int main(int argc, char** argv) {
     QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QApplication app(argc, argv);
+    QApplication::setOrganizationName("AngeVault");   // pour QSettings (thème, etc.)
+    QApplication::setApplicationName("AngeVault Editor");
     app.setStyle(QStyleFactory::create("Fusion"));
     app.setFont(QFont("Segoe UI", 9));
-    loadStyleSheet(app);
 
     CustomWindow window;
+    ThemeManager themes(&window);
+    themes.restoreSaved();                              // dernier thème choisi
     window.setWindowTitle("AngeVault Editor");
     window.setWindowIcon(QIcon(":/resources/icons/icon.png"));
     window.setMinimumSize(640, 400);
@@ -80,6 +78,7 @@ int main(int argc, char** argv) {
     addAction(edit, "Rétablir", QKeySequence::Redo);
     edit->addSeparator();
     addAction(edit, "Préférences...", QKeySequence(Qt::CTRL | Qt::Key_Comma));
+    edit->addMenu(themes.createMenu(edit));             // Sombre / Néon rose / fichier .qss
 
     QMenu* view = window.addMenu("&Affichage");
     QAction* grid = addAction(view, "Grille", QKeySequence(Qt::CTRL | Qt::Key_G));

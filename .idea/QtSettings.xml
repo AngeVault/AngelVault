@@ -12,6 +12,22 @@
             </PerProfileState>
           </value>
         </entry>
+        <entry key="x64-debug">
+          <value>
+            <PerProfileState>
+              <option name="myQmlPath" value="$PROJECT_DIR$/../../../../../Qt/6.12.0/msvc2022_64/qml" />
+              <option name="myQtBinPath" value="$PROJECT_DIR$/../../../../../Qt/6.12.0/msvc2022_64/bin" />
+            </PerProfileState>
+          </value>
+        </entry>
+        <entry key="x64-release">
+          <value>
+            <PerProfileState>
+              <option name="myQmlPath" value="$PROJECT_DIR$/../../../../../Qt/6.12.0/msvc2022_64/qml" />
+              <option name="myQtBinPath" value="$PROJECT_DIR$/../../../../../Qt/6.12.0/msvc2022_64/bin" />
+            </PerProfileState>
+          </value>
+        </entry>
       </map>
     </option>
   </component>
