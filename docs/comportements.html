@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comportements C++ — AngeVault Engine</title>
+<meta name="description" content="Guide des comportements AngeVault : IBehavior, composant Script, ScriptSystem, macro PROPERTY, exemple complet du PlayerBehavior.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html" class="current" aria-current="page">Comportements C++</a><a href="composants.html">Référence des composants</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Comportements C++</div><span class="eyebrow">Documentation</span><h1>Comportements C++</h1><p class="lead">Écrire de la logique de jeu en C++ natif avec IBehavior, le composant Script et la macro PROPERTY.</p></div></section>
+<div class="wrap doc"><article class="prose"><h2 id="le-modele-ibehavior-script-scriptsystem">Le modèle : IBehavior + Script + ScriptSystem</h2>
+<p>La logique propre à une entité (déplacer le joueur, faire tourner un bloc…) s'écrit dans une classe qui hérite de <code>IBehavior</code>. Cette classe est portée par un composant <code>Script</code>, et c'est le <code>ScriptSystem</code> (priorité 2) qui en appelle les méthodes.</p>
+<div class="code"><div class="code-head"><span class="file">ecs/behavior.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">struct</span> <span class="t">IBehavior</span> {
+    <span class="k">std</span>::vector&lt;<span class="t">PropertyInfo</span>&gt; m_properties;
+
+    <span class="k">virtual</span> ~<span class="t">IBehavior</span>() = <span class="k">default</span>;
+
+    <span class="k">virtual</span> <span class="k">void</span> onStart(<span class="t">Entity</span> self, <span class="t">Registry</span>&amp; registry) {}
+    <span class="k">virtual</span> <span class="k">void</span> onUpdate(<span class="t">Entity</span> self, <span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) = <span class="n">0</span>;
+    <span class="k">virtual</span> <span class="k">void</span> onDestroy(<span class="t">Entity</span> self, <span class="t">Registry</span>&amp; registry) {}
+};</code></pre></div>
+<div class="table-wrap"><table>
+<tr><th>Méthode</th><th>Quand ?</th></tr>
+<tr><td><code>onStart</code></td><td>Une fois, juste avant le premier <code>onUpdate</code> de l'entité (le drapeau <code>Script::started</code> est ensuite mis à vrai)</td></tr>
+<tr><td><code>onUpdate</code></td><td>À chaque frame, avec le <code>dt</code> en secondes. <strong>Obligatoire</strong> (méthode virtuelle pure)</td></tr>
+<tr><td><code>onDestroy</code></td><td>À l'arrêt du jeu (<code>ScriptSystem::onStop</code>), pour chaque script déjà démarré</td></tr>
+</table></div>
+<div class="callout warn"><i class="fa-solid fa-triangle-exclamation"></i><div><p><strong>Détail important.</strong> <code>onDestroy</code> est appelé à l'<em>arrêt du jeu</em>, pas quand une entité isolée est détruite en cours de partie. Ne comptez pas dessus pour libérer une ressource lorsque <code>destroyEntity()</code> est appelé.</p></div></div>
+<div class="code"><div class="code-head"><span class="file">script_component.h + script_system.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">struct</span> <span class="t">Script</span> {
+    <span class="k">std</span>::unique_ptr&lt;<span class="t">IBehavior</span>&gt; behavior;
+    <span class="k">bool</span> started = <span class="k">false</span>;
+    <span class="c">// non copiable, déplaçable</span>
+};
+
+<span class="k">class</span> <span class="t">ScriptSystem</span> : <span class="k">public</span> <span class="t">ISystem</span> {
+<span class="k">public</span>:
+    <span class="t">ScriptSystem</span>() { priority = <span class="n">2</span>; } <span class="c">// après Physics (0) et Collision (1), avant Render (10)</span>
+
+    <span class="k">void</span> onUpdate(<span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) <span class="k">override</span> {
+        registry.view&lt;<span class="t">Script</span>&gt;([&amp;](<span class="t">Entity</span> e, <span class="t">Script</span>&amp; s) {
+            <span class="k">if</span> (!s.behavior) <span class="k">return</span>;
+            <span class="k">if</span> (!s.started) { s.behavior-&gt;onStart(e, registry); s.started = <span class="k">true</span>; }
+            s.behavior-&gt;onUpdate(e, registry, dt);
+        });
+    }
+};</code></pre></div>
+
+<h2 id="votre-premier-comportement">Votre premier comportement</h2>
+<p>Le plus simple du Sandbox : <code>Rotation</code> fait tourner une entité de 45° par seconde.</p>
+<div class="code"><div class="code-head"><span class="file">behaviors/rotating.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#pragma</span> once
+<span class="p">#include</span> <span class="s">"ecs/behavior.h"</span>
+<span class="p">#include</span> <span class="s">"ecs/registry.h"</span>
+<span class="p">#include</span> <span class="s">"components/transform2d.h"</span>
+
+<span class="k">class</span> <span class="t">Rotation</span> : <span class="k">public</span> <span class="t">IBehavior</span> {
+    <span class="k">void</span> onUpdate(<span class="t">Entity</span> self, <span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) <span class="k">override</span>
+    {
+        <span class="k">auto</span>&amp; t = registry.getComponent&lt;<span class="t">Transform2D</span>&gt;(self);
+        <span class="k">float</span> rotationSpeed = <span class="n">45.0f</span>;
+        t.setRotation(t.getRotation() + sf::degrees(rotationSpeed * dt));
+    }
+};</code></pre></div>
+<p>Pour l'attacher à une entité :</p>
+<div class="code"><div class="code-head"><span class="file">sandbox_scene.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="t">Entity</span> car = registry.createEntity();
+registry.addComponent&lt;<span class="t">Transform2D</span>&gt;(car).setPosition({ <span class="n">300</span>.f, <span class="n">300</span>.f });
+<span class="c">// … Geometry, RigidBody2D, Collider2D, NameComponent …</span>
+<span class="k">auto</span>&amp; carBehavior = registry.addComponent&lt;<span class="t">Script</span>&gt;(car);
+carBehavior.behavior = <span class="k">std</span>::make_unique&lt;<span class="t">Rotation</span>&gt;();</code></pre></div>
+<ol>
+  <li>Créez un en-tête dans <code>projects/&lt;projet&gt;/behaviors/</code>.</li>
+  <li>Héritez de <code>IBehavior</code> et implémentez <code>onUpdate</code>.</li>
+  <li>Ajoutez un composant <code>Script</code> à l'entité et affectez-lui <code>std::make_unique&lt;VotreComportement&gt;()</code>.</li>
+  <li>Vérifiez que le <code>ScriptSystem</code> est enregistré dans la scène (<code>game.systems().addSystem&lt;ScriptSystem&gt;()</code>).</li>
+</ol>
+
+<h2 id="property-des-champs-editables-dans-linspector">PROPERTY : des champs éditables dans l'Inspector</h2>
+<p>La macro <code>PROPERTY(type, nom, valeurDéfaut)</code> déclare un membre <em>et</em> l'enregistre dans <code>m_properties</code>. L'Inspector de l'éditeur affiche ces champs automatiquement.</p>
+<div class="code"><div class="code-head"><span class="file">ecs/property.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#define</span> <span class="t">PROPERTY</span>(T, name, defaultVal)                                         \
+    T name = (defaultVal);                                                    \
+    <span class="k">struct</span> _PropReg_##name {                                                  \
+        _PropReg_##name(<span class="k">std</span>::vector&lt;<span class="t">PropertyInfo</span>&gt;&amp; props, T&amp; val) {           \
+            props.push_back({ #name, <span class="t">PropertyInfo</span>::typeFor&lt;T&gt;(), &amp;val });     \
+        }                                                                     \
+    } _propReg_##name { m_properties, name };</code></pre></div>
+<p>Concrètement, chaque <code>PROPERTY</code> crée le membre, plus un petit objet dont le constructeur pousse dans <code>m_properties</code> un <code>PropertyInfo { nom, type, pointeur }</code>. Le type est déduit à la compilation par <code>PropertyInfo::typeFor&lt;T&gt;()</code>.</p>
+<div class="table-wrap"><table>
+<tr><th>Type C++</th><th>Valeur de <code>PropertyInfo::Type</code></th></tr>
+<tr><td><code>float</code></td><td><code>Float</code></td></tr>
+<tr><td><code>int</code></td><td><code>Int</code></td></tr>
+<tr><td><code>bool</code></td><td><code>Bool</code></td></tr>
+<tr><td><code>sf::Vector2f</code></td><td><code>Vec2f</code></td></tr>
+<tr><td><code>std::string</code></td><td><code>String</code></td></tr>
+</table></div>
+<div class="callout"><i class="fa-solid fa-circle-info"></i><div><p>Le <code>PropertyInfo</code> mémorise l'<strong>adresse</strong> du membre. Un comportement ne doit donc être ni copié ni déplacé après sa création : c'est le cas ici puisqu'il vit derrière un <code>std::unique_ptr</code> dans <code>Script</code>.</p></div></div>
+
+<h2 id="exemple-complet-playerbehavior">Exemple complet : PlayerBehavior</h2>
+<p>Voici le comportement du joueur du Sandbox (extrait de <code>projects/sandbox/behaviors/player_behavior.h</code>). Il combine déplacement, saut avec double saut, et tir d'une balle toutes les 2 secondes.</p>
+<div class="code"><div class="code-head"><span class="file">behaviors/player_behavior.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">class</span> <span class="t">PlayerBehavior</span> : <span class="k">public</span> <span class="t">IBehavior</span> {
+<span class="k">public</span>:
+    <span class="t">PROPERTY</span>(<span class="k">float</span>, speed, <span class="n">250</span>.f)
+    <span class="t">PROPERTY</span>(<span class="k">float</span>, jumpForce, <span class="n">550</span>.f)
+    <span class="t">PROPERTY</span>(<span class="k">float</span>, groundFriction, <span class="n">0.75f</span>)
+    <span class="t">PROPERTY</span>(<span class="k">bool</span>, canDoubleJump, <span class="k">true</span>)
+    <span class="t">PROPERTY</span>(<span class="k">int</span>, maxAmmo, <span class="n">10</span>)
+    <span class="t">PROPERTY</span>(<span class="k">int</span>, ballId, <span class="n">1</span>)
+
+    <span class="k">void</span> onUpdate(<span class="t">Entity</span> self, <span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) <span class="k">override</span>
+    {
+        keyTimer += dt;
+        <span class="k">auto</span>&amp; rb = registry.getComponent&lt;<span class="t">RigidBody2D</span>&gt;(self);
+
+        <span class="k">float</span> moveX = <span class="n">0</span>.f;
+        <span class="k">if</span> (sf::<span class="t">Keyboard</span>::isKeyPressed(sf::<span class="t">Keyboard</span>::<span class="t">Key</span>::<span class="t">Left</span>)
+         || sf::<span class="t">Keyboard</span>::isKeyPressed(sf::<span class="t">Keyboard</span>::<span class="t">Key</span>::A)
+         || sf::<span class="t">Keyboard</span>::isKeyPressed(sf::<span class="t">Keyboard</span>::<span class="t">Key</span>::Q))
+            moveX = -<span class="n">1</span>.f;
+        <span class="k">if</span> (sf::<span class="t">Keyboard</span>::isKeyPressed(sf::<span class="t">Keyboard</span>::<span class="t">Key</span>::<span class="t">Right</span>)
+         || sf::<span class="t">Keyboard</span>::isKeyPressed(sf::<span class="t">Keyboard</span>::<span class="t">Key</span>::D))
+            moveX = <span class="n">1</span>.f;
+        rb.velocity.x = moveX * speed;
+
+        <span class="k">bool</span> jumpPressed = sf::<span class="t">Keyboard</span>::isKeyPressed(sf::<span class="t">Keyboard</span>::<span class="t">Key</span>::<span class="t">Space</span>)
+                        || sf::<span class="t">Keyboard</span>::isKeyPressed(sf::<span class="t">Keyboard</span>::<span class="t">Key</span>::<span class="t">Up</span>)
+                        || sf::<span class="t">Keyboard</span>::isKeyPressed(sf::<span class="t">Keyboard</span>::<span class="t">Key</span>::W)
+                        || sf::<span class="t">Keyboard</span>::isKeyPressed(sf::<span class="t">Keyboard</span>::<span class="t">Key</span>::Z);
+        <span class="k">if</span> (jumpPressed &amp;&amp; !m_jumpHeld) {
+            <span class="k">if</span> (rb.isGrounded) {
+                rb.applyImpulse({ <span class="n">0</span>.f, -jumpForce });
+                m_jumpsLeft = canDoubleJump ? <span class="n">1</span> : <span class="n">0</span>;
+                m_jumpHeld = <span class="k">true</span>;
+            }
+            <span class="k">else</span> <span class="k">if</span> (m_jumpsLeft &gt; <span class="n">0</span>) {
+                rb.velocity.y = <span class="n">0</span>.f;
+                rb.applyImpulse({ <span class="n">0</span>.f, -jumpForce });
+                m_jumpsLeft--;
+                m_jumpHeld = <span class="k">true</span>;
+            }
+        }
+
+        <span class="k">if</span> (sf::<span class="t">Keyboard</span>::isKeyPressed(sf::<span class="t">Keyboard</span>::<span class="t">Key</span>::E) &amp;&amp; keyTimer &gt; <span class="n">2.0f</span>) {
+            shootBall(registry, ballId, self);
+            keyTimer = <span class="n">0</span>;
+        }
+
+        <span class="k">if</span> (!jumpPressed) m_jumpHeld = <span class="k">false</span>;
+        <span class="k">if</span> (moveX == <span class="n">0</span>.f &amp;&amp; rb.isGrounded) rb.velocity.x *= groundFriction;
+    }
+
+<span class="k">private</span>:
+    <span class="k">bool</span>  m_jumpHeld = <span class="k">false</span>;
+    <span class="k">int</span>   m_jumpsLeft = <span class="n">0</span>;
+    <span class="k">float</span> keyTimer = <span class="n">0</span>;
+};</code></pre></div>
+<p>À noter :</p>
+<ul>
+  <li>L'état interne (<code>m_jumpHeld</code>, <code>m_jumpsLeft</code>, <code>keyTimer</code>) est <strong>privé</strong> et n'apparaît pas dans l'Inspector ; seuls les champs déclarés avec <code>PROPERTY</code> sont exposés.</li>
+  <li><code>rb.isGrounded</code> est remis à faux par le <code>PhysicsSystem</code> au début de chaque frame, puis remis à vrai par le <code>CollisionSystem</code> : le script le lit après les deux (priorité 2).</li>
+  <li><code>applyImpulse</code> divise par la masse : une impulsion de même force donne une vitesse plus faible à un objet plus lourd.</li>
+</ul>
+
+<h2 id="creer-des-entites-depuis-un-comportement">Créer des entités depuis un comportement</h2>
+<p>Un comportement reçoit le <code>Registry</code> : il peut créer des entités en cours de partie. <code>shootBall</code> crée une balle devant le joueur :</p>
+<div class="code"><div class="code-head"><span class="file">behaviors/player_behavior.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">inline</span> <span class="k">void</span> shootBall(<span class="t">Registry</span>&amp; registry, <span class="k">int</span> ballId, <span class="t">Entity</span> self)
+{
+    <span class="k">auto</span>&amp; playerTrans = registry.getComponent&lt;<span class="t">Transform2D</span>&gt;(self);
+    <span class="k">auto</span>&amp; rbPlayer    = registry.getComponent&lt;<span class="t">RigidBody2D</span>&gt;(self);
+
+    sf::<span class="t">Vector2f</span> spawnPose = playerTrans.getPosition();
+    spawnPose.x += <span class="n">33</span>;
+    spawnPose.y += <span class="n">1</span>;
+
+    <span class="t">Entity</span> ball = registry.createEntity();
+    registry.addComponent&lt;<span class="t">Transform2D</span>&gt;(ball).setPosition(spawnPose);
+    registry.addComponent&lt;<span class="t">Geometry</span>&gt;(ball,
+        <span class="t">Geometry</span>::<span class="t">CircleData</span>{ <span class="n">16</span>.f, { sf::<span class="t">Color</span>(<span class="n">255</span>, <span class="n">0</span>, <span class="n">0</span>), sf::<span class="t">Color</span>::<span class="t">Transparent</span>, <span class="n">0</span>.f, <span class="s">"ball"</span> } }, <span class="n">1</span>);
+    <span class="k">auto</span>&amp; rbBall  = registry.addComponent&lt;<span class="t">RigidBody2D</span>&gt;(ball);
+    <span class="k">auto</span>&amp; colBall = registry.addComponent&lt;<span class="t">Collider2D</span>&gt;(ball, <span class="t">Collider2D</span>::makeCircle(<span class="n">16</span>.f));
+    colBall.restitution = <span class="n">0.5f</span>;
+    rbBall.mass = <span class="n">0.5f</span>;
+    rbBall.applyImpulse({ <span class="n">50</span> + rbPlayer.velocity.x * <span class="n">2</span>, <span class="n">0</span> + rbPlayer.velocity.y * <span class="n">2</span> });
+    <span class="c">// … NameComponent "ball N" …</span>
+}</code></pre></div>
+<div class="callout plan"><i class="fa-solid fa-lightbulb"></i><div><p><strong>Prochainement.</strong> Le module <code>scene</code> prévoit un registre de comportements (<em>nom → fabrique</em>) pour sauvegarder le composant <code>Script</code> dans un fichier de scène JSON. Aujourd'hui, les scripts sont attachés en C++ dans <code>sandbox_scene.h</code>.</p></div></div>
+<div class="pager"><a class="prev" href="demarrage.html"><small>Précédent</small>← Démarrage &amp; build</a><a class="next" href="composants.html"><small>Suivant</small>Référence des composants →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#le-modele-ibehavior-script-scriptsystem">Le modèle : IBehavior + Script + ScriptSystem</a><a href="#votre-premier-comportement">Votre premier comportement</a><a href="#property-des-champs-editables-dans-linspector">PROPERTY : des champs éditables dans l&#x27;Inspector</a><a href="#exemple-complet-playerbehavior">Exemple complet : PlayerBehavior</a><a href="#creer-des-entites-depuis-un-comportement">Créer des entités depuis un comportement</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
+ <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>

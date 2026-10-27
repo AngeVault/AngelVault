@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modules du moteur — AngeVault Engine</title>
+<meta name="description" content="Modules du moteur AngeVault : Core, Physics2D, Particles, Tilemap, Render2D, Runtime, et modules prévus (scene, input, assets, animation, audio, ui, ai).">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html" class="current" aria-current="page">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Architecture / Modules du moteur</div><span class="eyebrow">Architecture</span><h1>Modules du moteur</h1><p class="lead">Tour d'horizon des six modules actifs de engine/ et des modules prévus, avec les systèmes et composants de chacun.</p></div></section>
+<div class="wrap doc"><article class="prose"><h2 id="core">Core <span class="tag ok">actif</span></h2>
+<p><code>engine/core</code> — dépend de <code>SFML::System</code> et <code>glm::glm</code>. C'est la base de tout : l'ECS (voir <a href="ecs.html">ECS &amp; Registry</a>) et les composants que presque tout le monde utilise.</p>
+<ul>
+  <li><code>Transform2D</code> : position, rotation, échelle, <code>depth</code>, avec matrice locale mise en cache (drapeau « dirty »).</li>
+  <li><code>Transform3D</code> : position, quaternion, échelle (glm) et <code>getModelMatrix()</code>.</li>
+  <li><code>NameComponent</code> : nom lisible affiché par la Hierarchy.</li>
+  <li><code>Script</code> + <code>ScriptSystem</code> : comportements C++ (voir <a href="comportements.html">Comportements</a>).</li>
+</ul>
+
+<h2 id="physics2d">Physics2D <span class="tag ok">actif</span></h2>
+<p><code>engine/physics2d</code> — dépend de Core. Deux composants (<code>RigidBody2D</code>, <code>Collider2D</code>) et deux systèmes.</p>
+<h3 id="physicssystem-priorite-0">PhysicsSystem (priorité 0)</h3>
+<p>Intègre le mouvement en <strong>Euler semi-implicite</strong>, une fois par frame et par corps non statique :</p>
+<div class="code"><div class="code-head"><span class="file">physics_system.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code>dt = <span class="k">std</span>::min(dt, <span class="n">0.05f</span>);                      <span class="c">// un gros dt ne fait pas « exploser » la simulation</span>
+
+<span class="k">if</span> (rb.useGravity) rb.applyForce(rb.mass * gravity);   <span class="c">// gravity = { 0, 980 } px/s²</span>
+
+sf::<span class="t">Vector2f</span> acceleration = rb.forceAccumulator * rb.inverseMass();   <span class="c">// a = F / m</span>
+rb.velocity += acceleration * dt;                                    <span class="c">// v += a·dt</span>
+
+<span class="k">float</span> dragFactor = <span class="n">1.0f</span> - (rb.linearDrag * dt);                      <span class="c">// résistance de l'air</span>
+rb.velocity *= <span class="k">std</span>::max(<span class="n">0</span>.f, dragFactor);
+
+<span class="k">if</span> (rb.velocity.y &gt; terminalVelocity) rb.velocity.y = terminalVelocity;
+
+t.move(rb.velocity * dt);                                            <span class="c">// x += v·dt</span>
+rb.forceAccumulator = { <span class="n">0</span>.f, <span class="n">0</span>.f };                                  <span class="c">// les forces se recalculent à chaque frame</span></code></pre></div>
+<div class="table-wrap"><table>
+<tr><th>Paramètre</th><th>Valeur par défaut</th><th>Remarque</th></tr>
+<tr><td><code>gravity</code></td><td><code>{ 0, 980 }</code></td><td>pixels/s² (9,8 m/s² × 100 px/m) ; l'axe Y pointe vers le bas</td></tr>
+<tr><td><code>terminalVelocity</code></td><td><code>200000</code></td><td>vitesse de chute maximale</td></tr>
+<tr><td>plafond de <code>dt</code></td><td><code>0.05 s</code></td><td>codé en dur dans <code>onUpdate</code></td></tr>
+</table></div>
+<h3 id="collisionsystem-priorite-1">CollisionSystem (priorité 1)</h3>
+<ul>
+  <li><strong>Grille spatiale</strong> de cellules de 128 px : chaque collider est inséré dans les cellules que couvre son rayon englobant, et seuls les couples qui partagent une cellule passent au test précis.</li>
+  <li><strong>Formes</strong> : <code>Box</code>, <code>Circle</code>, <code>Ellipse</code>, <code>Capsule</code>, <code>Polygon</code>, stockées dans un <code>std::variant</code>.</li>
+  <li><strong>Triggers</strong> : un collider <code>isTrigger</code> détecte sans résoudre la physique.</li>
+  <li><strong>Callback</strong> : <code>std::function&lt;void(const CollisionInfo&amp;)&gt; onCollision</code>, appelé à chaque collision. <code>CollisionInfo</code> contient les deux entités, la normale, la profondeur, le point de contact et le drapeau trigger.</li>
+  <li>Met <code>RigidBody2D::isGrounded</code> à vrai quand un corps est posé sur un autre.</li>
+</ul>
+
+<h2 id="particles">Particles <span class="tag ok">actif</span></h2>
+<p><code>engine/particles</code> — dépend de Core. La configuration et l'état d'exécution sont volontairement séparés en deux composants :</p>
+<ul>
+  <li><code>ParticleEmitter</code> : <em>configuration</em> modifiable (cadence <code>emissionRate</code>, <code>burstCount</code>, forme d'émission point/rectangle/cercle, angle, vitesse, accélération, durée de vie, vitesse angulaire, graine aléatoire).</li>
+  <li><code>ParticleEmitterRuntime</code> : <em>état</em> (accumulateur d'émission, particules vivantes, temps écoulé…).</li>
+  <li><code>ParticleSystem</code> (priorité 3) et <code>ParticleManager</code> font vivre les particules. Un émetteur peut se détruire à la fin (<code>destroyWhenFinished</code>).</li>
+</ul>
+<div class="callout"><i class="fa-solid fa-circle-info"></i><div><p><code>ParticleSystem</code> n'est pas enregistré par défaut par <code>Game</code> : ajoutez-le à votre scène avec <code>game.systems().addSystem&lt;ParticleSystem&gt;()</code>.</p></div></div>
+
+<h2 id="tilemap">Tilemap <span class="tag ok">actif</span></h2>
+<p><code>engine/tilemap</code> — dépend de <code>SFML::Graphics</code>. Contient les <em>données</em> de la carte ; le dessin est dans Render2D.</p>
+<ul>
+  <li><code>TileType</code> : <code>None, Sand, Water, Grass, BrickPath, DirtPath, DonjonFloor, Wall, Path</code>.</li>
+  <li><code>TileMap</code> : <code>width</code>, <code>height</code>, <code>tileSize</code> (16 par défaut), couche logique <code>value</code> (le bit 7 = <code>TF_SOLID</code>, les bits 0–6 = type), couche <code>walls</code>, et un <code>TileSet</code> (variantes, animations).</li>
+  <li><strong>Dual-grid</strong> : le visuel est posé sur les <em>sommets</em> entre quatre tuiles (<code>VertexPiece</code> avec un masque de 4 coins), ce qui produit des transitions de terrains propres avec très peu de textures.</li>
+  <li><code>layerOrder</code> : ordre d'empilement des terrains, du dessous au dessus (sable, eau, herbe, chemins…).</li>
+  <li>Compteurs de version <code>version</code>, <code>animVersion</code>, <code>layerVersion</code> : le rendu ne reconstruit que ce qui a changé.</li>
+  <li>La carte grandit automatiquement vers les coordonnées négatives (<code>consumeGrowOffset()</code> donne le décalage appliqué).</li>
+</ul>
+
+<h2 id="render2d">Render2D <span class="tag ok">actif</span></h2>
+<p><code>engine/render2d</code> — dépend de Core, Physics2D, Tilemap et <code>SFML::Graphics</code>. <strong>Seul module qui dessine.</strong></p>
+<h3 id="geometry-et-rendersystem-priorite-10">Geometry et RenderSystem (priorité 10)</h3>
+<p>Le composant <code>Geometry</code> contient un <code>std::variant</code> de quatre formes plus un <code>layer</code> :</p>
+<div class="table-wrap"><table>
+<tr><th>Forme</th><th>Champs</th></tr>
+<tr><td><code>BoxData</code></td><td><code>halfSize</code>, <code>style</code></td></tr>
+<tr><td><code>CircleData</code></td><td><code>radius</code>, <code>style</code></td></tr>
+<tr><td><code>PolygonData</code></td><td><code>points</code>, <code>style</code></td></tr>
+<tr><td><code>SpriteData</code></td><td><code>textureId</code>, <code>rect</code> (découpe), <code>tint</code></td></tr>
+</table></div>
+<p>Le <code>style</code> regroupe <code>fillColor</code>, <code>outlineColor</code>, <code>outlineThickness</code> et un <code>textureId</code> optionnel. Chaque frame, <code>RenderSystem</code> collecte les entités ayant <code>Transform2D</code> + <code>Geometry</code>, les <strong>trie par <code>layer</code></strong>, puis dessine chacune avec sa matrice locale.</p>
+<h3 id="textures-loosefileloader">Textures : LooseFileLoader</h3>
+<p>Les textures sont chargées à la demande et mises en cache par identifiant. L'identifiant est résolu via un fichier de correspondance <em>id → chemin</em> ; s'il n'y est pas, il est traité comme un chemin direct. Si le fichier est introuvable, un <strong>damier magenta/noir de 32×32</strong> est utilisé : une texture manquante se voit tout de suite.</p>
+<h3 id="camera-et-autres-systemes">Caméra et autres systèmes</h3>
+<ul>
+  <li><code>Camera2d</code> : position, zoom borné (0,25 à 4), pan clavier/manette, lissage du zoom, limites du monde (<code>setWorldBorder</code>, <code>clampPosition</code>) et <code>makeView()</code> qui produit une <code>sf::View</code>.</li>
+  <li><code>TileMapRenderSystem</code> (priorité 5) : dessine la tilemap ; il tient compte des compteurs de version de <code>TileMap</code>.</li>
+  <li><code>RenderCollisionSystem</code> (11) et <code>ForceDebugSystem</code> (12) : superpositions de débogage pour voir les colliders et les forces.</li>
+  <li>Utilitaires : <code>TextureFactory</code>, <code>TilesetFactory</code>, <code>ColliderFactory</code>.</li>
+</ul>
+
+<h2 id="runtime">Runtime <span class="tag ok">actif</span></h2>
+<p><code>engine/runtime</code> — dépend de Render2D et <code>SFML::Window</code>. Contient la classe <code>Game</code> : voir <a href="architecture.html">la boucle de jeu</a>. Elle enregistre d'office <code>RenderSystem</code>, <code>RenderCollisionSystem</code> et <code>ForceDebugSystem</code>.</p>
+
+<h2 id="modules-prevus">Modules prévus <span class="tag plan">à venir</span></h2>
+<p>Le <code>CMakeLists.txt</code> de <code>engine/</code> liste ces modules comme « prévus, pas encore créés ». Le premier à voir le jour devrait être <code>scene</code> (voir la <a href="roadmap.html">feuille de route</a>).</p>
+<div class="table-wrap"><table>
+<tr><th>Module</th><th>Contenu prévu</th><th>Dépendances prévues</th></tr>
+<tr><td><code>scene</code></td><td>Sérialisation JSON des scènes (entités, composants, tilemap), identifiants stables, prefabs, registre de comportements (nom → fabrique). Même fichier pour l'éditeur et le jeu.</td><td>Core, Tilemap, <code>nlohmann_json</code></td></tr>
+<tr><td><code>ui</code></td><td>Interface en jeu : boîtes de dialogue, HUD, barres de vie.</td><td>Core, Render2D</td></tr>
+<tr><td><code>input</code></td><td>Gestion des entrées (actions, manettes).</td><td>—</td></tr>
+<tr><td><code>assets</code></td><td>Gestion centralisée des ressources.</td><td>—</td></tr>
+<tr><td><code>animation</code></td><td>Animation de sprites.</td><td>—</td></tr>
+<tr><td><code>audio</code></td><td>Son (le flag <code>SFML_BUILD_AUDIO</code> est prêt, à passer à ON).</td><td>—</td></tr>
+<tr><td><code>ai</code></td><td>Intelligence artificielle des entités.</td><td>—</td></tr>
+</table></div>
+<p>Pour créer l'un d'eux, voir la recette <a href="docs.html">« Ajouter un module »</a>. Seuls <code>scene</code> et <code>ui</code> ont à ce jour un <code>README.md</code> ; les autres lignes du tableau reprennent la liste commentée dans <code>engine/CMakeLists.txt</code> (leur contenu exact reste à définir).</p>
+<div class="pager"><a class="prev" href="ecs.html"><small>Précédent</small>← ECS &amp; Registry</a><a class="next" href="editeur.html"><small>Suivant</small>Éditeur Qt →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#core">Core</a><a href="#physics2d">Physics2D</a><a href="#physicssystem-priorite-0" class="sub">PhysicsSystem (priorité 0)</a><a href="#collisionsystem-priorite-1" class="sub">CollisionSystem (priorité 1)</a><a href="#particles">Particles</a><a href="#tilemap">Tilemap</a><a href="#render2d">Render2D</a><a href="#geometry-et-rendersystem-priorite-10" class="sub">Geometry et RenderSystem (priorité 10)</a><a href="#textures-loosefileloader" class="sub">Textures : LooseFileLoader</a><a href="#camera-et-autres-systemes" class="sub">Caméra et autres systèmes</a><a href="#runtime">Runtime</a><a href="#modules-prevus">Modules prévus</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
+ <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feuille de route — AngeVault Engine</title>
+<meta name="description" content="État actuel d&#x27;AngeVault, modules prévus (scene, input, assets, UI, animation, audio, IA) et points d&#x27;attention techniques.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a></div></div><div class="item active"><a class="top" href="roadmap.html" aria-current="page">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Feuille de route</div><span class="eyebrow">Projet</span><h1>Feuille de route</h1><p class="lead">Où en est AngeVault : ce qui fonctionne, ce qui est prévu, et quelques points d'attention repérés dans le code.</p></div></section>
+<div class="wrap doc"><article class="prose"><h2 id="etat-actuel">État actuel</h2>
+<div class="table-wrap"><table>
+<tr><th>Élément</th><th>État</th><th>Détail</th></tr>
+<tr><td>Core / ECS</td><td><span class="tag ok">opérationnel</span></td><td>Sparse sets, vues, callbacks, destruction différée, test unitaire du pool</td></tr>
+<tr><td>Physics2D</td><td><span class="tag ok">opérationnel</span></td><td>Corps rigides, 5 formes, grille spatiale, triggers</td></tr>
+<tr><td>Render2D</td><td><span class="tag ok">opérationnel</span></td><td>Geometry, sprites, caméra, tilemap, calques de debug</td></tr>
+<tr><td>Tilemap</td><td><span class="tag ok">opérationnel</span></td><td>Dual-grid, 8 types de terrain, animations de tuiles</td></tr>
+<tr><td>Particles</td><td><span class="tag ok">opérationnel</span></td><td>Émetteurs configurables ; système à enregistrer à la main</td></tr>
+<tr><td>Runtime</td><td><span class="tag ok">opérationnel</span></td><td>Mode autonome et mode embarqué</td></tr>
+<tr><td>Éditeur Qt</td><td><span class="tag ok">opérationnel</span></td><td>5 panneaux, mode jeu, thèmes ; menus <em>Fichier</em> et <em>Édition</em> encore à relier</td></tr>
+<tr><td>Projet Sandbox</td><td><span class="tag ok">opérationnel</span></td><td>Joueur, balle, sol, mur, carré tournant</td></tr>
+<tr><td>Projet RPG</td><td><span class="tag warn">à démarrer</span></td><td>Dossier présent, <code>main.cpp</code> vide, non branché au CMake racine</td></tr>
+<tr><td>Prototype RTS</td><td><span class="tag old">legacy</span></td><td><code>legacy/rts</code> : 8 composants, 22 systèmes, 7 utilitaires, hors build</td></tr>
+</table></div>
+
+<h2 id="feuille-de-route-proposee">Feuille de route proposée</h2>
+<p>Ordre suggéré à partir des dépendances entre modules et des README déjà présents dans le dépôt.</p>
+<div class="grid g3" style="margin:20px 0 28px">
+  <div class="card"><span class="tag ok">Maintenant</span><h4>Fiabiliser la base</h4>
+    <p>Corriger les points d'attention ci-dessous, relier les menus <em>Fichier</em> et <em>Édition</em> de l'éditeur, étendre les tests au-delà de <code>ComponentPool</code>.</p></div>
+  <div class="card"><span class="tag">Ensuite</span><h4>Module scene</h4>
+    <p>Sérialisation JSON des scènes (entités, composants, tilemap), identifiants stables, prefabs et registre de comportements. Débloque Enregistrer / Ouvrir dans l'éditeur.</p></div>
+  <div class="card"><span class="tag plan">Plus tard</span><h4>Gameplay et contenu</h4>
+    <p><code>input</code>, <code>assets</code>, <code>ui</code> (HUD, dialogues), <code>animation</code>, <code>audio</code>, <code>ai</code>.</p></div>
+</div>
+<div class="table-wrap"><table>
+<tr><th>Étape</th><th>Livrable</th><th>Dépend de</th></tr>
+<tr><td>1. Scene</td><td>Fichier de scène JSON partagé éditeur / jeu, undo/redo possible ensuite</td><td>Core, Tilemap, nlohmann_json</td></tr>
+<tr><td>2. Input</td><td>Actions de jeu abstraites (clavier, manette) au lieu de <code>sf::Keyboard</code> dans les scripts</td><td>Core</td></tr>
+<tr><td>3. Assets</td><td>Chargement centralisé et identifiants stables (remplace le fichier de correspondance du <code>LooseFileLoader</code>)</td><td>Core, Render2D</td></tr>
+<tr><td>4. UI</td><td>HUD, dialogues, barres de vie</td><td>Core, Render2D</td></tr>
+<tr><td>5. Animation</td><td>Animation de sprites pilotée par composant</td><td>Render2D, Assets</td></tr>
+<tr><td>6. Audio</td><td>Sons et musique (passer <code>SFML_BUILD_AUDIO</code> à ON)</td><td>Assets</td></tr>
+<tr><td>7. AI</td><td>Comportements d'entités (déplacement, états)</td><td>Core, Physics2D</td></tr>
+</table></div>
+
+<h2 id="points-dattention-reperes-dans-le-code">Points d'attention repérés dans le code</h2>
+<p>Petites choses relevées en lisant le dépôt. Rien de bloquant pour le Sandbox, mais mieux vaut les traiter avant d'ajouter des modules.</p>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Où</th><th>Constat</th><th>Piste</th></tr>
+<tr><td>1</td><td><code>Game::init()</code></td><td><code>m_systems.start()</code> n'est appelé qu'à la construction : les systèmes ajoutés ensuite (Physics, Collision, Script…) ne reçoivent jamais <code>onStart</code>.</td><td>Appeler <code>onStart</code> dans <code>addSystem</code> si le jeu est déjà démarré, ou exposer un <code>game.start()</code> après le chargement de la scène.</td></tr>
+<tr><td>2</td><td><code>SystemManager</code></td><td><code>std::sort</code> n'est pas stable : l'ordre de deux systèmes de même priorité n'est pas garanti.</td><td>Utiliser <code>std::stable_sort</code>.</td></tr>
+<tr><td>3</td><td><code>ScriptSystem</code></td><td><code>onDestroy</code> n'est appelé qu'à l'arrêt du jeu, pas à la destruction d'une entité isolée.</td><td>Brancher <code>Registry::onDestroy&lt;Script&gt;</code> pour appeler <code>onDestroy</code>.</td></tr>
+<tr><td>4</td><td><code>Game</code> / <code>LooseFileLoader</code></td><td>Le chargeur est construit avec son chemin par défaut <code>games/rts/assets/resources.txt</code>, hérité du prototype RTS. Sans ce fichier, les identifiants de texture sont traités comme des chemins directs.</td><td>Passer un chemin explicite, ou attendre le module <code>assets</code>.</td></tr>
+<tr><td>5</td><td><code>engine/ai/CMakeLists.txt</code></td><td>Contient <code>av_module(Core …)</code> : le nom devrait être <code>AI</code> (sans effet tant que le dossier n'est pas ajouté à <code>engine/CMakeLists.txt</code>).</td><td>Renommer avant d'activer le module.</td></tr>
+<tr><td>6</td><td><code>projects/rpg/CMakeLists.txt</code></td><td>Crée une cible nommée <code>Sandbox</code> sous une option <code>AV_BUILD_RPG</code> qui n'est pas déclarée ; le dossier n'est pas ajouté au CMake racine.</td><td>Renommer la cible <code>RPG</code>, déclarer l'option, ajouter <code>add_subdirectory</code>.</td></tr>
+<tr><td>7</td><td><code>render_system.h</code></td><td>Une fonction <code>inline void test(Camera2d&amp;)</code> vide traîne en bas du fichier.</td><td>La supprimer.</td></tr>
+<tr><td>8</td><td>Intégration continue</td><td>Le dossier <code>.github/</code> est présent mais vide : aucun build ni test automatique.</td><td>Ajouter un workflow qui lance le preset <code>x64-debug-no-editor</code> puis <code>ctest</code>.</td></tr>
+<tr><td>9</td><td>Tests</td><td>Seul <code>ComponentPool</code> est testé.</td><td>Ajouter des tests pour <code>Registry::view</code>, la destruction différée et les collisions.</td></tr>
+</table></div>
+
+<h2 id="contribuer">Contribuer</h2>
+<p>Un bug ou une idée ? Ouvrez un ticket depuis le menu <em>Aide → Signaler un bug</em> de l'éditeur, ou directement sur <a href="https://github.com/AngeVault/angelVault/issues">GitHub</a>. Avant d'ajouter un module, lisez <a href="architecture.html">la vue d'ensemble</a> et la <a href="docs.html">recette « Ajouter un module »</a>.</p>
+<div class="pager"><a class="prev" href="composants.html"><small>Précédent</small>← Référence des composants</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#etat-actuel">État actuel</a><a href="#feuille-de-route-proposee">Feuille de route proposée</a><a href="#points-dattention-reperes-dans-le-code">Points d&#x27;attention repérés dans le code</a><a href="#contribuer">Contribuer</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
+ <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>
