@@ -91,8 +91,8 @@ int main(int argc, char** argv) {
     });
 
     QMenu* help = window.addMenu("&Aide");
-    addLink(help, "À propos d'AngeVault", "https://sites.google.com/view/angelvault/accueil");
-    addLink(help, "Documentation", "https://sites.google.com/view/angelvault/docs");
+    addLink(help, "À propos d'AngeVault", "https://angevault.netlify.app/accueil");
+    addLink(help, "Documentation", "https://angevault.netlify.app/docs");
     addLink(help, "Signaler un bug", "https://github.com/AngeVault/angelVault/issues");
 
     // --- Vue centrale : rendu de la tilemap ---
