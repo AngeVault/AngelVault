@@ -12,7 +12,8 @@
 #include "components/name.h"
 #include "behaviors/rotating.h"
 #include "components/geometry.h"
-
+#include "systems/camera_system.h"
+#include "components/camera2d.h"
 
 int main() {
     Game game;
@@ -20,6 +21,13 @@ int main() {
     game.systems().addSystem<PhysicsSystem>();
     game.systems().addSystem<CollisionSystem>();
     game.systems().addSystem<ScriptSystem>();
+	game.systems().addSystem<CameraSystem>(game.window());
+
+	Entity CameraEntity = game.registry().createEntity();
+	game.registry().addComponent<Transform2D>(CameraEntity).setPosition({ 200.f, 100.f });
+	auto& camera = game.registry().addComponent<Camera2d>(CameraEntity);
+	camera.setWorldBorder({0.f,0.f}, {3000.f,3000.f});
+	game.registry().addComponent<NameComponent>(CameraEntity, "CameraEntity");
 
     Entity player = game.registry().createEntity();
     game.registry().addComponent<Transform2D>(player).setPosition({ 200.f, 100.f });
@@ -27,6 +35,8 @@ int main() {
     game.registry().addComponent<RigidBody2D>(player);
     auto& colPlayer = game.registry().addComponent<Collider2D>(player, Collider2D::makeBox({ 16.f, 32.f }));
 	game.registry().addComponent<NameComponent>(player, "Player");
+
+	if (game.registry().isValid(player)) camera.setTarget(player);
 
     // Attache le script PlayerBehavior
     auto& scriptPlayer = game.registry().addComponent<Script>(player);
