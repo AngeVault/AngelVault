@@ -2,6 +2,7 @@
 #include "ecs/registry.h"
 
 #include <QString>
+#include <QStringList>
 #include <QVariant>
 #include <functional>
 #include <vector>
@@ -13,7 +14,7 @@
 // Pour afficher un nouveau composant : ajouter une entrée dans componentDescriptors()
 // (component_descriptors.cpp). Les PROPERTY(...) des scripts sont affichées automatiquement.
 
-enum class FieldKind { Float, Int, Bool, Vec2, String, Color, Label };
+enum class FieldKind { Float, Int, Bool, Vec2, String, Color, Label, Choice };
 
 struct FieldDesc {
     QString name;
@@ -22,6 +23,8 @@ struct FieldDesc {
     std::function<void(const QVariant&)> set;   // vide = lecture seule
     double min = -1e9, max = 1e9, step = 1.0;
     int decimals = 2;
+    QStringList choices;            // Choice : liste déroulante, la valeur est l'index choisi
+    bool rebuildOnChange = false;   // la modification change les champs affichés (ex. : forme de Geometry)
 };
 
 struct ComponentDesc {

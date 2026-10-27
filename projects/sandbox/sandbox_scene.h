@@ -23,6 +23,8 @@ inline constexpr float kSandboxWorldHeight = 1080.f;
 // Entités de la scène. Séparé des systèmes pour que l'éditeur puisse charger
 // la scène dans son propre Registry (Hierarchy / Inspector) sans lancer le jeu.
 inline void loadSandboxEntities(Registry& registry) {
+
+
     Entity player = registry.createEntity();
     registry.addComponent<Transform2D>(player).setPosition({ 200.f, 100.f });
     registry.addComponent<Geometry>(player, Geometry::SpriteData{ "player", sf::IntRect({0, 0 }, {32, 64}), sf::Color::White }, 1);
@@ -36,7 +38,7 @@ inline void loadSandboxEntities(Registry& registry) {
 
     // sol
     Entity ground = registry.createEntity();
-    registry.addComponent<Transform2D>(ground).setPosition({ 960.f, 550.f }); 
+    registry.addComponent<Transform2D>(ground).setPosition({ 960.f, 550.f });
 	registry.addComponent<Geometry>(ground, Geometry::BoxData{ { 960.f, 8.f }, { sf::Color(100, 100, 100), sf::Color::Transparent, 0.f, "" } }, 0);
     registry.addComponent<RigidBody2D>(ground).isStatic = true;
     auto& colGround = registry.addComponent<Collider2D>(ground, Collider2D::makeBox({ 960.f, 8.f }));
@@ -59,7 +61,7 @@ inline void loadSandboxEntities(Registry& registry) {
     colBall.restitution = 0.5f;
 	registry.addComponent<NameComponent>(ball, "Ball");
 
-    // care volant 
+    // care volant
     Entity car = registry.createEntity();
     registry.addComponent<Transform2D>(car).setPosition({ 300.f, 300.f });
 	registry.addComponent<Geometry>(car, Geometry::BoxData{ { 16.f, 16.f }, { sf::Color(0, 255, 0), sf::Color::Transparent, 0.f, "" } }, 1);
@@ -70,12 +72,13 @@ inline void loadSandboxEntities(Registry& registry) {
     registry.addComponent<NameComponent>(car, "carrer qui tourne");
     auto& carBehavior = registry.addComponent<Script>(car);
     carBehavior.behavior = std::make_unique<Rotation>();
+
 }
 
 // Scène complète pour jouer : systèmes de jeu + entités
 inline void loadSandboxScene(Game& game) {
-    game.systems().addSystem<PhysicsSystem>();
-    game.systems().addSystem<CollisionSystem>();
-    game.systems().addSystem<ScriptSystem>();
+	game.systems().addSystem<PhysicsSystem>();
+	game.systems().addSystem<CollisionSystem>();
+	game.systems().addSystem<ScriptSystem>();
     loadSandboxEntities(game.registry());
 }

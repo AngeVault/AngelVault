@@ -21,6 +21,9 @@ ThemeManager::ThemeManager(QWidget* dialogParent) : QObject(dialogParent), m_par
     m_builtins = {
         { tr("Sombre"),    kDefaultTheme },
         { tr("Néon rose"), ":/resources/style/neon_pink.qss" },
+        { tr("Néon clair"), ":/resources/style/neon_light.qss" },
+        { tr("Sakura clair"), ":/resources/style/sakura_light.qss" },
+        { tr("Sakura sombre"), ":/resources/style/sakura_dark.qss" },
     };
 }
 

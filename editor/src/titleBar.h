@@ -1,4 +1,5 @@
 #pragma once
+#include <QColor>
 #include <QIcon>
 #include <QWidget>
 
@@ -19,8 +20,13 @@ class QPushButton;
 //
 // Les zones vides (et le titre) servent à déplacer la fenêtre. Un widget ajouté qui
 // doit lui aussi laisser déplacer la fenêtre : widget->setProperty("titleBarDraggable", true);
+//
+// Couleur des icônes réduire / agrandir / fermer, réglable depuis le QSS
+// (les PNG sont blancs : un thème clair les passe en foncé) :
+//     TitleBar#titleBar { qproperty-iconColor: #5a3a48; }
 class TitleBar : public QWidget {
     Q_OBJECT
+    Q_PROPERTY(QColor iconColor READ iconColor WRITE setIconColor)
 public:
     static constexpr int kHeight = 36;
 
@@ -41,6 +47,9 @@ public:
     bool isDraggableAt(const QPoint& pos) const;
     bool isMaximizeButtonAt(const QPoint& pos) const;
     void setMaximized(bool maximized);
+
+    QColor iconColor() const { return m_iconColor; }
+    void setIconColor(const QColor& color);
     void setActive(bool active);
 
 signals:
@@ -58,6 +67,8 @@ protected:
 #endif
 
 private:
+    QIcon captionIcon(const QString& path) const;   // icône teintée avec m_iconColor
+    void refreshCaptionIcons();
     QPushButton* makeCaptionButton(const char* objectName, const QString& iconPath, const QString& tip);
     void updateTitleGeometry();
 
@@ -69,5 +80,7 @@ private:
     QPushButton* m_minimize = nullptr;
     QPushButton* m_maximize = nullptr;
     QPushButton* m_close = nullptr;
+    QColor m_iconColor;            // invalide = icônes d'origine
+    bool m_maximized = false;
     QString m_fullTitle;
 };

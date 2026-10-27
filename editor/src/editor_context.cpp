@@ -1,5 +1,6 @@
 #include "editor_context.h"
 
+#include "components/camera2d.h"
 #include "components/name.h"
 #include "components/transform2d.h"
 
@@ -8,7 +9,48 @@
 
 #include <algorithm>
 
+namespace {
+quint64 entityKey(Entity e) { return (quint64(e.index) << 32) | e.generation; }
+}
+
 EditorContext::EditorContext(QObject* parent) : QObject(parent) {}
+
+QString EditorContext::addCategory(const QString& name) {
+    QString base = name.trimmed().isEmpty() ? tr("Nouvelle catégorie") : name.trimmed();
+    QString unique = base;
+    for (int i = 2; m_categories.contains(unique); ++i) unique = QString("%1 %2").arg(base).arg(i);
+    m_categories.push_back(unique);
+    emit sceneChanged();
+    return unique;
+}
+
+void EditorContext::renameCategory(const QString& oldName, const QString& newName) {
+    const QString name = newName.trimmed();
+    const int i = m_categories.indexOf(oldName);
+    if (i < 0 || name.isEmpty() || name == oldName || m_categories.contains(name)) { emit sceneChanged(); return; }
+    m_categories[i] = name;
+    for (auto it = m_entityCategory.begin(); it != m_entityCategory.end(); ++it)
+        if (it.value() == oldName) it.value() = name;
+    emit sceneChanged();
+}
+
+void EditorContext::removeCategory(const QString& name) {
+    if (!m_categories.removeOne(name)) return;
+    for (auto it = m_entityCategory.begin(); it != m_entityCategory.end();)
+        it = (it.value() == name) ? m_entityCategory.erase(it) : std::next(it);
+    emit sceneChanged();
+}
+
+QString EditorContext::categoryOf(Entity e) const {
+    return m_entityCategory.value(entityKey(e));
+}
+
+void EditorContext::setCategory(Entity e, const QString& category) {
+    if (!isValid(e)) return;
+    if (category.isEmpty() || !m_categories.contains(category)) m_entityCategory.remove(entityKey(e));
+    else m_entityCategory.insert(entityKey(e), category);
+    emit sceneChanged();
+}
 
 std::vector<Entity> EditorContext::entities() const {
     std::vector<Entity> list;
@@ -36,6 +78,7 @@ Entity EditorContext::createEntity(const QString& name) {
 void EditorContext::destroyEntity(Entity e) {
     if (!isValid(e)) return;
     const bool wasSelected = e == m_selected;
+    m_entityCategory.remove(entityKey(e));
     m_scene.destroyEntity(e);
     m_scene.flushPendingDestroys();   // l'éditeur n'a pas de boucle de jeu : on applique tout de suite
     if (wasSelected) clearSelection();
@@ -62,7 +105,46 @@ void EditorContext::select(Entity e) {
 void EditorContext::clearSelection() { select(NULL_ENTITY); }
 
 void EditorContext::notifyEntityModified(Entity e, QObject* source) {
-    if (isValid(e)) emit entityModified(e, source);
+    if (!isValid(e)) return;
+    emit entityModified(e, source);
+    snapFollowers(e);   // la cible a peut-être bougé : ses caméras suivent
+}
+
+Entity EditorContext::followTarget(Entity camera) {
+    if (!isValid(camera) || !m_scene.hasComponent<Camera2d>(camera)) return NULL_ENTITY;
+    const Entity target = m_scene.getComponent<Camera2d>(camera).targetLock;
+    return (target != camera && isValid(target)) ? target : NULL_ENTITY;
+}
+
+void EditorContext::setFollowTarget(Entity camera, Entity target) {
+    if (!isValid(camera) || !m_scene.hasComponent<Camera2d>(camera)) return;
+    if (m_scene.getComponent<Camera2d>(camera).targetLock == target) return;
+    m_scene.getComponent<Camera2d>(camera).targetLock = target;   // même donnée que Camera2d::setTarget()
+    if (isValid(target) && m_scene.hasComponent<Transform2D>(target) && m_scene.hasComponent<Transform2D>(camera))
+        m_scene.getComponent<Transform2D>(camera).setPosition(m_scene.getComponent<Transform2D>(target).getPosition());
+    emit followTargetChanged(camera);
+    emit entityModified(camera, nullptr);
+    snapFollowers(camera);
+    emit sceneChanged();   // la Hierarchy se réorganise
+}
+
+void EditorContext::snapFollowers(Entity target, int depth) {
+    if (depth > 8 || !m_scene.hasComponent<Transform2D>(target)) return;   // garde-fou : chaîne/boucle de caméras
+    const sf::Vector2f pos = m_scene.getComponent<Transform2D>(target).getPosition();
+    std::vector<Entity> moved;
+    m_scene.view<Camera2d, Transform2D>([&](Entity cam, Camera2d& c, Transform2D& t) {
+        if (cam == target || c.targetLock != target || t.getPosition() == pos) return;
+        t.setPosition(pos);
+        moved.push_back(cam);
+    });
+    for (Entity cam : moved) {
+        emit entityModified(cam, nullptr);
+        snapFollowers(cam, depth + 1);
+    }
+}
+
+void EditorContext::snapAllFollowers() {
+    for (Entity e : entities()) snapFollowers(e);
 }
 
 void EditorContext::setTool(EditorTool tool) {

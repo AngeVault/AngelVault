@@ -6,6 +6,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMouseEvent>
+#include <QPainter>
 #include <QPushButton>
 #include <QStyle>
 #include <QWindow>
@@ -79,7 +80,7 @@ TitleBar::TitleBar(QWidget* parent) : QWidget(parent) {
 QPushButton* TitleBar::makeCaptionButton(const char* objectName, const QString& iconPath, const QString& tip) {
     auto* b = new QPushButton(this);
     b->setObjectName(objectName);
-    b->setIcon(QIcon(iconPath));
+    b->setIcon(captionIcon(iconPath));
     b->setIconSize(QSize(14, 14));
     b->setFixedSize(46, kHeight);
     b->setFocusPolicy(Qt::NoFocus);
@@ -118,8 +119,31 @@ bool TitleBar::isMaximizeButtonAt(const QPoint& pos) const {
     return m_maximize->isVisible() && m_maximize->geometry().contains(m_rightArea->mapFrom(this, pos));
 }
 
+QIcon TitleBar::captionIcon(const QString& path) const {
+    if (!m_iconColor.isValid()) return QIcon(path);
+    QPixmap pix(path);
+    QPainter p(&pix);
+    p.setCompositionMode(QPainter::CompositionMode_SourceIn);   // garde la forme, remplace la couleur
+    p.fillRect(pix.rect(), m_iconColor);
+    p.end();
+    return QIcon(pix);
+}
+
+void TitleBar::setIconColor(const QColor& color) {
+    if (color == m_iconColor) return;
+    m_iconColor = color;
+    refreshCaptionIcons();
+}
+
+void TitleBar::refreshCaptionIcons() {
+    m_minimize->setIcon(captionIcon(":/resources/icons/minimize.png"));
+    m_close->setIcon(captionIcon(":/resources/icons/close.png"));
+    setMaximized(m_maximized);
+}
+
 void TitleBar::setMaximized(bool maximized) {
-    m_maximize->setIcon(QIcon(maximized ? ":/resources/icons/default_size.png" : ":/resources/icons/maximize.png"));
+    m_maximized = maximized;
+    m_maximize->setIcon(captionIcon(maximized ? ":/resources/icons/default_size.png" : ":/resources/icons/maximize.png"));
     m_maximize->setToolTip(maximized ? tr("Restaurer") : tr("Agrandir"));
 }
 

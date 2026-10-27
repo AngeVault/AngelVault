@@ -1,7 +1,6 @@
 #pragma once
 #include "ecs/system.h"
 #include "RtsTile_map.hpp"
-#include "components/camera2d.h"
 #include "utils/resource_loader.h"
 #include <SFML/Graphics.hpp>
 #include <algorithm>
@@ -12,9 +11,10 @@
 
 class TileMapRenderSystem : public ISystem {
 public:
-    TileMapRenderSystem(sf::RenderTarget& target, TileMap& map,
-        Camera2d& camera, IResourceLoader& loader)
-        : m_target(target), m_map(map), m_camera(camera), m_loader(loader) {
+    // La zone à dessiner est déduite de la vue active de `target` (target.getView()) :
+    // ce système marche avec n'importe quelle caméra (vue de l'éditeur, entité caméra du jeu...).
+    TileMapRenderSystem(sf::RenderTarget& target, TileMap& map, IResourceLoader& loader)
+        : m_target(target), m_map(map), m_loader(loader) {
         priority = 5;
     }
 
@@ -23,16 +23,17 @@ public:
     void onUpdate(Registry&, float) override {
         if (!m_texturesReady || m_layerVersion != m_map.layerVersion) resolveTextures();
 
-        const sf::Vector2u win = m_target.getSize();
-        const float halfW = win.x * 0.5f / m_camera.zoom;
-        const float halfH = win.y * 0.5f / m_camera.zoom;
+        const sf::View& view = m_target.getView();
+        const sf::Vector2f center = view.getCenter();
+        const float halfW = view.getSize().x * 0.5f;
+        const float halfH = view.getSize().y * 0.5f;
         const float inv = 1.f / (float)m_map.tileSize;
 
         Region vis;
-        vis.x0 = std::max(0, (int)std::floor((m_camera.position.x - halfW) * inv) - 1);
-        vis.y0 = std::max(0, (int)std::floor((m_camera.position.y - halfH) * inv) - 1);
-        vis.x1 = std::min((int)m_map.width, (int)std::floor((m_camera.position.x + halfW) * inv) + 2);
-        vis.y1 = std::min((int)m_map.height, (int)std::floor((m_camera.position.y + halfH) * inv) + 2);
+        vis.x0 = std::max(0, (int)std::floor((center.x - halfW) * inv) - 1);
+        vis.y0 = std::max(0, (int)std::floor((center.y - halfH) * inv) - 1);
+        vis.x1 = std::min((int)m_map.width, (int)std::floor((center.x + halfW) * inv) + 2);
+        vis.y1 = std::min((int)m_map.height, (int)std::floor((center.y + halfH) * inv) + 2);
         if (vis.x1 <= vis.x0 || vis.y1 <= vis.y0) return;
 
         const bool mapChanged = !m_cacheValid || m_builtVersion != m_map.version;
@@ -182,7 +183,6 @@ private:
 
     sf::RenderTarget& m_target;
     TileMap& m_map;
-    Camera2d& m_camera;
     IResourceLoader& m_loader;
 
     std::vector<Slot> m_slots;           

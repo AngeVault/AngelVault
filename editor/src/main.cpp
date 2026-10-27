@@ -6,7 +6,7 @@
 #include "panels/inspector_panel.h"
 #include "panels/project_panel.h"
 #include "panels/tile_palette_panel.h"
-#include "sandbox_scene.h"
+#include "rpg_scene.h"
 #include "theme_manager.h"
 #include "tilemap_view.h"
 #include "titleBar.h"
@@ -42,17 +42,17 @@ QAction* addAction(QMenu* menu, const QString& text, const QKeySequence& shortcu
     }
 }
 
-// Chemin de Sandbox.exe : il est construit dans le même dossier bin/ que l'éditeur
-QString sandboxPath() {
+// Chemin de rpg.exe : il est construit dans le même dossier bin/ que l'éditeur
+QString gameExecutablePath() {
 #ifdef Q_OS_WIN
-    const QString name = "Sandbox.exe";
+    const QString name = "rpg.exe";
 #else
-    const QString name = "Sandbox";
+    const QString name = "rpg";
 #endif
     return QDir(QCoreApplication::applicationDirPath()).filePath(name);
 }
 
-// Dossier affiché par le panneau Project (défini par CMake : le projet Sandbox, assets + scripts)
+// Dossier affiché par le panneau Project (défini par CMake : le projet RPG, assets + scripts)
 QString projectDir() {
 #ifdef AV_PROJECT_DIR
     return QStringLiteral(AV_PROJECT_DIR);
@@ -86,7 +86,23 @@ int main(int argc, char** argv) {
 
     // Scène éditée : état partagé par tous les panneaux (déclaré avant la fenêtre : il lui survit)
     EditorContext ctx;
-    loadSandboxEntities(ctx.scene());   // en attendant les projets : la scène du Sandbox
+    loadRpgEntities(ctx.scene());       // en attendant les projets : la scène du RPG (rpg_scene.h)
+    ctx.snapAllFollowers();   // les caméras liées se placent sur leur cible
+    {   // Rangement de départ dans la Hierarchy (catégories : dossiers de l'éditeur).
+        // Une caméra qui suit une entité s'affiche déjà sous elle : seules les caméras libres vont dans « Caméras ».
+        QString cameras, characters;
+        for (Entity e : ctx.entities()) {
+            Registry& reg = ctx.scene();
+            if (reg.hasComponent<Camera2d>(e)) {
+                if (reg.isValid(reg.getComponent<Camera2d>(e).targetLock)) continue;
+                if (cameras.isEmpty()) cameras = ctx.addCategory("Caméras");
+                ctx.setCategory(e, cameras);
+            } else if (reg.hasComponent<Script>(e)) {
+                if (characters.isEmpty()) characters = ctx.addCategory("Personnages");
+                ctx.setCategory(e, characters);
+            }
+        }
+    }
 
     CustomWindow window;
     ThemeManager themes(&window);
@@ -208,28 +224,28 @@ int main(int argc, char** argv) {
     std::cout << "[Editeur] Scene chargee : " << ctx.entities().size() << " entites" << std::endl;
 
     // --- Exécuter ---
-    //  F5       : jouer dans l'éditeur (la scène du Sandbox remplace la vue tilemap)
+    //  F5       : jouer dans l'éditeur (la scène du RPG remplace la vue tilemap)
     //  F6       : pause / reprise
     //  Maj+F5   : arrêter et revenir à la tilemap
-    //  Ctrl+F5  : lancer Sandbox.exe dans sa propre fenêtre
+    //  Ctrl+F5  : lancer rpg.exe dans sa propre fenêtre
     QMenu* run = window.addMenu("E&xécuter");
     window.menuBar()->insertMenu(help->menuAction(), run);   // placé avant « Aide »
     QAction* play  = addAction(run, "Jouer", QKeySequence(Qt::Key_F5));
     QAction* pause = addAction(run, "Pause", QKeySequence(Qt::Key_F6));
     QAction* stop  = addAction(run, "Arrêter", QKeySequence(Qt::SHIFT | Qt::Key_F5));
     run->addSeparator();
-    QAction* playExternal = addAction(run, "Lancer Sandbox.exe (fenêtre séparée)", QKeySequence(Qt::CTRL | Qt::Key_F5));
+    QAction* playExternal = addAction(run, "Lancer rpg.exe (fenêtre séparée)", QKeySequence(Qt::CTRL | Qt::Key_F5));
     pause->setCheckable(true);
     pause->setEnabled(false);
     stop->setEnabled(false);
 
     GameView* gameView = nullptr;
-    QProcess sandbox;
-    sandbox.setWorkingDirectory(QCoreApplication::applicationDirPath());   // pour trouver assets/
+    QProcess gameProcess;
+    gameProcess.setWorkingDirectory(QCoreApplication::applicationDirPath());   // pour trouver assets/
 
     auto updatePlayState = [&] {
         const bool inEditor = gameView != nullptr;
-        const bool external = sandbox.state() != QProcess::NotRunning;
+        const bool external = gameProcess.state() != QProcess::NotRunning;
         play->setEnabled(!inEditor);
         pause->setEnabled(inEditor);
         stop->setEnabled(inEditor || external);
@@ -241,7 +257,7 @@ int main(int argc, char** argv) {
                 ? "Jeu en pause  —  F6 : reprendre, Maj+F5 : arrêter"
                 : "En jeu  —  F6 : pause, Maj+F5 : arrêter");
         else if (external)
-            window.statusBar()->showMessage("Sandbox.exe en cours d'exécution  —  Maj+F5 : arrêter");
+            window.statusBar()->showMessage("rpg.exe en cours d'exécution  —  Maj+F5 : arrêter");
     };
 
     QObject::connect(play, &QAction::triggered, [&] {
@@ -267,43 +283,43 @@ int main(int argc, char** argv) {
             pause->setChecked(false);
             window.statusBar()->showMessage("Jeu arrêté.", 3000);
         }
-        if (sandbox.state() != QProcess::NotRunning) {
-            sandbox.terminate();                  // demande la fermeture de la fenêtre
-            if (!sandbox.waitForFinished(1500)) sandbox.kill();
+        if (gameProcess.state() != QProcess::NotRunning) {
+            gameProcess.terminate();                  // demande la fermeture de la fenêtre
+            if (!gameProcess.waitForFinished(1500)) gameProcess.kill();
         }
         updatePlayState();
     });
 
     QObject::connect(playExternal, &QAction::triggered, [&] {
-        if (sandbox.state() != QProcess::NotRunning) return;
-        const QString exe = sandboxPath();
+        if (gameProcess.state() != QProcess::NotRunning) return;
+        const QString exe = gameExecutablePath();
         if (!QFileInfo::exists(exe)) {
-            QMessageBox::warning(&window, "Sandbox introuvable",
+            QMessageBox::warning(&window, "rpg.exe introuvable",
                                  "Impossible de trouver :\n" + QDir::toNativeSeparators(exe) +
-                                 "\n\nCompilez la cible Sandbox, puis réessayez.");
+                                 "\n\nCompilez la cible rpg, puis réessayez.");
             return;
         }
-        sandbox.start(exe, {});
+        gameProcess.start(exe, {});
     });
-    QObject::connect(&sandbox, &QProcess::started, [&] { updatePlayState(); });
-    QObject::connect(&sandbox, &QProcess::finished, [&](int code, QProcess::ExitStatus status) {
+    QObject::connect(&gameProcess, &QProcess::started, [&] { updatePlayState(); });
+    QObject::connect(&gameProcess, &QProcess::finished, [&](int code, QProcess::ExitStatus status) {
         updatePlayState();
         window.statusBar()->showMessage(status == QProcess::CrashExit
-            ? "Sandbox.exe s'est arrêté brutalement."
-            : QString("Sandbox.exe terminé (code %1).").arg(code), 5000);
+            ? "rpg.exe s'est arrêté brutalement."
+            : QString("rpg.exe terminé (code %1).").arg(code), 5000);
     });
-    QObject::connect(&sandbox, &QProcess::errorOccurred, [&](QProcess::ProcessError error) {
+    QObject::connect(&gameProcess, &QProcess::errorOccurred, [&](QProcess::ProcessError error) {
         if (error == QProcess::FailedToStart)
-            window.statusBar()->showMessage("Impossible de lancer Sandbox.exe : " + sandbox.errorString(), 5000);
+            window.statusBar()->showMessage("Impossible de lancer rpg.exe : " + gameProcess.errorString(), 5000);
     });
 
     window.resize(1280, 780);
     window.show();
     const int result = app.exec();
     delete gameView;                                // arrête proprement le jeu en cours
-    if (sandbox.state() != QProcess::NotRunning) {   // on ferme aussi le jeu lancé
-        sandbox.terminate();
-        if (!sandbox.waitForFinished(1500)) sandbox.kill();
+    if (gameProcess.state() != QProcess::NotRunning) {   // on ferme aussi le jeu lancé
+        gameProcess.terminate();
+        if (!gameProcess.waitForFinished(1500)) gameProcess.kill();
     }
     LogCapture::instance().uninstall();
     return result;

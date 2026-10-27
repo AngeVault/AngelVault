@@ -1,5 +1,6 @@
 #pragma once
 #include "ecs/entity.h"
+#include "ecs/reflect.h"
 #include <SFML/Graphics.hpp>
 
 

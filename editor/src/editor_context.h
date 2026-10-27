@@ -2,6 +2,7 @@
 #include "RtsTile_map.hpp"
 #include "ecs/registry.h"
 
+#include <QHash>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -29,6 +30,25 @@ public:
     void destroyEntity(Entity e);
     void renameEntity(Entity e, const QString& name);
 
+    // --- Catégories (Hierarchy) ---
+    // Dossiers de l'éditeur pour ranger les entités, comme les objets vides "dossier" d'Unity.
+    // Ils n'existent que dans l'éditeur : rien n'est ajouté aux entités du jeu.
+    QStringList categories() const { return m_categories; }
+    QString addCategory(const QString& name = tr("Nouvelle catégorie"));   // renvoie le nom (rendu unique)
+    void renameCategory(const QString& oldName, const QString& newName);
+    void removeCategory(const QString& name);                              // ses entités reviennent à la racine
+    QString categoryOf(Entity e) const;                                    // "" = aucune catégorie
+    void setCategory(Entity e, const QString& category);                   // "" = racine
+
+    // --- Caméras liées (Camera2d::targetLock) ---
+    // Une caméra qui suit une entité est placée sur elle et ne peut plus être déplacée à la main :
+    // sa position est dictée par la cible (c'est ce que fait le CameraSystem en jeu).
+    Entity followTarget(Entity camera);                       // NULL_ENTITY si libre (ou pas une caméra)
+    bool isPositionLocked(Entity e) { return isValid(followTarget(e)); }
+    void setFollowTarget(Entity camera, Entity target);       // NULL_ENTITY = libérer la caméra
+    void snapFollowers(Entity target, int depth = 0);         // replace les caméras qui suivent `target`
+    void snapAllFollowers();
+
     // --- Sélection ---
     bool hasSelection() const { return isValid(m_selected); }
     Entity selected() const { return m_selected; }
@@ -51,6 +71,7 @@ signals:
     void sceneChanged();                          // entités ajoutées / supprimées / renommées
     void selectionChanged(Entity e);              // NULL_ENTITY si plus rien n'est sélectionné
     void entityModified(Entity e, QObject* source);
+    void followTargetChanged(Entity camera);      // la caméra suit une autre entité (ou plus rien)
     void toolChanged(EditorTool tool);
     void paintTypeChanged(TileType type);
     void brushSizeChanged(int size);
@@ -59,6 +80,8 @@ private:
     Registry m_scene;
     TileMap m_map;
     Entity m_selected = NULL_ENTITY;
+    QStringList m_categories;
+    QHash<quint64, QString> m_entityCategory;   // clé : index + génération de l'entité
 
     EditorTool m_tool = EditorTool::Select;
     TileType m_paintType = TileType::Grass;

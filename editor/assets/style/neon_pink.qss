@@ -27,6 +27,7 @@ TitleBar#titleBar {
     background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                                       stop:0 #1d1b21, stop:0.5 #221d26, stop:1 #1d1b21);
     border-bottom: 1px solid rgba(255, 62, 165, 0.55);    /* trait néon */
+    qproperty-iconColor: #ffc2e6;   /* icônes réduire / agrandir / fermer */
 }
 TitleBar#titleBar[active="false"] {
     border-bottom: 1px solid rgba(255, 62, 165, 0.18);
@@ -198,6 +199,10 @@ QTreeView::item:hover, QListView::item:hover { background: rgba(255, 62, 165, 0.
 QTreeView::item:selected, QListView::item:selected { background: #ff3ea5; color: #ffffff; }
 QTreeView { show-decoration-selected: 0; }
 QTreeView::branch, QTreeView::branch:selected { background: transparent; }
+QTreeView::branch:has-children:!has-siblings:closed,
+QTreeView::branch:closed:has-children:has-siblings { image: url(:/resources/icons/branch_closed.png); }
+QTreeView::branch:open:has-children:!has-siblings,
+QTreeView::branch:open:has-children:has-siblings { image: url(:/resources/icons/branch_open.png); }
 
 /* Champs */
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
@@ -305,3 +310,6 @@ QScrollBar::handle { background: rgba(255, 62, 165, 0.35); border-radius: 4px; m
 QScrollBar::handle:hover { background: rgba(255, 62, 165, 0.45); }
 QScrollBar::add-line, QScrollBar::sub-line,
 QScrollBar::add-page, QScrollBar::sub-page { background: none; border: none; width: 0px; height: 0px; }
+
+/* Fond de la vue scène / jeu (autour de la carte) */
+SfmlWidget { qproperty-clearColor: #17161a; }

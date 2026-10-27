@@ -1,13 +1,16 @@
 #include "component_descriptors.h"
 
+#include "components/camera2d.h"
 #include "components/collider2d.h"
 #include "components/geometry.h"
+#include "components/name.h"
 #include "components/rigid_body2d.h"
 #include "components/script_component.h"
 #include "components/transform2d.h"
 
 #include <QColor>
 #include <QPointF>
+#include <cmath>
 #include <typeinfo>
 
 /**
@@ -272,6 +275,64 @@ QString cleanTypeName(const char* raw) {
 }
 
 /**
+ * Changes the shape held by a Geometry (Rectangle / Cercle / Polygone / Sprite).
+ *
+ * The new shape keeps what makes sense from the old one: its size
+ * (half-size, radius, sprite rect...) and its style (colors, texture).
+ *
+ * @param geo Geometry to modify.
+ * @param kind Index of the new shape: 0 box, 1 circle, 2 polygon, 3 sprite (variant order).
+ */
+void setGeometryShape(Geometry& geo, int kind) {
+    if (kind < 0 || kind > 3 || int(geo.data.index()) == kind) return;
+
+    // Ce qu'on garde de l'ancienne forme : une demi-taille et un style
+    sf::Vector2f half{ 16.f, 16.f };
+    Geometry::ShapeStyle style;
+    sf::IntRect spriteRect{};
+    std::visit([&](auto& s) {
+        using T = std::decay_t<decltype(s)>;
+        if constexpr (std::is_same_v<T, Geometry::BoxData>) { half = s.halfSize; style = s.style; }
+        else if constexpr (std::is_same_v<T, Geometry::CircleData>) { half = { s.radius, s.radius }; style = s.style; }
+        else if constexpr (std::is_same_v<T, Geometry::PolygonData>) {
+            style = s.style;
+            if (!s.points.empty()) {
+                sf::Vector2f m{ 0.f, 0.f };
+                for (const sf::Vector2f& p : s.points) m = { std::max(m.x, std::abs(p.x)), std::max(m.y, std::abs(p.y)) };
+                half = m;
+            }
+        } else {   // Sprite
+            half = { s.rect.size.x / 2.f, s.rect.size.y / 2.f };
+            style.fillColor = s.tint;
+            style.textureId = s.textureId;
+            spriteRect = s.rect;
+        }
+    }, geo.data);
+    if (half.x <= 0.f) half.x = 16.f;
+    if (half.y <= 0.f) half.y = 16.f;
+
+    switch (kind) {
+    case 0: geo.data = Geometry::BoxData{ half, style }; break;
+    case 1: geo.data = Geometry::CircleData{ std::max(half.x, half.y), style }; break;
+    case 2: {   // hexagone régulier centré (même repère que les autres formes)
+        Geometry::PolygonData poly{ {}, style };
+        for (int i = 0; i < 6; ++i) {
+            const float a = 3.14159265f * 2.f * i / 6.f - 3.14159265f / 2.f;
+            poly.points.push_back({ std::cos(a) * half.x, std::sin(a) * half.y });
+        }
+        geo.data = poly;
+        break;
+    }
+    default: {
+        if (spriteRect.size.x <= 0 || spriteRect.size.y <= 0)
+            spriteRect = sf::IntRect({ 0, 0 }, { int(half.x * 2.f), int(half.y * 2.f) });
+        geo.data = Geometry::SpriteData{ style.textureId, spriteRect, style.fillColor };
+        break;
+    }
+    }
+}
+
+/**
  * Builds the full list of component descriptors for the editor inspector.
  *
  * Each descriptor contains:
@@ -304,7 +365,10 @@ std::vector<ComponentDesc> build() {
             std::vector<FieldDesc> f;
             FieldDesc pos{ QObject::tr("Position"), FieldKind::Vec2 };
             pos.get = [&r, e] { return v2(r.getComponent<Transform2D>(e).getPosition()); };
-            pos.set = [&r, e](const QVariant& v) { r.getComponent<Transform2D>(e).setPosition(toV2(v)); };
+            // Caméra qui suit une entité : position dictée par la cible -> lecture seule
+            const bool locked = r.hasComponent<Camera2d>(e) && r.isValid(r.getComponent<Camera2d>(e).targetLock);
+            if (!locked)
+                pos.set = [&r, e](const QVariant& v) { r.getComponent<Transform2D>(e).setPosition(toV2(v)); };
             f.push_back(pos);
 
             FieldDesc rot{ QObject::tr("Rotation (°)"), FieldKind::Float };
@@ -353,22 +417,27 @@ std::vector<ComponentDesc> build() {
             f.push_back(intRef<Geometry>(r, e, QObject::tr("Calque"), [](Geometry& g) -> int& { return g.layer; }));
             Geometry& geo = r.getComponent<Geometry>(e);
 
+            // Forme : liste déroulante (même ordre que le std::variant Geometry::GeoData)
+            FieldDesc shape{ QObject::tr("Forme"), FieldKind::Choice };
+            shape.choices = { QObject::tr("Rectangle"), QObject::tr("Cercle"), QObject::tr("Polygone"), QObject::tr("Sprite") };
+            shape.get = [&r, e] { return QVariant(int(r.getComponent<Geometry>(e).data.index())); };
+            shape.set = [&r, e](const QVariant& v) { setGeometryShape(r.getComponent<Geometry>(e), v.toInt()); };
+            shape.rebuildOnChange = true;
+            f.push_back(shape);
+
             if (std::holds_alternative<Geometry::BoxData>(geo.data)) {
-                f.push_back(label(QObject::tr("Forme"), QObject::tr("Rectangle")));
                 f.push_back(vecRef<Geometry>(r, e, QObject::tr("Demi-taille"),
                                              [](Geometry& g) -> sf::Vector2f& { return std::get<Geometry::BoxData>(g.data).halfSize; }));
                 styleFields(f, r, e, [](Geometry& g) -> Geometry::ShapeStyle& { return std::get<Geometry::BoxData>(g.data).style; });
             } else if (std::holds_alternative<Geometry::CircleData>(geo.data)) {
-                f.push_back(label(QObject::tr("Forme"), QObject::tr("Cercle")));
                 f.push_back(floatRef<Geometry>(r, e, QObject::tr("Rayon"),
                                                [](Geometry& g) -> float& { return std::get<Geometry::CircleData>(g.data).radius; }, 0));
                 styleFields(f, r, e, [](Geometry& g) -> Geometry::ShapeStyle& { return std::get<Geometry::CircleData>(g.data).style; });
             } else if (std::holds_alternative<Geometry::PolygonData>(geo.data)) {
                 const auto n = std::get<Geometry::PolygonData>(geo.data).points.size();
-                f.push_back(label(QObject::tr("Forme"), QObject::tr("Polygone (%1 points)").arg(n)));
+                f.push_back(label(QObject::tr("Points"), QString::number(n)));
                 styleFields(f, r, e, [](Geometry& g) -> Geometry::ShapeStyle& { return std::get<Geometry::PolygonData>(g.data).style; });
             } else {
-                f.push_back(label(QObject::tr("Forme"), QObject::tr("Sprite")));
                 f.push_back(stringRef<Geometry>(r, e, QObject::tr("Texture"),
                                                 [](Geometry& g) -> std::string& { return std::get<Geometry::SpriteData>(g.data).textureId; }));
                 FieldDesc pos{ QObject::tr("Zone : position"), FieldKind::Vec2 };
@@ -477,6 +546,45 @@ std::vector<ComponentDesc> build() {
             f.push_back(boolRef<C>(r, e, QObject::tr("Déclencheur"), [](C& c) -> bool& { return c.isTrigger; }));
             f.push_back(floatRef<C>(r, e, QObject::tr("Rebond"), [](C& c) -> float& { return c.restitution; }, 0, 1, 0.05));
             f.push_back(floatRef<C>(r, e, QObject::tr("Friction"), [](C& c) -> float& { return c.friction; }, 0, 1, 0.05));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- Camera2d
+    {
+        ComponentDesc d{ "Camera2d" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<Camera2d>(e); };
+        d.add = [](Registry& r, Entity e) {
+            // Le CameraSystem lit la position dans Transform2D : on l'ajoute si besoin
+            if (!r.hasComponent<Transform2D>(e)) r.addComponent<Transform2D>(e);
+            r.addComponent<Camera2d>(e);
+        };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<Camera2d>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            using C = Camera2d;
+            std::vector<FieldDesc> f;
+            f.push_back(floatRef<C>(r, e, QObject::tr("Zoom"), [](C& c) -> float& { return c.zoom; }, 0.01, 100, 0.1));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Zoom visé"), [](C& c) -> float& { return c.targetZoom; }, 0.01, 100, 0.1));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Zoom min"), [](C& c) -> float& { return c.minZoom; }, 0.01, 100, 0.05));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Zoom max"), [](C& c) -> float& { return c.maxZoom; }, 0.01, 100, 0.1));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Pas de zoom"), [](C& c) -> float& { return c.zoomStep; }, 0, 100, 0.1));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Lissage du zoom"), [](C& c) -> float& { return c.zoomLerpSpeed; }, 0, 1000, 1));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Vitesse clavier"), [](C& c) -> float& { return c.panSpeedKeyboard; }, 0, 1e6, 10));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Vitesse manette"), [](C& c) -> float& { return c.panSpeedGamepad; }, 0, 1e6, 10));
+            f.push_back(vecRef<C>(r, e, QObject::tr("Limite min"), [](C& c) -> sf::Vector2f& { return c.worldMin; }, 10));
+            f.push_back(vecRef<C>(r, e, QObject::tr("Limite max"), [](C& c) -> sf::Vector2f& { return c.worldMax; }, 10));
+
+            // Entité suivie (targetLock)
+            FieldDesc target{ QObject::tr("Suit"), FieldKind::Label };
+            target.get = [&r, e] {
+                const Entity t = r.getComponent<Camera2d>(e).targetLock;
+                if (t == NULL_ENTITY || !r.isValid(t)) return QVariant(QObject::tr("(rien : caméra libre)"));
+                if (r.hasComponent<NameComponent>(t) && !r.getComponent<NameComponent>(t).name.empty())
+                    return QVariant(QString::fromStdString(r.getComponent<NameComponent>(t).name));
+                return QVariant(QObject::tr("Entité %1").arg(t.index));
+            };
+            f.push_back(target);
             return f;
         };
         list.push_back(d);

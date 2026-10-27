@@ -49,17 +49,21 @@ target_link_libraries(AngeVaultEditor PRIVATE Qt6::Widgets AngeVault::Engine)
 target_include_directories(AngeVaultEditor PRIVATE src)
 
 # Dossier montré par le panneau Project : le projet source (assets + scripts), pas la copie dans bin/
-target_compile_definitions(AngeVaultEditor PRIVATE AV_PROJECT_DIR="${CMAKE_SOURCE_DIR}/projects/sandbox")
+target_compile_definitions(AngeVaultEditor PRIVATE AV_PROJECT_DIR="${CMAKE_SOURCE_DIR}/projects/rpg")
 
-# Exécuter > Jouer fait tourner la scène du Sandbox dans l'éditeur (projects/sandbox/sandbox_scene.h)
-target_include_directories(AngeVaultEditor PRIVATE ${CMAKE_SOURCE_DIR}/projects/sandbox)
+# Projet ouvert dans l'éditeur : le RPG (projects/rpg/rpg_scene.h), joué avec Exécuter > Jouer
+target_include_directories(AngeVaultEditor PRIVATE ${CMAKE_SOURCE_DIR}/projects/rpg)
 
-# Textures (tilesets...) : projects/sandbox/assets -> bin/assets, à côté de l'exécutable
+# Textures -> bin/assets, à côté de l'exécutable : les tilesets (rangés dans projects/sandbox/assets)
+# puis les assets du RPG
 av_copy_assets(AngeVaultEditor ${CMAKE_SOURCE_DIR}/projects/sandbox/assets)
+if(EXISTS ${CMAKE_SOURCE_DIR}/projects/rpg/assets)
+  av_copy_assets(AngeVaultEditor ${CMAKE_SOURCE_DIR}/projects/rpg/assets)
+endif()
 
-# Exécuter > Lancer Sandbox.exe : on le compile avec l'éditeur (même dossier bin/, mêmes assets)
-if(TARGET Sandbox)
-  add_dependencies(AngeVaultEditor Sandbox)
+# Exécuter > Lancer rpg.exe : on le compile avec l'éditeur (même dossier bin/, mêmes assets)
+if(TARGET rpg)
+  add_dependencies(AngeVaultEditor rpg)
 endif()
 
 if(WIN32)

@@ -127,7 +127,7 @@ void SfmlWidget::renderFrame() {
             m_window->setView(sf::View(sf::FloatRect({ 0.f, 0.f }, sf::Vector2f(resized->size))));
     }
 
-    m_window->clear(sf::Color(27, 28, 31));
+    m_window->clear(sf::Color(uint8_t(m_clearColor.red()), uint8_t(m_clearColor.green()), uint8_t(m_clearColor.blue())));
 
     if (onFrame) onFrame(*m_window);
 

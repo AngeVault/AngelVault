@@ -1,5 +1,6 @@
 #include "tilemap_view.h"
 
+#include "components/camera2d.h"
 #include "components/collider2d.h"
 #include "components/geometry.h"
 #include "components/transform2d.h"
@@ -15,6 +16,9 @@
 
 namespace {
 const sf::Color kSelection(255, 170, 40);
+const sf::Color kCameraColor(120, 200, 255);
+// Taille de l'écran de jeu supposée pour le cadre des caméras (fenêtre par défaut de Game)
+const sf::Vector2f kGameScreen(1920.f, 1080.f);
 
 // Rectangle local (avant Transform2D) d'une entité, pour la sélection à la souris et le cadre
 sf::FloatRect localBounds(Registry& r, Entity e) {
@@ -60,8 +64,6 @@ TilemapView::TilemapView(EditorContext& context, QWidget* parent) : SfmlWidget(p
         buildTileset();
         buildDemoMap();
     }
-    m_camera.minZoom = 0.05f;
-    m_camera.maxZoom = 8.f;
 
     onInit = [this](sf::RenderWindow& target) { init(target); };
     onFrame = [this](sf::RenderWindow& target) { frame(target); };
@@ -116,7 +118,7 @@ void TilemapView::buildDemoMap() {
 }
 
 void TilemapView::init(sf::RenderWindow& target) {
-    m_tileRenderer = std::make_unique<TileMapRenderSystem>(target, m_ctx.map(), m_camera, m_textures);
+    m_tileRenderer = std::make_unique<TileMapRenderSystem>(target, m_ctx.map(), m_textures);
     m_entityRenderer = std::make_unique<RenderSystem>(target, m_textures);
     m_clock.restart();
 }
@@ -129,7 +131,7 @@ void TilemapView::fitToMap() {
     const float mapW = (float)(map.width * map.tileSize);
     const float mapH = (float)(map.height * map.tileSize);
     if (size.x == 0 || size.y == 0 || mapW <= 0.f || mapH <= 0.f) return;
-    m_camera.zoom = m_camera.targetZoom =
+    m_camera.zoom =
         std::clamp(std::min(size.x / mapW, size.y / mapH) * 0.95f, m_camera.minZoom, m_camera.maxZoom);
     m_camera.position = { mapW * 0.5f, mapH * 0.5f };
     m_needsFit = false;
@@ -151,7 +153,9 @@ void TilemapView::frame(sf::RenderWindow& target) {
     m_tileRenderer->onUpdate(m_ctx.scene(), dt);
     if (m_showGrid) drawGrid(target);
     m_entityRenderer->onUpdate(m_ctx.scene(), dt);
+    drawCameras(target);
     drawSelection(target);
+    drawGizmo(target);
     drawBrush(target);
 }
 
@@ -165,6 +169,37 @@ void TilemapView::drawGrid(sf::RenderTarget& target) {
     for (uint32_t x = 0; x <= map.width; ++x) { lines.append({ { x * ts, 0.f }, c }); lines.append({ { x * ts, h }, c }); }
     for (uint32_t y = 0; y <= map.height; ++y) { lines.append({ { 0.f, y * ts }, c }); lines.append({ { w, y * ts }, c }); }
     target.draw(lines);
+}
+
+// Cadre de ce que voit chaque caméra du jeu (entité avec Camera2d) + petite icône à sa position
+void TilemapView::drawCameras(sf::RenderTarget& target) {
+    Registry& reg = m_ctx.scene();
+    const float px = 1.f / m_camera.zoom;   // 1 pixel écran en unités monde
+    reg.view<Camera2d, Transform2D>([&](Entity, Camera2d& cam, Transform2D& t) {
+        const float zoom = cam.zoom > 0.f ? cam.zoom : 1.f;
+        const sf::Vector2f size = kGameScreen / zoom;
+        sf::RectangleShape frame(size);
+        frame.setOrigin(size / 2.f);
+        frame.setPosition(t.getPosition());
+        frame.setFillColor(sf::Color(120, 200, 255, 12));
+        frame.setOutlineColor(sf::Color(120, 200, 255, 170));
+        frame.setOutlineThickness(1.5f * px);
+        target.draw(frame);
+
+        // icône : un boîtier et un objectif, taille fixe à l'écran
+        sf::RectangleShape body({ 18.f * px, 12.f * px });
+        body.setOrigin({ 11.f * px, 6.f * px });
+        body.setPosition(t.getPosition());
+        body.setFillColor(kCameraColor);
+        target.draw(body);
+        sf::ConvexShape lens(3);
+        lens.setPoint(0, { 7.f * px, 0.f });
+        lens.setPoint(1, { 13.f * px, -6.f * px });
+        lens.setPoint(2, { 13.f * px, 6.f * px });
+        lens.setPosition(t.getPosition());
+        lens.setFillColor(kCameraColor);
+        target.draw(lens);
+    });
 }
 
 void TilemapView::drawSelection(sf::RenderTarget& target) {
@@ -187,6 +222,92 @@ void TilemapView::drawSelection(sf::RenderTarget& target) {
     pivot.setPosition(t.getPosition());
     pivot.setFillColor(kSelection);
     target.draw(pivot);
+}
+
+// ---- Gizmo de déplacement ------------------------------------------------------------
+// Taille fixe à l'écran (en pixels), quel que soit le zoom.
+namespace {
+constexpr float kGizmoLength = 70.f;    // longueur d'une flèche
+constexpr float kGizmoHead   = 14.f;    // taille de la pointe
+constexpr float kGizmoGrab   = 7.f;     // tolérance de clic autour d'une flèche
+constexpr float kGizmoBox    = 9.f;     // demi-côté du carré central
+const sf::Color kGizmoX(235, 75, 75);
+const sf::Color kGizmoY(95, 205, 95);
+const sf::Color kGizmoFree(90, 160, 255, 150);
+const sf::Color kGizmoHot(255, 215, 60);
+}
+
+TilemapView::GizmoHandle TilemapView::gizmoHandleAt(sf::Vector2f world) const {
+    if (m_ctx.tool() != EditorTool::Select) return GizmoHandle::None;
+    Registry& reg = m_ctx.scene();
+    const Entity e = m_ctx.selected();
+    if (!m_ctx.isValid(e) || !reg.hasComponent<Transform2D>(e)) return GizmoHandle::None;
+    if (m_ctx.isPositionLocked(e)) return GizmoHandle::None;   // caméra liée : pas de gizmo
+
+    const sf::Vector2f d = (world - reg.getComponent<Transform2D>(e).getPosition()) * m_camera.zoom;   // en pixels écran
+    if (std::abs(d.x) <= kGizmoBox && std::abs(d.y) <= kGizmoBox) return GizmoHandle::Free;
+    if (std::abs(d.y) <= kGizmoGrab && d.x > kGizmoBox && d.x <= kGizmoLength + kGizmoHead) return GizmoHandle::X;
+    if (std::abs(d.x) <= kGizmoGrab && d.y > kGizmoBox && d.y <= kGizmoLength + kGizmoHead) return GizmoHandle::Y;
+    return GizmoHandle::None;
+}
+
+void TilemapView::drawGizmo(sf::RenderTarget& target) {
+    if (m_ctx.tool() != EditorTool::Select) return;
+    Registry& reg = m_ctx.scene();
+    const Entity e = m_ctx.selected();
+    if (!m_ctx.isValid(e) || !reg.hasComponent<Transform2D>(e)) return;
+
+    const sf::Vector2f o = reg.getComponent<Transform2D>(e).getPosition();
+    const float px = 1.f / m_camera.zoom;
+
+    if (m_ctx.isPositionLocked(e)) {   // caméra liée à une entité : cadenas à la place du gizmo
+        const sf::Color lockColor(200, 200, 210, 230);
+        const sf::Vector2f at = o + sf::Vector2f(16.f, -16.f) * px;
+        sf::CircleShape shackle(5.f * px);                // anse
+        shackle.setOrigin({ 5.f * px, 5.f * px });
+        shackle.setPosition(at + sf::Vector2f(0.f, -4.f) * px);
+        shackle.setFillColor(sf::Color::Transparent);
+        shackle.setOutlineThickness(2.f * px);
+        shackle.setOutlineColor(lockColor);
+        target.draw(shackle);
+        sf::RectangleShape body({ 14.f * px, 10.f * px }); // corps
+        body.setOrigin({ 7.f * px, 2.f * px });
+        body.setPosition(at);
+        body.setFillColor(lockColor);
+        target.draw(body);
+        return;
+    }
+
+    const GizmoHandle hot = (m_dragHandle != GizmoHandle::None) ? m_dragHandle : m_hoverHandle;
+
+    // dir : (1,0) pour X, (0,1) pour Y (l'axe Y du monde descend, comme dans SFML)
+    auto arrow = [&](sf::Vector2f dir, sf::Color color) {
+        const sf::Vector2f side(-dir.y, dir.x);
+        sf::ConvexShape shaft(4);
+        const float w = 1.5f * px;
+        const sf::Vector2f a = o + dir * (kGizmoBox * px), b = o + dir * (kGizmoLength * px);
+        shaft.setPoint(0, a + side * w); shaft.setPoint(1, b + side * w);
+        shaft.setPoint(2, b - side * w); shaft.setPoint(3, a - side * w);
+        shaft.setFillColor(color);
+        target.draw(shaft);
+
+        sf::ConvexShape head(3);
+        head.setPoint(0, o + dir * ((kGizmoLength + kGizmoHead) * px));
+        head.setPoint(1, b + side * (kGizmoHead * 0.45f * px));
+        head.setPoint(2, b - side * (kGizmoHead * 0.45f * px));
+        head.setFillColor(color);
+        target.draw(head);
+    };
+    arrow({ 1.f, 0.f }, hot == GizmoHandle::X ? kGizmoHot : kGizmoX);
+    arrow({ 0.f, 1.f }, hot == GizmoHandle::Y ? kGizmoHot : kGizmoY);
+
+    sf::RectangleShape box({ 2.f * kGizmoBox * px, 2.f * kGizmoBox * px });
+    box.setOrigin({ kGizmoBox * px, kGizmoBox * px });
+    box.setPosition(o);
+    box.setFillColor(hot == GizmoHandle::Free ? sf::Color(255, 215, 60, 150) : kGizmoFree);
+    box.setOutlineThickness(1.f * px);
+    box.setOutlineColor(hot == GizmoHandle::Free ? kGizmoHot : sf::Color(90, 160, 255));
+    target.draw(box);
 }
 
 void TilemapView::drawBrush(sf::RenderTarget& target) {
@@ -284,7 +405,6 @@ void TilemapView::wheelEvent(QWheelEvent* e) {
     if (steps == 0.f) return;
     const sf::Vector2f before = toWorld(e->position());
     m_camera.zoom = std::clamp(m_camera.zoom * std::pow(1.15f, steps), m_camera.minZoom, m_camera.maxZoom);
-    m_camera.targetZoom = m_camera.zoom;
     const sf::Vector2f after = toWorld(e->position());
     m_camera.position += before - after;   // le point sous la souris ne bouge pas
     m_userCamera = true;
@@ -300,11 +420,17 @@ void TilemapView::mousePressEvent(QMouseEvent* e) {
     } else if (e->button() == Qt::LeftButton) {
         const sf::Vector2f world = toWorld(e->position());
         if (m_ctx.tool() == EditorTool::Select) {
-            const Entity hit = pickEntity(world);
-            m_ctx.select(hit);
-            if (m_ctx.isValid(hit)) {
+            // Le gizmo passe avant le sprite : on peut le saisir même s'il dépasse sur une autre entité
+            const GizmoHandle handle = gizmoHandleAt(world);
+            const Entity hit = (handle != GizmoHandle::None) ? m_ctx.selected() : pickEntity(world);
+            if (hit != m_ctx.selected()) m_ctx.select(hit);
+            if (m_ctx.isValid(hit) && m_ctx.isPositionLocked(hit)) {
+                setCursor(Qt::ForbiddenCursor);   // caméra liée : on la sélectionne, mais elle ne bouge pas
+            } else if (m_ctx.isValid(hit)) {
                 m_dragEntity = hit;
-                m_dragOffset = m_ctx.scene().getComponent<Transform2D>(hit).getPosition() - world;
+                m_dragHandle = handle;
+                m_dragStart = m_ctx.scene().getComponent<Transform2D>(hit).getPosition();
+                m_dragOffset = m_dragStart - world;
             }
         } else {
             updateHover(e->position());
@@ -327,12 +453,23 @@ void TilemapView::mouseMoveEvent(QMouseEvent* e) {
     }
     updateHover(e->position());
 
+    if (!m_ctx.isValid(m_dragEntity)) {   // surbrillance de la poignée survolée
+        const GizmoHandle h = gizmoHandleAt(toWorld(e->position()));
+        if (h != m_hoverHandle) {
+            m_hoverHandle = h;
+            if (h == GizmoHandle::None) updateCursor();
+            else setCursor(h == GizmoHandle::X ? Qt::SizeHorCursor : h == GizmoHandle::Y ? Qt::SizeVerCursor : Qt::SizeAllCursor);
+        }
+    }
+
     if (m_ctx.isValid(m_dragEntity) && (e->buttons() & Qt::LeftButton)) {
         sf::Vector2f pos = toWorld(e->position()) + m_dragOffset;
         if (e->modifiers() & Qt::ControlModifier) {   // Ctrl : aligner sur la demi-case
             const float step = m_ctx.map().tileSize * 0.5f;
             pos = { std::round(pos.x / step) * step, std::round(pos.y / step) * step };
         }
+        if (m_dragHandle == GizmoHandle::X) pos.y = m_dragStart.y;   // flèche X : l'axe Y ne bouge pas
+        if (m_dragHandle == GizmoHandle::Y) pos.x = m_dragStart.x;
         m_ctx.scene().getComponent<Transform2D>(m_dragEntity).setPosition(pos);
         m_ctx.notifyEntityModified(m_dragEntity, this);
     } else if (m_painting && m_hoverValid && m_hoveredTile != m_lastPainted) {
@@ -349,6 +486,9 @@ void TilemapView::mouseReleaseEvent(QMouseEvent* e) {
     }
     if (e->button() == Qt::LeftButton) {
         m_dragEntity = NULL_ENTITY;
+        m_dragHandle = GizmoHandle::None;
+        m_hoverHandle = GizmoHandle::None;   // recalculée au prochain mouvement
+        updateCursor();
         m_painting = false;
         m_lastPainted = { INT32_MIN, INT32_MIN };
     }
