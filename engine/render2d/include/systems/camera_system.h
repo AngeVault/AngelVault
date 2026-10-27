@@ -36,42 +36,61 @@ public:
             const sf::Vector2u viewportSize = m_window.getSize();
             const float worldWidth = camera.worldMax.x - camera.worldMin.x;
             const float worldHeight = camera.worldMax.y - camera.worldMin.y;
-            if (viewportSize.x > 0 && viewportSize.y > 0 && worldWidth > 0.f && worldHeight > 0.f) {
-                // Empêche le zoom arrière d'élargir la vue au-delà de la carte.
-                const float fitZoom = std::max(
-                    static_cast<float>(viewportSize.x) / worldWidth,
-                    static_cast<float>(viewportSize.y) / worldHeight);
-                camera.minZoom = std::min(fitZoom, camera.maxZoom);
-                camera.zoom = std::max(camera.zoom, camera.minZoom);
-                camera.targetZoom = std::clamp(camera.targetZoom,
-                camera.minZoom, camera.maxZoom);
-            }
             sf::Vector2f position = registry.getComponent<Transform2D>(e).getPosition();
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
+            if (camera.targetLock == NULL_ENTITY)
             {
-                position.x -= camera.panSpeedKeyboard * camera.zoom *dt;
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
+                {
+                    position.x -= camera.panSpeedKeyboard * camera.zoom *dt;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
+                {
+                    position.x += camera.panSpeedKeyboard * camera.zoom*dt;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
+                {
+                    position.y -= camera.panSpeedKeyboard * camera.zoom*dt;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
+                {
+                    position.y += camera.panSpeedKeyboard * camera.zoom*dt;
+                }
+
+
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Add))
+                {
+                    camera.targetZoom += camera.zoomStep *dt ;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Subtract))
+                {
+                    camera.targetZoom -= camera.zoomStep *dt ;
+                }
+                if (camera.targetZoom != camera.zoom)
+                {
+                    camera.zoom = camera.targetZoom ;
+                }
+
             }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
+            else
             {
-                position.x += camera.panSpeedKeyboard * camera.zoom*dt;
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
-            {
-                position.y -= camera.panSpeedKeyboard * camera.zoom*dt;
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
-            {
-                position.y += camera.panSpeedKeyboard * camera.zoom*dt;
+                position = registry.getComponent<Transform2D>(camera.targetLock).getPosition();
             }
             if (position != registry.getComponent<Transform2D>(e).getPosition())
             {
                 registry.getComponent<Transform2D>(e).setPosition(position);
             }
-
-            //if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {}
-
-            clampPosition(e,registry,camera,viewportSize);
-            m_window.setView(makeView(e,registry,camera,viewportSize));
+            if (viewportSize.x > 0 && viewportSize.y > 0 && worldWidth > 0.f && worldHeight > 0.f) {
+                    // Empêche le zoom arrière d'élargir la vue au-delà de la carte.
+                    const float fitZoom = std::max(
+                        static_cast<float>(viewportSize.x) / worldWidth,
+                        static_cast<float>(viewportSize.y) / worldHeight);
+                    camera.minZoom = std::min(fitZoom, camera.maxZoom);
+                    camera.zoom = std::max(camera.zoom, camera.minZoom);
+                    camera.targetZoom = std::clamp(camera.targetZoom,
+                    camera.minZoom, camera.maxZoom);
+                }
+                clampPosition(e,registry,camera,viewportSize);
+                m_window.setView(makeView(e,registry,camera,viewportSize));
         });
 
     };

@@ -1,4 +1,5 @@
 #pragma once
+#include "ecs/entity.h"
 #include <SFML/Graphics.hpp>
 
 
@@ -8,12 +9,12 @@ struct Camera2d
 	float zoom = 1.f;
 	float minZoom = 0.25f;
 	float maxZoom = 4.f;
-	bool lock = false;
+	Entity targetLock = NULL_ENTITY;
 
 	// speed 
 	float panSpeedKeyboard = 1000.f;
 	float panSpeedGamepad = 100.f;
-	float zoomStep = 0.2f;
+	float zoomStep = 0.5f;
 	float zoomLerpSpeed = 12.f;
 
 	// border
@@ -29,6 +30,10 @@ struct Camera2d
 		worldMax = max;
 	}
 
+	void setTarget(Entity e)
+	{
+		targetLock = e;
+	};
 
 };
 
@@ -38,7 +43,6 @@ inline ReflectedComponent reflectComponent<Camera2d>(Camera2d& rb) {
 	        { "zoom",       PropertyInfo::Type::Float, &rb.zoom       },
 			{ "minZoom", PropertyInfo::Type::Float, &rb.minZoom },
 			{ "maxZoom",   PropertyInfo::Type::Float, &rb.maxZoom   },
-			{ "lock",   PropertyInfo::Type::Bool,  &rb.lock   },
 			{ "panSpeedKeyboard",    PropertyInfo::Type::Float, &rb.panSpeedKeyboard    },
 			{ "panSpeedGamepad",    PropertyInfo::Type::Float, &rb.panSpeedGamepad    },
 			{ "zoomStep",    PropertyInfo::Type::Float, &rb.zoomStep    },

@@ -36,6 +36,8 @@ int main() {
     auto& colPlayer = game.registry().addComponent<Collider2D>(player, Collider2D::makeBox({ 16.f, 32.f }));
 	game.registry().addComponent<NameComponent>(player, "Player");
 
+	camera.setTarget(player);
+
     // Attache le script PlayerBehavior
     auto& scriptPlayer = game.registry().addComponent<Script>(player);
     scriptPlayer.behavior = std::make_unique<PlayerBehavior>();
