@@ -1,5 +1,12 @@
 #include "customWindow.h"
+#include "editor_context.h"
 #include "game_view.h"
+#include "panels/console_panel.h"
+#include "panels/hierarchy_panel.h"
+#include "panels/inspector_panel.h"
+#include "panels/project_panel.h"
+#include "panels/tile_palette_panel.h"
+#include "sandbox_scene.h"
 #include "theme_manager.h"
 #include "tilemap_view.h"
 #include "titleBar.h"
@@ -15,12 +22,17 @@
 #include <QStyleFactory>
 #include <QDesktopServices>
 #include <QDir>
+#include <QDockWidget>
 #include <QFileInfo>
 #include <QLabel>
 #include <QMessageBox>
 #include <QProcess>
+#include <QSettings>
 #include <QStackedWidget>
+#include <QTimer>
 #include <QUrl>
+
+#include <iostream>
 
 namespace {
 QAction* addAction(QMenu* menu, const QString& text, const QKeySequence& shortcut = {}) {
@@ -40,6 +52,25 @@ QString sandboxPath() {
     return QDir(QCoreApplication::applicationDirPath()).filePath(name);
 }
 
+// Dossier affiché par le panneau Project (défini par CMake : le projet Sandbox, assets + scripts)
+QString projectDir() {
+#ifdef AV_PROJECT_DIR
+    return QStringLiteral(AV_PROJECT_DIR);
+#else
+    return QCoreApplication::applicationDirPath() + "/assets";
+#endif
+}
+
+// Panneau détachable : on peut le déplacer, l'empiler en onglets, le faire flotter ou le fermer
+QDockWidget* makeDock(QMainWindow& window, const QString& title, const QString& id, QWidget* content) {
+    auto* dock = new QDockWidget(title, &window);
+    dock->setObjectName(id);   // indispensable pour mémoriser la disposition
+    content->setAttribute(Qt::WA_StyledBackground);   // sinon le QSS ne dessine ni fond ni contour
+    dock->setWidget(content);
+    dock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+    return dock;
+}
+
 auto addLink = [](QMenu* menu, const QString& text, const QString& url) {
     QObject::connect(menu->addAction(text), &QAction::triggered, [url] { QDesktopServices::openUrl(QUrl(url)); });
 };
@@ -47,10 +78,15 @@ auto addLink = [](QMenu* menu, const QString& text, const QString& url) {
 int main(int argc, char** argv) {
     QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QApplication app(argc, argv);
+    LogCapture::instance().install();                   // std::cout / std::cerr / sf::err() -> panneau Console
     QApplication::setOrganizationName("AngeVault");   // pour QSettings (thème, etc.)
     QApplication::setApplicationName("AngeVault Editor");
     app.setStyle(QStyleFactory::create("Fusion"));
     app.setFont(QFont("Segoe UI", 9));
+
+    // Scène éditée : état partagé par tous les panneaux (déclaré avant la fenêtre : il lui survit)
+    EditorContext ctx;
+    loadSandboxEntities(ctx.scene());   // en attendant les projets : la scène du Sandbox
 
     CustomWindow window;
     ThemeManager themes(&window);
@@ -90,15 +126,18 @@ int main(int argc, char** argv) {
         window.isFullScreen() ? window.showNormal() : window.showFullScreen();
     });
 
+    view->addSeparator();
+    QMenu* windowsMenu = view->addMenu("Fenêtres");   // rempli plus bas, une fois les panneaux créés
+
     QMenu* help = window.addMenu("&Aide");
     addLink(help, "À propos d'AngeVault", "https://sites.google.com/view/angelvault/accueil");
     addLink(help, "Documentation", "https://sites.google.com/view/angelvault/docs");
     addLink(help, "Signaler un bug", "https://github.com/AngeVault/angelVault/issues");
 
-    // --- Vue centrale : rendu de la tilemap ---
+    // --- Vue centrale : tilemap + entités ---
     // La vue de jeu s'empile par-dessus pendant que l'on joue.
     auto* viewports = new QStackedWidget;
-    auto* tilemapView = new TilemapView;
+    auto* tilemapView = new TilemapView(ctx);
     viewports->addWidget(tilemapView);
     window.setCentralWidget(viewports);
 
@@ -112,6 +151,61 @@ int main(int argc, char** argv) {
         tileInfo->setText(x < 0 ? QString() : QString("Case %1, %2  —  %3").arg(x).arg(y).arg(type));
     });
     window.statusBar()->showMessage("Molette : zoom  —  clic droit / molette + glisser : déplacer  —  F5 : jouer");
+
+    // --- Panneaux : Hierarchy / Inspector / Project / Console / Tile Palette ---
+    window.setDockOptions(QMainWindow::AnimatedDocks | QMainWindow::AllowTabbedDocks | QMainWindow::AllowNestedDocks);
+    window.setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::North);
+    window.setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);      // gauche et droite sur toute la hauteur
+    window.setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
+
+    auto* palettePanel = new TilePalettePanel(ctx);
+    QDockWidget* hierarchyDock = makeDock(window, "Hierarchy", "dockHierarchy", new HierarchyPanel(ctx));
+    QDockWidget* inspectorDock = makeDock(window, "Inspector", "dockInspector", new InspectorPanel(ctx));
+    QDockWidget* projectDock   = makeDock(window, "Project", "dockProject", new ProjectPanel(projectDir()));
+    QDockWidget* consoleDock   = makeDock(window, "Console", "dockConsole", new ConsolePanel);
+    QDockWidget* paletteDock   = makeDock(window, "Tile Palette", "dockTilePalette", palettePanel);
+    window.addActions(palettePanel->toolActions());   // V / B / E / I partout dans la fenêtre
+
+    // Disposition par défaut
+    window.addDockWidget(Qt::LeftDockWidgetArea, hierarchyDock);
+    window.splitDockWidget(hierarchyDock, paletteDock, Qt::Vertical);
+    window.addDockWidget(Qt::RightDockWidgetArea, inspectorDock);
+    window.addDockWidget(Qt::BottomDockWidgetArea, projectDock);
+    window.tabifyDockWidget(projectDock, consoleDock);
+    projectDock->raise();
+
+    // Affichage > Fenêtres : une case à cocher par panneau
+    const QList<QDockWidget*> docks = { hierarchyDock, inspectorDock, projectDock, consoleDock, paletteDock };
+    for (int i = 0; i < docks.size(); ++i) {
+        QAction* toggle = docks[i]->toggleViewAction();
+        toggle->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key(Qt::Key_1 + i)));
+        windowsMenu->addAction(toggle);
+    }
+    windowsMenu->addSeparator();
+    QAction* resetLayout = windowsMenu->addAction("Réinitialiser la disposition");
+
+    // Mémorise la disposition (après l'affichage, quand les tailles sont connues)
+    constexpr int kLayoutVersion = 1;
+    QByteArray defaultLayout;
+    QTimer::singleShot(0, &window, [&] {
+        window.resizeDocks({ hierarchyDock, inspectorDock }, { 250, 320 }, Qt::Horizontal);
+        window.resizeDocks({ hierarchyDock, paletteDock }, { 320, 280 }, Qt::Vertical);
+        window.resizeDocks({ projectDock }, { 220 }, Qt::Vertical);
+        defaultLayout = window.saveState(kLayoutVersion);
+        const QByteArray saved = QSettings().value("ui/dockLayout").toByteArray();
+        if (!saved.isEmpty()) window.restoreState(saved, kLayoutVersion);
+    });
+    QObject::connect(resetLayout, &QAction::triggered, &window, [&] {
+        if (defaultLayout.isEmpty()) return;
+        window.restoreState(defaultLayout, kLayoutVersion);
+        for (QDockWidget* d : docks) d->show();
+        projectDock->raise();
+    });
+    QObject::connect(&app, &QApplication::aboutToQuit, [&] {
+        QSettings().setValue("ui/dockLayout", window.saveState(kLayoutVersion));
+    });
+
+    std::cout << "[Editeur] Scene chargee : " << ctx.entities().size() << " entites" << std::endl;
 
     // --- Exécuter ---
     //  F5       : jouer dans l'éditeur (la scène du Sandbox remplace la vue tilemap)
@@ -211,6 +305,6 @@ int main(int argc, char** argv) {
         sandbox.terminate();
         if (!sandbox.waitForFinished(1500)) sandbox.kill();
     }
+    LogCapture::instance().uninstall();
     return result;
-    
 }

@@ -1,0 +1,38 @@
+#pragma once
+#include <QHash>
+#include <QIcon>
+#include <QString>
+#include <QWidget>
+
+class QFileSystemModel;
+class QFileSystemWatcher;
+class QLabel;
+class QLineEdit;
+class QListWidget;
+class QTreeView;
+
+// Navigateur des assets du projet : dossiers à gauche, contenu (avec aperçus d'images) à droite.
+// Double-clic sur un dossier : l'ouvrir ; sur un fichier : l'ouvrir avec l'application par défaut.
+class ProjectPanel : public QWidget {
+    Q_OBJECT
+public:
+    explicit ProjectPanel(const QString& rootDir, QWidget* parent = nullptr);
+
+    void setCurrentDir(const QString& dir);
+
+private:
+    void refresh();
+    void openPath(const QString& path);
+    void showContextMenu(const QString& path, const QPoint& globalPos);
+    QIcon iconFor(const QString& path, bool isDir);
+
+    QString m_root;
+    QString m_current;
+    QFileSystemModel* m_dirs = nullptr;
+    QTreeView* m_tree = nullptr;
+    QListWidget* m_list = nullptr;
+    QLabel* m_path = nullptr;
+    QLineEdit* m_search = nullptr;
+    QFileSystemWatcher* m_watcher = nullptr;
+    QHash<QString, QIcon> m_thumbnails;   // chemin + date -> aperçu
+};

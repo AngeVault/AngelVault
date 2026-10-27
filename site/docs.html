@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Centre de documentation — AngeVault Engine</title>
+<meta name="description" content="Centre de documentation AngeVault : guides, recettes (créer une entité, un composant, un système, un module, réagir aux collisions) et glossaire.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html" class="current" aria-current="page">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Centre de documentation</div><span class="eyebrow">Documentation</span><h1>Centre de documentation</h1><p class="lead">Les guides, les recettes pas à pas et un petit glossaire pour travailler efficacement avec AngeVault.</p></div></section>
+<div class="wrap doc"><article class="prose"><h2 id="les-guides">Les guides</h2>
+<div class="grid g3" style="margin:20px 0 8px">
+  <a class="card" href="demarrage.html"><div class="ico"><i class="fa-solid fa-rocket"></i></div><h3 id="demarrage-build">Démarrage &amp; build</h3><p>Prérequis, presets CMake, compiler et lancer l'éditeur ou le Sandbox.</p></a>
+  <a class="card" href="comportements.html"><div class="ico"><i class="fa-solid fa-gamepad"></i></div><h3 id="comportements-c">Comportements C++</h3><p><code>IBehavior</code>, <code>Script</code>, <code>PROPERTY</code> et l'exemple du joueur.</p></a>
+  <a class="card" href="composants.html"><div class="ico"><i class="fa-solid fa-table-list"></i></div><h3 id="reference-des-composants">Référence des composants</h3><p>Chaque champ, chaque valeur par défaut.</p></a>
+  <a class="card" href="ecs.html"><div class="ico"><i class="fa-solid fa-cubes"></i></div><h3 id="ecs-registry">ECS &amp; Registry</h3><p>Entités, pools, vues, règles d'or.</p></a>
+  <a class="card" href="editeur.html"><div class="ico"><i class="fa-solid fa-window-maximize"></i></div><h3 id="editeur-qt">Éditeur Qt</h3><p>Panneaux, <code>EditorContext</code>, thèmes.</p></a>
+  <a class="card" href="roadmap.html"><div class="ico"><i class="fa-solid fa-road"></i></div><h3 id="feuille-de-route">Feuille de route</h3><p>État actuel, prochains modules, points d'attention.</p></a>
+</div>
+
+<h2 id="recettes">Recettes</h2>
+<p>Des gestes courants, chacun appuyé sur le code existant du dépôt.</p>
+
+<details open><summary>Créer une entité</summary><div class="body">
+<p>Une entité est un identifiant auquel on attache des composants. Exemple du sol dans <code>sandbox_scene.h</code> :</p>
+<div class="code"><div class="code-head"><span class="file">sandbox_scene.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="t">Entity</span> ground = registry.createEntity();
+registry.addComponent&lt;<span class="t">Transform2D</span>&gt;(ground).setPosition({ <span class="n">960</span>.f, <span class="n">550</span>.f });
+registry.addComponent&lt;<span class="t">Geometry</span>&gt;(ground,
+    <span class="t">Geometry</span>::<span class="t">BoxData</span>{ { <span class="n">960</span>.f, <span class="n">8</span>.f }, { sf::<span class="t">Color</span>(<span class="n">100</span>, <span class="n">100</span>, <span class="n">100</span>), sf::<span class="t">Color</span>::<span class="t">Transparent</span>, <span class="n">0</span>.f, <span class="s">""</span> } }, <span class="n">0</span>);
+registry.addComponent&lt;<span class="t">RigidBody2D</span>&gt;(ground).isStatic = <span class="k">true</span>;
+registry.addComponent&lt;<span class="t">Collider2D</span>&gt;(ground, <span class="t">Collider2D</span>::makeBox({ <span class="n">960</span>.f, <span class="n">8</span>.f }));
+registry.addComponent&lt;<span class="t">NameComponent</span>&gt;(ground, <span class="s">"Ground"</span>);</code></pre></div>
+<p>Ajoutez toujours un <code>NameComponent</code> : c'est lui qui donne un nom lisible à l'entité dans la Hierarchy de l'éditeur.</p>
+</div></details>
+
+<details><summary>Détruire une entité</summary><div class="body">
+<p>Appelez <code>registry.destroyEntity(e)</code>. La destruction est <strong>différée</strong> : elle est exécutée par <code>flushPendingDestroys()</code> à la fin de <code>Game::tick</code>, donc sans risque pendant un <code>view</code>. Après le flush, <code>registry.isValid(e)</code> renvoie faux pour l'ancien identifiant.</p>
+</div></details>
+
+<details><summary>Ajouter un composant</summary><div class="body">
+<ol>
+  <li>Créez une structure de données dans <code>include/components/</code> du module concerné (par exemple <code>engine/core/include/components/health.h</code>).</li>
+  <li>Ajoutez-la avec <code>registry.addComponent&lt;Health&gt;(e)</code>. Aucun enregistrement n'est nécessaire : le pool est créé à la première utilisation.</li>
+  <li>(Optionnel, pour l'éditeur) ajoutez une entrée à <code>componentDescriptors()</code> dans <code>editor/src/component_descriptors.cpp</code> pour l'afficher dans l'Inspector.</li>
+</ol>
+<div class="code"><div class="code-head"><span class="file">health.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#pragma</span> once
+<span class="k">struct</span> <span class="t">Health</span> {
+    <span class="k">float</span> current = <span class="n">100</span>.f;
+    <span class="k">float</span> max     = <span class="n">100</span>.f;
+};</code></pre></div>
+</div></details>
+
+<details><summary>Ajouter un système</summary><div class="body">
+<p>Héritez de <code>ISystem</code>, choisissez une priorité <em>distincte</em> (voir <a href="architecture.html">l'ordre d'exécution</a>) et enregistrez-le dans la scène :</p>
+<div class="code"><div class="code-head"><span class="file">health_system.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">class</span> <span class="t">HealthSystem</span> : <span class="k">public</span> <span class="t">ISystem</span> {
+<span class="k">public</span>:
+    <span class="t">HealthSystem</span>() { priority = <span class="n">4</span>; }   <span class="c">// après les scripts (2) et les particules (3), avant le rendu</span>
+
+    <span class="k">void</span> onUpdate(<span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) <span class="k">override</span> {
+        registry.view&lt;<span class="t">Health</span>&gt;([&amp;](<span class="t">Entity</span> e, <span class="t">Health</span>&amp; h) {
+            <span class="k">if</span> (h.current &lt;= <span class="n">0</span>.f)
+                registry.destroyEntity(e);   <span class="c">// différé : sans danger dans un view</span>
+        });
+    }
+};
+
+<span class="c">// dans la scène :</span>
+game.systems().addSystem&lt;<span class="t">HealthSystem</span>&gt;();</code></pre></div>
+</div></details>
+
+<details><summary>Réagir aux collisions</summary><div class="body">
+<p><code>addSystem</code> renvoie une référence au système : on peut y brancher le callback <code>onCollision</code> tout de suite.</p>
+<div class="code"><div class="code-head"><span class="file">scène</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">auto</span>&amp; collisions = game.systems().addSystem&lt;<span class="t">CollisionSystem</span>&gt;();
+collisions.onCollision = [&amp;](<span class="k">const</span> <span class="t">CollisionInfo</span>&amp; info) {
+    <span class="k">if</span> (info.isTrigger) {
+        <span class="c">// zone de détection : entityA et entityB se chevauchent, sans réponse physique</span>
+    }
+};</code></pre></div>
+<p><code>CollisionInfo</code> fournit <code>entityA</code>, <code>entityB</code>, <code>normal</code> (de A vers B), <code>depth</code>, <code>point</code> et <code>isTrigger</code>.</p>
+</div></details>
+
+<details><summary>Ajouter un module au moteur</summary><div class="body">
+<ol>
+  <li>Créez <code>engine/&lt;nom&gt;/</code> avec un dossier <code>include/</code> (en-têtes publics) et, si besoin, <code>src/</code> (fichiers <code>.cpp</code>).</li>
+  <li>Dans <code>engine/&lt;nom&gt;/CMakeLists.txt</code> :</li>
+</ol>
+<div class="code"><div class="code-head"><span class="file">engine/scene/CMakeLists.txt</span><span class="lang">CMake</span><button class="copy" type="button">Copier</button></div><pre><code>av_module(Scene <span class="t">DEPS</span> AngeVault::Core AngeVault::Tilemap)</code></pre></div>
+<ol start="3">
+  <li>Ajoutez <code>add_subdirectory(scene)</code> dans <code>engine/CMakeLists.txt</code>.</li>
+  <li>Ajoutez <code>AngeVault::Scene</code> à la liste de <code>target_link_libraries(av_engine INTERFACE …)</code> pour que l'éditeur et les projets le voient.</li>
+</ol>
+<p>Sans fichier <code>.cpp</code> dans <code>src/</code>, le module est de type <code>INTERFACE</code> (100 % en-têtes) ; avec des sources, c'est une bibliothèque statique. C'est la fonction <code>av_module</code> qui décide.</p>
+</div></details>
+
+<details><summary>Ajouter une texture à une entité</summary><div class="body">
+<p>Déposez l'image dans <code>projects/sandbox/assets/</code> : elle est copiée à côté de l'exécutable après chaque build (<code>av_copy_assets</code>). Puis utilisez son identifiant dans un <code>Geometry::SpriteData</code> :</p>
+<div class="code"><div class="code-head"><span class="file">scène</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code>registry.addComponent&lt;<span class="t">Geometry</span>&gt;(player,
+    <span class="t">Geometry</span>::<span class="t">SpriteData</span>{ <span class="s">"player"</span>, sf::<span class="t">IntRect</span>({<span class="n">0</span>, <span class="n">0</span>}, {<span class="n">32</span>, <span class="n">64</span>}), sf::<span class="t">Color</span>::<span class="t">White</span> }, <span class="n">1</span>);</code></pre></div>
+<p>Si l'image n'est pas trouvée, un damier magenta s'affiche à la place et la console indique <code>couldn't find …</code>.</p>
+</div></details>
+
+<h2 id="glossaire">Glossaire</h2>
+<div class="table-wrap"><table>
+<tr><th>Terme</th><th>Définition</th></tr>
+<tr><td>ECS</td><td><em>Entity-Component-System</em> : les objets de jeu sont des identifiants (entités) portant des données (composants), traités par des systèmes.</td></tr>
+<tr><td>Entité</td><td>Un identifiant <code>{ index, generation }</code>. N'a ni données ni méthodes.</td></tr>
+<tr><td>Composant</td><td>Une structure de données attachée à une entité (<code>RigidBody2D</code>…).</td></tr>
+<tr><td>Système</td><td>Une classe <code>ISystem</code> qui parcourt les composants à chaque frame, par ordre de priorité.</td></tr>
+<tr><td>Registry</td><td>L'objet qui possède les entités et les pools de composants.</td></tr>
+<tr><td>Sparse set</td><td>Structure de stockage avec un tableau dense (données contiguës) et un tableau épars (index par entité).</td></tr>
+<tr><td>Dual-grid</td><td>Technique de tilemap où le visuel est posé sur les sommets entre quatre tuiles, pour des transitions de terrain avec peu de textures.</td></tr>
+<tr><td>Behavior</td><td>Une classe C++ héritant d'<code>IBehavior</code>, attachée via le composant <code>Script</code>.</td></tr>
+<tr><td>Dock</td><td>Un panneau déplaçable de l'éditeur (<code>QDockWidget</code>).</td></tr>
+<tr><td>QSS</td><td>Qt Style Sheets : le langage de thème de l'éditeur, proche du CSS.</td></tr>
+</table></div>
+
+<h2 id="faq">FAQ</h2>
+<details><summary>Pourquoi mes textures s'affichent-elles en damier magenta ?</summary><div class="body"><p>Le chargeur n'a pas trouvé le fichier. Vérifiez que l'image est dans <code>projects/sandbox/assets/</code> (copiée dans <code>bin/assets</code> au build) et que l'identifiant utilisé correspond à un chemin valide depuis le dossier de l'exécutable.</p></div></details>
+<details><summary>L'éditeur n'est pas construit, que faire ?</summary><div class="body"><p>CMake n'a pas trouvé Qt 6. Indiquez son dossier avec <code>CMAKE_PREFIX_PATH</code> ou la variable d'environnement <code>QT_ROOT</code>. Voir <a href="demarrage.html">Démarrage &amp; build</a>.</p></div></details>
+<details><summary>Puis-je compiler sans Qt ?</summary><div class="body"><p>Oui : le preset <code>x64-debug-no-editor</code> (ou <code>-DAV_BUILD_EDITOR=OFF</code>) construit le moteur, le Sandbox et les tests sans Qt.</p></div></details>
+<details><summary>Où sont les sources de l'ancien prototype RTS ?</summary><div class="body"><p>Dans <code>legacy/rts/</code> : composants, systèmes et utilitaires conservés comme référence, non compilés par le CMake actuel.</p></div></details>
+<div class="pager"><a class="prev" href="editeur.html"><small>Précédent</small>← Éditeur Qt</a><a class="next" href="demarrage.html"><small>Suivant</small>Démarrage &amp; build →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#les-guides">Les guides</a><a href="#demarrage-build" class="sub">Démarrage &amp;amp; build</a><a href="#comportements-c" class="sub">Comportements C++</a><a href="#reference-des-composants" class="sub">Référence des composants</a><a href="#ecs-registry" class="sub">ECS &amp;amp; Registry</a><a href="#editeur-qt" class="sub">Éditeur Qt</a><a href="#feuille-de-route" class="sub">Feuille de route</a><a href="#recettes">Recettes</a><a href="#glossaire">Glossaire</a><a href="#faq">FAQ</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
+ <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture — AngeVault Engine</title>
+<meta name="description" content="Vue d&#x27;ensemble de l&#x27;architecture d&#x27;AngeVault : modules CMake, dépendances, boucle de jeu, ordre des systèmes et décisions de conception.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html" class="current" aria-current="page">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Architecture / Architecture</div><span class="eyebrow">Architecture</span><h1>Architecture</h1><p class="lead">Comment le dépôt est découpé, comment les modules dépendent les uns des autres et ce qui se passe à chaque frame.</p></div></section>
+<div class="wrap doc"><article class="prose"><h2 id="principes-directeurs">Principes directeurs</h2>
+<ul>
+  <li><strong>Données et logique séparées.</strong> Un composant est une structure de données (<code>RigidBody2D</code>, <code>Transform2D</code>…), un système est une classe qui parcourt ces données (<code>PhysicsSystem</code>…). Il n'y a pas de hiérarchie d'objets de jeu.</li>
+  <li><strong>Un module = un dossier = une cible CMake.</strong> Chaque sous-système de <code>engine/</code> est une bibliothèque indépendante <code>AngeVault::&lt;Nom&gt;</code> avec ses propres dépendances.</li>
+  <li><strong>Seul Render2D dessine.</strong> La physique, les scripts et les particules ne touchent jamais à une fenêtre : ils modifient des composants, le rendu les lit ensuite.</li>
+  <li><strong>Le moteur ignore l'éditeur.</strong> L'éditeur Qt dépend du moteur, jamais l'inverse. Le même code de scène sert au jeu autonome et à l'éditeur.</li>
+</ul>
+
+<h2 id="vue-en-couches">Vue en couches</h2>
+<figure class="diagram">
+<svg viewBox="0 0 900 340" role="img" aria-label="Applications, moteur et bibliothèques tierces">
+  <text class="m" x="40" y="22">APPLICATIONS</text>
+  <rect class="a" x="40" y="32" width="400" height="58" rx="12"/>
+  <text class="h" x="60" y="58">AngeVaultEditor</text><text class="m" x="60" y="77">Qt 6 Widgets — dépend de AngeVault::Engine</text>
+  <rect class="b" x="460" y="32" width="200" height="58" rx="12"/>
+  <text class="h" x="478" y="58">Sandbox</text><text class="m" x="478" y="77">main.cpp + behaviors/</text>
+  <rect class="z" x="680" y="32" width="180" height="58" rx="12"/>
+  <text class="h" x="698" y="58">RPG</text><text class="m" x="698" y="77">dossier présent, vide</text>
+  <path class="ln" d="M240 90 V132 M560 90 V132 M770 90 V132"/>
+  <rect class="d" x="40" y="132" width="820" height="108" rx="16"/>
+  <text class="m" x="58" y="154">MOTEUR — AngeVault::Engine</text>
+  <rect class="b" x="58" y="172" width="118" height="46" rx="10"/><text class="h" x="117" y="200" text-anchor="middle">Core</text>
+  <rect class="b" x="190" y="172" width="118" height="46" rx="10"/><text class="h" x="249" y="200" text-anchor="middle">Physics2D</text>
+  <rect class="b" x="322" y="172" width="118" height="46" rx="10"/><text class="h" x="381" y="200" text-anchor="middle">Particles</text>
+  <rect class="b" x="454" y="172" width="118" height="46" rx="10"/><text class="h" x="513" y="200" text-anchor="middle">Tilemap</text>
+  <rect class="b" x="586" y="172" width="118" height="46" rx="10"/><text class="h" x="645" y="200" text-anchor="middle">Render2D</text>
+  <rect class="b" x="718" y="172" width="124" height="46" rx="10"/><text class="h" x="780" y="200" text-anchor="middle">Runtime</text>
+  <path class="ln" d="M170 240 V276 M450 240 V276 M730 240 V276"/>
+  <text class="m" x="40" y="268">BIBLIOTHÈQUES</text>
+  <rect class="b" x="40" y="278" width="260" height="46" rx="12"/><text class="h" x="58" y="306">SFML 3.1.0</text><text class="m" x="150" y="306">statique, sans audio ni réseau</text>
+  <rect class="b" x="320" y="278" width="260" height="46" rx="12"/><text class="h" x="338" y="306">glm 1.0.1</text><text class="m" x="425" y="306">utilisé par Transform3D</text>
+  <rect class="b" x="600" y="278" width="260" height="46" rx="12"/><text class="h" x="618" y="306">Qt 6 Widgets</text><text class="m" x="735" y="306">éditeur uniquement</text>
+</svg>
+<figcaption>Les trois niveaux d'AngeVault. Les flèches vont de l'appelant vers la dépendance.</figcaption>
+</figure>
+
+<h2 id="arborescence-du-depot">Arborescence du dépôt</h2>
+<div class="code"><div class="code-head"><span class="file">AngelVault/</span><span class="lang">Arborescence</span><button class="copy" type="button">Copier</button></div><pre><code><span class="t">AngelVault/</span>
+├── CMakeLists.txt            <span class="c"># racine : options AV_BUILD_*, détection de Qt</span>
+├── CMakePresets.json         <span class="c"># presets x64-debug, x64-release, dev…</span>
+├── <span class="t">cmake/</span>
+│   ├── Dependencies.cmake    <span class="c"># SFML 3.1.0 + glm 1.0.1 (FetchContent)</span>
+│   └── AngeVaultHelpers.cmake<span class="c"># av_module(), av_copy_assets()</span>
+├── <span class="t">engine/</span>                   <span class="c"># LE MOTEUR : un dossier par module</span>
+│   ├── <span class="t">core/</span>                 <span class="c"># ECS, composants de base, ScriptSystem</span>
+│   ├── <span class="t">physics2d/</span>            <span class="c"># RigidBody2D, Collider2D, Physics/CollisionSystem</span>
+│   ├── <span class="t">particles/</span>            <span class="c"># ParticleEmitter, ParticleSystem</span>
+│   ├── <span class="t">tilemap/</span>              <span class="c"># TileMap (dual-grid), TileType</span>
+│   ├── <span class="t">render2d/</span>             <span class="c"># Geometry, Camera2d, RenderSystem, utilitaires</span>
+│   ├── <span class="t">runtime/</span>              <span class="c"># Game : boucle de jeu</span>
+│   └── <span class="t">ai/</span> <span class="t">scene/</span> <span class="t">ui/</span> ...    <span class="c"># modules prévus (README ou CMakeLists seul)</span>
+├── <span class="t">editor/</span>                   <span class="c"># AngeVaultEditor (Qt 6)</span>
+│   ├── <span class="t">src/</span><span class="t">panels/</span>           <span class="c"># Hierarchy, Inspector, Project, Console, Tile Palette</span>
+│   └── <span class="t">assets/</span>               <span class="c"># icônes + thèmes QSS</span>
+├── <span class="t">projects/</span>
+│   ├── <span class="t">sandbox/</span>              <span class="c"># exécutable Sandbox + scène + behaviors</span>
+│   └── <span class="t">rpg/</span>                  <span class="c"># projet futur</span>
+├── <span class="t">legacy/</span><span class="t">rts/</span>               <span class="c"># ancien prototype RTS (hors build)</span>
+└── <span class="t">tests/</span>                    <span class="c"># test_component_pool</span></code></pre></div>
+
+<h2 id="graphe-de-dependances-des-modules">Graphe de dépendances des modules</h2>
+<p>Chaque module déclare ses dépendances dans son propre <code>CMakeLists.txt</code> via <code>av_module(Nom DEPS …)</code>. Le graphe est volontairement très plat : <strong>Core</strong> ne connaît ni la physique ni le rendu.</p>
+<figure class="diagram">
+<svg viewBox="0 0 900 330" role="img" aria-label="Graphe de dépendances : Runtime vers Render2D vers Physics2D, Tilemap et Core ; Particles vers Core">
+  <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ar"/></marker></defs>
+  <rect class="a" x="350" y="14" width="200" height="52" rx="12"/><text class="h" x="450" y="38" text-anchor="middle">Runtime</text><text class="m" x="450" y="55" text-anchor="middle">+ SFML::Window</text>
+  <rect class="b" x="350" y="100" width="200" height="52" rx="12"/><text class="h" x="450" y="124" text-anchor="middle">Render2D</text><text class="m" x="450" y="141" text-anchor="middle">+ SFML::Graphics</text>
+  <rect class="b" x="90" y="196" width="200" height="52" rx="12"/><text class="h" x="190" y="226" text-anchor="middle">Physics2D</text>
+  <rect class="b" x="350" y="196" width="200" height="52" rx="12"/><text class="h" x="450" y="220" text-anchor="middle">Tilemap</text><text class="m" x="450" y="237" text-anchor="middle">SFML::Graphics</text>
+  <rect class="b" x="610" y="196" width="200" height="52" rx="12"/><text class="h" x="710" y="226" text-anchor="middle">Particles</text>
+  <rect class="b" x="250" y="270" width="200" height="52" rx="12"/><text class="h" x="350" y="294" text-anchor="middle">Core</text><text class="m" x="350" y="311" text-anchor="middle">SFML::System · glm::glm</text>
+  <path class="ln" marker-end="url(#arr)" d="M450 66 V98"/>
+  <path class="ln" marker-end="url(#arr)" d="M400 152 L240 194"/>
+  <path class="ln" marker-end="url(#arr)" d="M450 152 V194"/>
+  <path class="ln" marker-end="url(#arr)" d="M200 248 L290 268"/>
+  <path class="ln" marker-end="url(#arr)" d="M690 248 L440 272"/>
+</svg>
+<figcaption>Dépendances directes d'après les <code>CMakeLists.txt</code> des modules. Render2D dépend aussi directement de Core ; l'arête est omise pour garder le schéma lisible.</figcaption>
+</figure>
+<div class="table-wrap"><table>
+<tr><th>Module</th><th>Déclaration CMake</th><th>Rôle</th></tr>
+<tr><td><code>Core</code></td><td><code>DEPS SFML::System glm::glm</code></td><td>ECS, composants de base (<code>Transform2D</code>, <code>Transform3D</code>, <code>NameComponent</code>, <code>Script</code>), <code>ScriptSystem</code></td></tr>
+<tr><td><code>Physics2D</code></td><td><code>DEPS AngeVault::Core</code></td><td>Corps rigides, colliders, intégration et collisions</td></tr>
+<tr><td><code>Particles</code></td><td><code>DEPS AngeVault::Core</code></td><td>Émetteurs et système de particules</td></tr>
+<tr><td><code>Tilemap</code></td><td><code>DEPS SFML::Graphics</code></td><td>Données de carte (<code>TileMap</code>, <code>TileType</code>)</td></tr>
+<tr><td><code>Render2D</code></td><td><code>DEPS Core Physics2D Tilemap SFML::Graphics</code></td><td>Seul module qui dessine : <code>RenderSystem</code>, <code>TileMapRenderSystem</code>, caméra, chargeur de textures</td></tr>
+<tr><td><code>Runtime</code></td><td><code>DEPS AngeVault::Render2D SFML::Window</code></td><td>Classe <code>Game</code> : fenêtre, boucle, enregistrement des systèmes de rendu</td></tr>
+</table></div>
+
+<h2 id="la-boucle-de-jeu">La boucle de jeu</h2>
+<p>La classe <code>Game</code> (module Runtime) possède un <code>Registry</code> et un <code>SystemManager</code>. Elle s'utilise de deux façons, ce qui permet de partager le même code entre le jeu et l'éditeur :</p>
+<div class="table-wrap"><table>
+<tr><th>Mode</th><th>Constructeur</th><th>Qui fait tourner la boucle ?</th><th>Utilisé par</th></tr>
+<tr><td><strong>Autonome</strong></td><td><code>Game game;</code> (fenêtre 1920×1080)</td><td><code>game.run()</code> : événements → <code>clear</code> → <code>tick</code> → <code>display</code></td><td><code>Sandbox.exe</code></td></tr>
+<tr><td><strong>Embarqué</strong></td><td><code>Game game(fenetre);</code></td><td>L'appelant, en appelant <code>game.tick(dt)</code> à chaque frame</td><td><code>GameView</code> dans l'éditeur (<kbd>F5</kbd>)</td></tr>
+</table></div>
+<div class="code"><div class="code-head"><span class="file">engine/runtime/src/game_loop.cpp</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">void</span> <span class="t">Game</span>::tick(<span class="k">float</span> dt) {
+    m_systems.update(m_registry, dt);   <span class="c">// tous les systèmes, dont RenderSystem</span>
+    m_registry.flushPendingDestroys();  <span class="c">// les destructions demandées pendant la frame</span>
+}
+
+<span class="k">void</span> <span class="t">Game</span>::run() {
+    m_clock.restart();
+    <span class="k">while</span> (m_isRunning) {
+        <span class="k">float</span> dt = m_clock.restart().asSeconds();
+        handleEvents();
+        m_window-&gt;clear(sf::<span class="t">Color</span>::<span class="t">Black</span>);
+        tick(dt);
+        m_window-&gt;display();
+    }
+    stop();   <span class="c">// onStop de chaque système, une seule fois</span>
+}</code></pre></div>
+
+<h2 id="ordre-dexecution-des-systemes">Ordre d'exécution des systèmes</h2>
+<p>Chaque <code>ISystem</code> possède une <code>priority</code> : le <code>SystemManager</code> trie ses systèmes à chaque <code>addSystem</code> et les exécute du plus petit au plus grand.</p>
+<figure class="diagram">
+<svg viewBox="0 0 1000 150" role="img" aria-label="Ordre des systèmes par priorité de 0 à 12">
+  <text class="m" x="10" y="16">SIMULATION</text>
+  <text class="m" x="500" y="16">RENDU</text>
+  <g>
+    <rect class="a" x="8" y="26" width="112" height="62" rx="10"/><text class="h" x="64" y="52" text-anchor="middle">Physics</text><text class="m" x="64" y="72" text-anchor="middle">priorité 0</text>
+    <rect class="a" x="134" y="26" width="112" height="62" rx="10"/><text class="h" x="190" y="52" text-anchor="middle">Collision</text><text class="m" x="190" y="72" text-anchor="middle">priorité 1</text>
+    <rect class="a" x="260" y="26" width="112" height="62" rx="10"/><text class="h" x="316" y="52" text-anchor="middle">Script</text><text class="m" x="316" y="72" text-anchor="middle">priorité 2</text>
+    <rect class="a" x="386" y="26" width="112" height="62" rx="10"/><text class="h" x="442" y="52" text-anchor="middle">Particle</text><text class="m" x="442" y="72" text-anchor="middle">priorité 3</text>
+    <rect class="b" x="512" y="26" width="112" height="62" rx="10"/><text class="h" x="568" y="52" text-anchor="middle">TileMapRender</text><text class="m" x="568" y="72" text-anchor="middle">priorité 5</text>
+    <rect class="b" x="638" y="26" width="112" height="62" rx="10"/><text class="h" x="694" y="52" text-anchor="middle">Render</text><text class="m" x="694" y="72" text-anchor="middle">priorité 10</text>
+    <rect class="b" x="764" y="26" width="112" height="62" rx="10"/><text class="h" x="820" y="52" text-anchor="middle">RenderCollision</text><text class="m" x="820" y="72" text-anchor="middle">priorité 11</text>
+    <rect class="b" x="890" y="26" width="102" height="62" rx="10"/><text class="h" x="941" y="52" text-anchor="middle">ForceDebug</text><text class="m" x="941" y="72" text-anchor="middle">priorité 12</text>
+  </g>
+  <path class="ln2" d="M8 112 H992"/><path class="ar" d="M992 112 l-8 -5 v10z"/>
+  <text class="m" x="10" y="134">temps de la frame</text>
+</svg>
+<figcaption>La physique avance les positions, les collisions les corrigent, les scripts réagissent, puis tout est dessiné.</figcaption>
+</figure>
+<div class="table-wrap"><table>
+<tr><th>Priorité</th><th>Système</th><th>Module</th><th>Enregistré par</th></tr>
+<tr><td>0</td><td><code>PhysicsSystem</code></td><td>Physics2D</td><td>la scène du projet (<code>loadSandboxScene</code>)</td></tr>
+<tr><td>1</td><td><code>CollisionSystem</code></td><td>Physics2D</td><td>la scène du projet</td></tr>
+<tr><td>2</td><td><code>ScriptSystem</code></td><td>Core</td><td>la scène du projet</td></tr>
+<tr><td>3</td><td><code>ParticleSystem</code></td><td>Particles</td><td>à ajouter explicitement (pas enregistré par défaut)</td></tr>
+<tr><td>5</td><td><code>TileMapRenderSystem</code></td><td>Render2D</td><td>la vue tilemap de l'éditeur</td></tr>
+<tr><td>10</td><td><code>RenderSystem</code></td><td>Render2D</td><td><code>Game::init()</code></td></tr>
+<tr><td>11</td><td><code>RenderCollisionSystem</code></td><td>Render2D</td><td><code>Game::init()</code> (debug des colliders)</td></tr>
+<tr><td>12</td><td><code>ForceDebugSystem</code></td><td>Render2D</td><td><code>Game::init()</code> (debug des forces)</td></tr>
+</table></div>
+<div class="callout warn"><i class="fa-solid fa-triangle-exclamation"></i><div><p><strong>Priorités égales.</strong> Le tri utilise <code>std::sort</code>, qui n'est pas stable : deux systèmes de même priorité peuvent s'exécuter dans n'importe quel ordre. Donnez toujours une priorité distincte à deux systèmes dont l'ordre compte.</p></div></div>
+
+<h2 id="le-systeme-de-build">Le système de build</h2>
+<p>Le <code>CMakeLists.txt</code> racine exige CMake 3.28 et C++20, puis ajoute le moteur, le projet Sandbox, l'éditeur (si Qt 6 est trouvé) et les tests. Trois options contrôlent ce qui est construit :</p>
+<div class="table-wrap"><table>
+<tr><th>Option</th><th>Défaut</th><th>Effet</th></tr>
+<tr><td><code>AV_BUILD_EDITOR</code></td><td>ON</td><td>Construit l'éditeur Qt (nécessite Qt 6 ; sinon un avertissement s'affiche et seul le moteur est construit)</td></tr>
+<tr><td><code>AV_BUILD_SANDBOX</code></td><td>ON</td><td>Construit l'exécutable <code>Sandbox</code></td></tr>
+<tr><td><code>AV_BUILD_TESTS</code></td><td>ON</td><td>Construit et enregistre <code>test_component_pool</code> dans CTest</td></tr>
+</table></div>
+<div class="code"><div class="code-head"><span class="file">cmake/AngeVaultHelpers.cmake</span><span class="lang">CMake</span><button class="copy" type="button">Copier</button></div><pre><code><span class="c"># av_module(Nom DEPS &lt;cibles...&gt;)  -&gt;  cible av_&lt;Nom&gt;, alias AngeVault::&lt;Nom&gt;</span>
+<span class="c">#   Aucun .cpp  =&gt; module 100 % header (INTERFACE)</span>
+<span class="k">function</span>(av_module name)
+  <span class="k">cmake_parse_arguments</span>(<span class="t">ARG</span> <span class="s">""</span> <span class="s">""</span> <span class="s">"DEPS"</span> <span class="p">${ARGN}</span>)
+  <span class="k">file</span>(<span class="t">GLOB_RECURSE</span> srcs <span class="t">CONFIGURE_DEPENDS</span> <span class="s">"${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"</span>)
+  <span class="k">if</span>(srcs)
+    <span class="k">add_library</span>(av_<span class="p">${name}</span> <span class="t">STATIC</span> <span class="p">${srcs}</span>)
+    <span class="k">target_include_directories</span>(av_<span class="p">${name}</span> <span class="t">PUBLIC</span> <span class="k">include</span>)
+    <span class="k">target_link_libraries</span>(av_<span class="p">${name}</span> <span class="t">PUBLIC</span> <span class="p">${ARG_DEPS}</span>)
+  <span class="k">else</span>()
+    <span class="k">add_library</span>(av_<span class="p">${name}</span> <span class="t">INTERFACE</span>)
+    <span class="k">target_include_directories</span>(av_<span class="p">${name}</span> <span class="t">INTERFACE</span> <span class="k">include</span>)
+    <span class="k">target_link_libraries</span>(av_<span class="p">${name}</span> <span class="t">INTERFACE</span> <span class="p">${ARG_DEPS}</span>)
+  <span class="k">endif</span>()
+  <span class="k">add_library</span>(AngeVault::<span class="p">${name}</span> <span class="t">ALIAS</span> av_<span class="p">${name}</span>)
+<span class="k">endfunction</span>()</code></pre></div>
+<p>Conséquence pratique : créer un module revient à écrire <em>une ligne</em> dans un <code>CMakeLists.txt</code>, déposer des en-têtes dans <code>include/</code> et, si besoin, des sources dans <code>src/</code>. Voir la <a href="docs.html">recette « Ajouter un module »</a>.</p>
+
+<h2 id="decisions-darchitecture">Décisions d'architecture</h2>
+<div class="table-wrap"><table>
+<tr><th>Décision</th><th>Raison</th></tr>
+<tr><td>Composants stockés en <strong>sparse set</strong></td><td>Itération contiguë et rapide sur les composants, ajout/retrait en O(1), recherche par entité en O(1). Voir <a href="ecs.html">ECS &amp; Registry</a>.</td></tr>
+<tr><td><strong>Génération</strong> dans chaque <code>Entity</code></td><td>Une entité détruite dont l'index est réutilisé n'est plus confondue avec la nouvelle : <code>isValid()</code> compare les générations.</td></tr>
+<tr><td>Destruction <strong>différée</strong></td><td><code>destroyEntity()</code> ne fait que mettre en file ; <code>flushPendingDestroys()</code> agit en fin de frame, ce qui évite d'invalider un <code>view</code> en cours.</td></tr>
+<tr><td>Scène partagée dans <code>sandbox_scene.h</code></td><td><code>loadSandboxEntities</code> (données) et <code>loadSandboxScene</code> (systèmes + données) sont séparées : l'éditeur charge les entités dans son propre <code>Registry</code> sans lancer le jeu.</td></tr>
+<tr><td><code>EditorContext</code> comme bus</td><td>Aucun panneau ne parle à un autre : tous lisent/modifient le contexte et réagissent à ses signaux Qt. Voir <a href="editeur.html">Éditeur Qt</a>.</td></tr>
+<tr><td>Bibliothèques <strong>statiques</strong></td><td><code>BUILD_SHARED_LIBS OFF</code> : seule l'éditeur a besoin de livrer les DLL Qt (<code>windeployqt</code> est lancé après le build).</td></tr>
+</table></div>
+<div class="pager"><a class="prev" href="accueil.html"><small>Précédent</small>← Accueil</a><a class="next" href="ecs.html"><small>Suivant</small>ECS &amp; Registry →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#principes-directeurs">Principes directeurs</a><a href="#vue-en-couches">Vue en couches</a><a href="#arborescence-du-depot">Arborescence du dépôt</a><a href="#graphe-de-dependances-des-modules">Graphe de dépendances des modules</a><a href="#la-boucle-de-jeu">La boucle de jeu</a><a href="#ordre-dexecution-des-systemes">Ordre d&#x27;exécution des systèmes</a><a href="#le-systeme-de-build">Le système de build</a><a href="#decisions-darchitecture">Décisions d&#x27;architecture</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
+ <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>
