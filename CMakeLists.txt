@@ -11,6 +11,7 @@ add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 option(AV_BUILD_EDITOR  "Build the Qt editor (needs Qt 6)" ON)
 option(AV_BUILD_SANDBOX "Build the sandbox project"        ON)
 option(AV_BUILD_TESTS   "Build the tests"                  ON)
+option(AV_BUILD_RPG "Build the Rpg"                        ON)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(Dependencies)
