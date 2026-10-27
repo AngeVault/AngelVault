@@ -34,6 +34,7 @@ private:
     SystemManager    m_systems;
     LooseFileLoader  m_textureLoader;
 
+
     void init();
     void handleEvents();
 };

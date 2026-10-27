@@ -1,5 +1,5 @@
 if(AV_BUILD_RPG)
-  add_executable(Sandbox main.cpp)
-  target_link_libraries(Sandbox PRIVATE AngeVault::Engine)
-  av_copy_assets(Sandbox ${CMAKE_CURRENT_SOURCE_DIR}/assets)
+  add_executable(rpg main.cpp)
+  target_link_libraries(rpg PRIVATE AngeVault::Engine)
+  av_copy_assets(rpg ${CMAKE_CURRENT_SOURCE_DIR}/assets)
 endif()

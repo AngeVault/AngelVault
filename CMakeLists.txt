@@ -17,7 +17,8 @@ include(Dependencies)
 include(AngeVaultHelpers)
 
 add_subdirectory(engine)               # LE MOTEUR : un module par sous-système
-add_subdirectory(projects/sandbox)     # UN PROJET : ton main.cpp + behaviors (exécutable Sandbox)
+add_subdirectory(projects/sandbox)     # UN PROJET : main.cpp + behaviors (exécutable Sandbox)
+add_subdirectory(projects/rpg)
 
 if(AV_BUILD_EDITOR)
   # Windows : si Qt n'est pas indiqué, on cherche le dernier kit MSVC dans C:/Qt/6.x.y/msvc*_64
@@ -32,16 +33,28 @@ if(AV_BUILD_EDITOR)
   endif()
 
   find_package(Qt6 COMPONENTS Widgets QUIET)
-  if(Qt6_FOUND)
+  message(STATUS "DIAG: Qt6_FOUND=${Qt6_FOUND} Qt6_DIR=${Qt6_DIR} compilateur=${CMAKE_CXX_COMPILER_ID} MSVC=${MSVC}")
+
+  # Un kit Qt « msvc » ne se lie qu'avec le compilateur MSVC (pas avec MinGW, le g++ fourni par CLion).
+  set(_av_qt_ok ${Qt6_FOUND})
+  if(Qt6_FOUND AND WIN32 AND NOT MSVC AND "${Qt6_DIR}" MATCHES "msvc")
+    message(WARNING
+            "Kit Qt MSVC (${Qt6_DIR}) mais compilateur ${CMAKE_CXX_COMPILER_ID} : l'editeur est ignore.\n"
+            "  CLion : Settings > Toolchains > + > Visual Studio (amd64), puis profil CMake > Toolchain = Visual Studio,\n"
+            "  puis Reset Cache and Reload Project.\n"
+            "  Visual Studio : ouvrir le dossier et choisir le preset x64-debug.")
+    set(_av_qt_ok FALSE)
+  endif()
+
+  if(_av_qt_ok)
     set(CMAKE_AUTOMOC ON)
     add_subdirectory(editor)
-  else()
+  elseif(NOT Qt6_FOUND)
     message(WARNING
-      "Qt 6 introuvable : l'editeur n'est PAS construit (le moteur et le Sandbox le sont).\n"
-      "  -> installe Qt 6 (kit MSVC 2022 64-bit) puis indique son dossier, par exemple :\n"
-      "     cmake -DCMAKE_PREFIX_PATH=C:/Qt/6.8.1/msvc2022_64 ...\n"
-      "     ou copie CMakeUserPresets.example.json en CMakeUserPresets.json et corrige le chemin.\n"
-      "  Voir README.md, section 'Installer Qt'.")
+            "Qt 6 introuvable : l'editeur n'est PAS construit (le moteur et le Sandbox le sont).\n"
+            "  -> installe Qt 6 (kit MSVC 2022 64-bit) puis indique son dossier, par exemple :\n"
+            "     cmake -DCMAKE_PREFIX_PATH=C:/Qt/6.12.0/msvc2022_64 ...\n"
+            "     ou copie CMakeUserPresets.example.json en CMakeUserPresets.json et corrige le chemin.")
   endif()
 endif()
 
