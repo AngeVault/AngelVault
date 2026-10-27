@@ -25,4 +25,7 @@ int main()
     auto& camera = game.registry().addComponent<Camera2d>(CameraEntity);
     camera.setWorldBorder({0.f,0.f}, {3000.f,3000.f});
     game.registry().addComponent<NameComponent>(CameraEntity, "CameraEntity");
+
+    game.run();
+    return 0;
 }
