@@ -224,3 +224,24 @@ QScrollBar::add-page, QScrollBar::sub-page { background: none; border: none; wid
 
 /* Fond de la vue scène / jeu (autour de la carte) */
 SfmlWidget { qproperty-clearColor: #1b1417; }
+
+/* =====================================================================
+   Fenêtre Input Manager (Édition > Input Manager...)
+   ===================================================================== */
+QDialog#inputSettingsDialog { background-color: #201820; }
+QDialog#inputSettingsDialog QTableWidget {
+    background: #171115;
+    border: 1px solid #4a3540;
+    border-radius: 6px;
+    gridline-color: transparent;
+}
+QDialog#inputSettingsDialog QHeaderView::section {
+    background: #201820;
+    color: #a9899a;
+    border: none;
+    border-bottom: 1px solid #4a3540;
+    padding: 4px 6px;
+}
+QDialog#inputSettingsDialog QTableWidget QToolButton { background: transparent; border: none; }
+QDialog#inputSettingsDialog QLabel#hintLabel { color: #a9899a; }
+QDialog#inputSettingsDialog QPushButton[capturing="true"] { border: 1px solid #a9899a; font-style: italic; }

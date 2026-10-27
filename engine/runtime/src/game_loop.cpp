@@ -15,7 +15,12 @@ Game::Game(sf::RenderWindow& target) : m_window(&target) {
     init();
 }
 
+Game::~Game() {
+    if (InputManager::current() == &m_input) InputManager::setCurrent(nullptr);
+}
+
 void Game::init() {
+    InputManager::setCurrent(&m_input);   // Input::getAxis(...) lit ce Game
     m_systems.addSystem<RenderSystem>(*m_window, m_textureLoader);
     m_systems.addSystem<RenderCollisionSystem>(*m_window);
     m_systems.addSystem<ForceDebugSystem>(*m_window);
@@ -24,6 +29,7 @@ void Game::init() {
 
 void Game::handleEvents() {
     while (const auto event = m_window->pollEvent()) {
+        m_input.handleEvent(*event);
         if (event->is<sf::Event::Closed>()) m_isRunning = false;
         if (const auto* key = event->getIf<sf::Event::KeyPressed>())
             if (key->scancode == sf::Keyboard::Scancode::Escape) m_isRunning = false;
@@ -31,8 +37,11 @@ void Game::handleEvents() {
 }
 
 void Game::tick(float dt) {
+    InputManager::setCurrent(&m_input);
+    m_input.update();                 // état des actions pour cette frame
     m_systems.update(m_registry, dt); // tous les systems, dont RenderSystem
     m_registry.flushPendingDestroys();
+    m_input.endFrame();               // oublie les « Down / Up » et la molette de cette frame
 }
 
 void Game::stop() {

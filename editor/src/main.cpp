@@ -1,6 +1,7 @@
 #include "customWindow.h"
 #include "editor_context.h"
 #include "game_view.h"
+#include "input_settings_dialog.h"
 #include "panels/console_panel.h"
 #include "panels/hierarchy_panel.h"
 #include "panels/inspector_panel.h"
@@ -26,6 +27,7 @@
 #include <QFileInfo>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPointer>
 #include <QProcess>
 #include <QSettings>
 #include <QStackedWidget>
@@ -130,6 +132,7 @@ int main(int argc, char** argv) {
     addAction(edit, "Rétablir", QKeySequence::Redo);
     edit->addSeparator();
     addAction(edit, "Préférences...", QKeySequence(Qt::CTRL | Qt::Key_Comma));
+    QAction* inputSettings = addAction(edit, "Input Manager...");   // actions d'entrée du projet (assets/input.cfg)
     edit->addMenu(themes.createMenu(edit));             // Sombre / Néon rose / fichier .qss
 
     QMenu* view = window.addMenu("&Affichage");
@@ -243,6 +246,21 @@ int main(int argc, char** argv) {
     QProcess gameProcess;
     gameProcess.setWorkingDirectory(QCoreApplication::applicationDirPath());   // pour trouver assets/
 
+    // Édition > Input Manager... : fenêtre non modale, une seule à la fois
+    QPointer<InputSettingsDialog> inputDialog;
+    QObject::connect(inputSettings, &QAction::triggered, [&] {
+        if (!inputDialog) {
+            inputDialog = new InputSettingsDialog(projectDir() + "/assets/input.cfg",
+                                                  [](InputManager& input) { defaultRpgInput(input); }, &window);
+            inputDialog->setAttribute(Qt::WA_DeleteOnClose);
+            // jeu lancé dans l'éditeur : il prend les nouvelles touches tout de suite
+            QObject::connect(inputDialog, &InputSettingsDialog::saved, [&] { if (gameView) gameView->reloadInput(); });
+        }
+        inputDialog->show();
+        inputDialog->raise();
+        inputDialog->activateWindow();
+    });
+
     auto updatePlayState = [&] {
         const bool inEditor = gameView != nullptr;
         const bool external = gameProcess.state() != QProcess::NotRunning;
@@ -298,6 +316,15 @@ int main(int argc, char** argv) {
                                  "Impossible de trouver :\n" + QDir::toNativeSeparators(exe) +
                                  "\n\nCompilez la cible rpg, puis réessayez.");
             return;
+        }
+        {   // rpg.exe lit bin/assets/input.cfg : on y copie la version du projet (Input Manager)
+            const QString src = projectDir() + "/assets/input.cfg";
+            const QString dst = QFileInfo(exe).absolutePath() + "/assets/input.cfg";
+            if (QFileInfo::exists(src)) {
+                QDir().mkpath(QFileInfo(dst).absolutePath());
+                QFile::remove(dst);
+                QFile::copy(src, dst);
+            }
         }
         gameProcess.start(exe, {});
     });

@@ -10,6 +10,10 @@ add_executable(AngeVaultEditor WIN32
     src/tilemap_view.cpp
     src/game_view.h
     src/game_view.cpp
+    src/input_settings_dialog.h
+    src/input_settings_dialog.cpp
+    src/qt_sfml_input.h
+    src/qt_sfml_input.cpp
     src/theme_manager.h
     src/theme_manager.cpp
     src/editor_context.h

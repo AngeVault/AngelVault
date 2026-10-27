@@ -3,6 +3,7 @@
 #include "ecs/registry.h"
 #include "ecs/system_manager.h"
 #include "utils/loose_file_loader.h"
+#include "input/input_manager.h"
 #include <optional>
 
 // Deux façons d'utiliser Game :
@@ -13,7 +14,7 @@ class Game {
 public:
     Game();                                       // crée sa fenêtre 1920x1080
     explicit Game(sf::RenderWindow& target);      // dessine dans une fenêtre fournie (ex. SfmlWidget)
-    ~Game() = default;
+    ~Game();
 
     void run();             // boucle autonome (événements + clear + tick + display)
     void tick(float dt);    // une seule frame de jeu : systèmes (dont le rendu) + destructions
@@ -24,6 +25,11 @@ public:
 
     sf::RenderWindow& window() { return *m_window; }
 
+    // Entrées du jeu (actions nommées). Lues partout avec Input::getAxis("...") (input/input.h).
+    // Mode autonome : run() lui passe les événements de la fenêtre.
+    // Mode embarqué : c'est à l'hôte (l'éditeur) d'appeler input().handleEvent(...).
+    InputManager& input() { return m_input; }
+
 private:
     std::optional<sf::RenderWindow> m_ownWindow;   // utilisé seulement en mode autonome
     sf::RenderWindow* m_window = nullptr;
@@ -33,6 +39,7 @@ private:
     Registry         m_registry;
     SystemManager    m_systems;
     LooseFileLoader  m_textureLoader;
+    InputManager     m_input;
 
 
     void init();
