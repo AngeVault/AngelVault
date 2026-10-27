@@ -36,7 +36,7 @@ int main() {
     auto& colPlayer = game.registry().addComponent<Collider2D>(player, Collider2D::makeBox({ 16.f, 32.f }));
 	game.registry().addComponent<NameComponent>(player, "Player");
 
-	camera.setTarget(player);
+	if (game.registry().isValid(player)) camera.setTarget(player);
 
     // Attache le script PlayerBehavior
     auto& scriptPlayer = game.registry().addComponent<Script>(player);

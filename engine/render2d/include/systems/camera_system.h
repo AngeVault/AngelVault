@@ -6,13 +6,10 @@
 #include "ecs/system.h"
 #include "components/camera2d.h"
 #include "ecs/entity.h"
-#include "systems/camera_system.h"
 #include "components/transform2d.h"
 #include "ecs/registry.h"
 
 #include <SFML/Graphics.hpp>
-
-#include "../../../../out/build/x64-debug/_deps/sfml-src/src/SFML/Window/InputImpl.hpp"
 
 class CameraSystem : public ISystem
 {
