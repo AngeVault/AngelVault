@@ -70,7 +70,15 @@ public:
             }
             else
             {
-                position = registry.getComponent<Transform2D>(camera.targetLock).getPosition();
+                if (registry.isValid(camera.targetLock))
+                {
+                    position = registry.getComponent<Transform2D>(camera.targetLock).getPosition();
+                }
+                else
+                {
+                    camera.targetLock = NULL_ENTITY;
+                }
+
             }
             if (position != registry.getComponent<Transform2D>(e).getPosition())
             {
