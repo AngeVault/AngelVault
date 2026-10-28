@@ -4,7 +4,7 @@
 #include "ecs/behavior.h"
 #include "ecs/registry.h"
 #include "components/rigid_body2d.h"
-#include <SFML/Window/Keyboard.hpp>
+#include "input/input.h"
 #include "components/geometry.h"
 #pragma once
 
@@ -19,24 +19,9 @@ public:
 
         auto& rb = registry.getComponent<RigidBody2D>(self);
 
-        float moveX = 0.f;
-        float moveY = 0.f;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q))
-        {
-            moveX = -1.f;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
-        {
-            moveX = 1.f;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Z) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
-        {
-            moveY = -1.f;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S))
-        {
-            moveY = 1.f;
-        }
+        // Actions de l'Input Manager (assets/input.cfg) : flèches, ZQSD/WASD et stick gauche par défaut
+        const float moveX = Input::getAxis("Horizontal");
+        const float moveY = Input::getAxis("Vertical");
 
         rb.velocity.x = moveX * speed;
         rb.velocity.y = moveY * speed;

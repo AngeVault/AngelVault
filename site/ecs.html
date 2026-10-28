@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ECS &amp; Registry — AngeVault Engine</title>
+<meta name="description" content="Fonctionnement de l&#x27;ECS d&#x27;AngeVault : Entity avec génération, ComponentPool en sparse set, Registry::view, destruction différée, ISystem et SystemManager.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html" class="current" aria-current="page">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Architecture / ECS &amp; Registry</div><span class="eyebrow">Architecture</span><h1>ECS &amp; Registry</h1><p class="lead">Entités, pools de composants, vues et systèmes : le cœur du module Core, expliqué avec le code réel.</p></div></section>
+<div class="wrap doc"><article class="prose"><h2 id="vue-densemble">Vue d'ensemble</h2>
+<p>L'ECS d'AngeVault tient en cinq fichiers d'en-têtes dans <code>engine/core/include/ecs/</code> :</p>
+<div class="table-wrap"><table>
+<tr><th>Fichier</th><th>Rôle</th></tr>
+<tr><td><code>entity.h</code></td><td><code>Entity { index, generation }</code> et <code>NULL_ENTITY</code></td></tr>
+<tr><td><code>component_pool.h</code></td><td><code>ComponentPool&lt;T&gt;</code> : stockage d'un type de composant en sparse set</td></tr>
+<tr><td><code>registry.h</code></td><td><code>Registry</code> : crée les entités, possède les pools, fournit <code>view</code></td></tr>
+<tr><td><code>system.h</code> / <code>system_manager.h</code></td><td><code>ISystem</code> et le gestionnaire qui les trie par priorité</td></tr>
+<tr><td><code>behavior.h</code> / <code>property.h</code></td><td>Comportements scriptés et macro <code>PROPERTY</code> (voir <a href="comportements.html">Comportements C++</a>)</td></tr>
+<tr><td><code>reflect.h</code> / <code>component_registry.h</code></td><td>Réflexion des composants pour l'éditeur</td></tr>
+</table></div>
+
+<h2 id="entity-un-index-et-une-generation">Entity : un index et une génération</h2>
+<div class="code"><div class="code-head"><span class="file">ecs/entity.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">struct</span> <span class="t">Entity</span> {
+    <span class="k">uint32_t</span> index = <span class="n">0</span>;
+    <span class="k">uint32_t</span> generation = <span class="n">0</span>;   <span class="c">// évite les accès à des entités mortes</span>
+    <span class="k">bool</span> <span class="k">operator</span>==(<span class="k">const</span> <span class="t">Entity</span>&amp; o) <span class="k">const</span> {
+        <span class="k">return</span> index == o.index &amp;&amp; generation == o.generation;
+    }
+};
+<span class="k">inline</span> <span class="k">constexpr</span> <span class="t">Entity</span> <span class="t">NULL_ENTITY</span> = { <span class="t">UINT32_MAX</span>, <span class="n">0</span> };</code></pre></div>
+<p>Une entité n'est <em>rien d'autre</em> qu'un identifiant. Quand elle est détruite, sa génération est incrémentée dans le <code>Registry</code> ; son index peut ensuite être réutilisé par une nouvelle entité avec une génération différente. Un ancien <code>Entity</code> conservé quelque part échoue donc à <code>isValid()</code> au lieu de pointer silencieusement vers la mauvaise entité.</p>
+<div class="callout warn"><i class="fa-solid fa-triangle-exclamation"></i><div><p><strong>Piège.</strong> <code>Entity{}</code> vaut <code>{0, 0}</code> : c'est l'entité d'index 0, pas une entité nulle. Pour exprimer « aucune entité », utilisez toujours <code>NULL_ENTITY</code>, comme le fait <code>EditorContext</code> pour la sélection.</p></div></div>
+
+<h2 id="componentpool-le-sparse-set">ComponentPool : le sparse set</h2>
+<p>Chaque type de composant a son propre <code>ComponentPool&lt;T&gt;</code>, composé de trois tableaux :</p>
+<ul>
+  <li><code>m_dense</code> — les composants, <strong>contigus</strong> en mémoire ;</li>
+  <li><code>m_denseToEntity</code> — pour chaque case dense, l'index de l'entité propriétaire ;</li>
+  <li><code>m_sparse</code> — indexé par entité, donne la case dense (ou <code>UINT32_MAX</code> si l'entité n'a pas ce composant).</li>
+</ul>
+<figure class="diagram">
+<svg viewBox="0 0 760 270" role="img" aria-label="Sparse set : le tableau sparse pointe vers les cases du tableau dense">
+  <defs><marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ar"/></marker></defs>
+  <text class="m" x="20" y="14">m_sparse[entité]</text>
+  <g class="mono">
+    <rect class="b" x="20"  y="34" width="62" height="38" rx="6"/><text x="51"  y="58" text-anchor="middle">0</text>
+    <rect class="d" x="86"  y="34" width="62" height="38" rx="6"/><text class="m mono" x="117" y="58" text-anchor="middle">∅</text>
+    <rect class="d" x="152" y="34" width="62" height="38" rx="6"/><text class="m mono" x="183" y="58" text-anchor="middle">∅</text>
+    <rect class="b" x="218" y="34" width="62" height="38" rx="6"/><text x="249" y="58" text-anchor="middle">1</text>
+    <rect class="d" x="284" y="34" width="62" height="38" rx="6"/><text class="m mono" x="315" y="58" text-anchor="middle">∅</text>
+    <rect class="b" x="350" y="34" width="62" height="38" rx="6"/><text x="381" y="58" text-anchor="middle">2</text>
+  </g>
+  <text class="m" x="51" y="29" text-anchor="middle">e0</text><text class="m" x="249" y="29" text-anchor="middle">e3</text><text class="m" x="381" y="29" text-anchor="middle">e5</text>
+
+  <path class="ln" marker-end="url(#arr2)" d="M51 72 L120 168"/>
+  <path class="ln" marker-end="url(#arr2)" d="M249 72 L252 168"/>
+  <path class="ln" marker-end="url(#arr2)" d="M381 72 L384 168"/>
+
+  <text class="m" x="20" y="152">m_dense (composants contigus)</text>
+  <g class="mono">
+    <rect class="a" x="88"  y="170" width="64" height="38" rx="6"/><text x="120" y="194" text-anchor="middle">T de e0</text>
+    <rect class="a" x="220" y="170" width="64" height="38" rx="6"/><text x="252" y="194" text-anchor="middle">T de e3</text>
+    <rect class="a" x="352" y="170" width="64" height="38" rx="6"/><text x="384" y="194" text-anchor="middle">T de e5</text>
+  </g>
+  <text class="m" x="20" y="230">m_dense</text><text class="m" x="20" y="244">ToEntity</text>
+  <g class="mono">
+    <rect class="b" x="88"  y="216" width="64" height="34" rx="6"/><text x="120" y="238" text-anchor="middle">0</text>
+    <rect class="b" x="220" y="216" width="64" height="34" rx="6"/><text x="252" y="238" text-anchor="middle">3</text>
+    <rect class="b" x="352" y="216" width="64" height="34" rx="6"/><text x="384" y="238" text-anchor="middle">5</text>
+  </g>
+  <rect class="z" x="470" y="40" width="270" height="210" rx="14"/>
+  <text class="h" x="488" y="68">remove(e3) : swap &amp; pop</text>
+  <text class="m" x="488" y="94">1. le dernier composant (e5) est déplacé</text>
+  <text class="m" x="488" y="112">    dans la case libérée</text>
+  <text class="m" x="488" y="136">2. m_denseToEntity et m_sparse sont mis</text>
+  <text class="m" x="488" y="154">    à jour pour e5</text>
+  <text class="m" x="488" y="178">3. on retire la dernière case : le tableau</text>
+  <text class="m" x="488" y="196">    reste contigu, sans trou</text>
+  <text class="m" x="488" y="226">Coût : O(1), l'ordre n'est pas conservé.</text>
+</svg>
+<figcaption>Exemple : trois entités (0, 3 et 5) possèdent le composant. Les cases vides du tableau sparse valent <code>UINT32_MAX</code>.</figcaption>
+</figure>
+<div class="code"><div class="code-head"><span class="file">ecs/component_pool.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">void</span> remove(<span class="k">uint32_t</span> entityIndex) {
+    assert(has(entityIndex));
+
+    <span class="k">uint32_t</span> removedDenseIdx = m_sparse[entityIndex];
+    <span class="k">for</span> (<span class="k">auto</span>&amp; cb : m_onDestroy) cb(entityIndex, m_dense[removedDenseIdx]);
+    <span class="k">uint32_t</span> lastEntityIndex = m_denseToEntity.back();
+    m_dense[removedDenseIdx] = <span class="k">std</span>::move(m_dense.back());
+    m_denseToEntity[removedDenseIdx] = lastEntityIndex;
+    m_sparse[lastEntityIndex] = removedDenseIdx;
+    m_dense.pop_back();
+    m_denseToEntity.pop_back();
+    m_sparse[entityIndex] = <span class="t">UINT32_MAX</span>;
+}</code></pre></div>
+<p>Le pool expose aussi deux listes de callbacks : <code>onConstruct</code> (appelé après chaque <code>add</code>) et <code>onDestroy</code> (appelé juste avant la suppression). Le cas particulier « on retire le dernier élément » est couvert par <code>test_remove_last_element</code> dans <code>tests/test_component_pool.cpp</code>.</p>
+
+<h2 id="registry-entites-et-composants">Registry : entités et composants</h2>
+<div class="table-wrap"><table>
+<tr><th>Méthode</th><th>Effet</th></tr>
+<tr><td><code>createEntity()</code></td><td>Réutilise un index libre (avec sa génération courante) ou en crée un nouveau</td></tr>
+<tr><td><code>destroyEntity(e)</code></td><td>Met l'entité en file de destruction (ignorée si invalide)</td></tr>
+<tr><td><code>flushPendingDestroys()</code></td><td>Retire les composants de chaque entité en file, incrémente sa génération, libère l'index. Appelée par <code>Game::tick</code></td></tr>
+<tr><td><code>isValid(e)</code></td><td>Vrai si l'index existe et que la génération correspond</td></tr>
+<tr><td><code>addComponent&lt;T&gt;(e, args…)</code></td><td>Construit le composant sur place et renvoie une référence</td></tr>
+<tr><td><code>getComponent&lt;T&gt;(e)</code> / <code>hasComponent&lt;T&gt;(e)</code> / <code>removeComponent&lt;T&gt;(e)</code></td><td>Accès, test et retrait</td></tr>
+<tr><td><code>forEachEntity(f)</code></td><td>Parcourt toutes les entités vivantes par index croissant (utilisé par la Hierarchy de l'éditeur)</td></tr>
+<tr><td><code>onConstruct&lt;T&gt;(f)</code> / <code>onDestroy&lt;T&gt;(f)</code></td><td>Callbacks sur l'ajout / le retrait d'un composant de type <code>T</code></td></tr>
+</table></div>
+
+<h2 id="view-iterer-sur-les-entites-qui-ont-tous-les-composants">view : itérer sur les entités qui ont tous les composants</h2>
+<div class="code"><div class="code-head"><span class="file">ecs/registry.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">template</span>&lt;<span class="k">typename</span>... <span class="t">Ts</span>, <span class="k">typename</span> <span class="t">Func</span>&gt;
+<span class="k">void</span> view(<span class="t">Func</span>&amp;&amp; func)
+{
+    <span class="k">std</span>::array&lt;<span class="t">IComponentPool</span>*, <span class="k">sizeof</span>...(<span class="t">Ts</span>)&gt; pools = { &amp;pool&lt;<span class="t">Ts</span>&gt;()... };
+
+    <span class="k">size_t</span> smallestIdx = <span class="n">0</span>;
+    <span class="k">for</span> (<span class="k">size_t</span> i = <span class="n">1</span>; i &lt; pools.size(); ++i)
+        <span class="k">if</span> (pools[i]-&gt;size() &lt; pools[smallestIdx]-&gt;size())
+            smallestIdx = i;
+
+    <span class="t">IComponentPool</span>* primary = pools[smallestIdx];
+
+    <span class="k">for</span> (<span class="k">size_t</span> i = <span class="n">0</span>; i &lt; primary-&gt;size(); ++i) {
+        <span class="k">uint32_t</span> idx = primary-&gt;denseToEntity()[i];
+        <span class="t">Entity</span>   e = { idx, m_generations[idx] };
+        <span class="k">if</span> (isValid(e) &amp;&amp; (pool&lt;<span class="t">Ts</span>&gt;().has(idx) &amp;&amp; ...))
+            func(e, pool&lt;<span class="t">Ts</span>&gt;().get(idx)...);
+    }
+}</code></pre></div>
+<p>L'astuce : <code>view</code> choisit le <strong>plus petit pool</strong> parmi ceux demandés et ne parcourt que celui-là, puis vérifie la présence des autres composants en O(1). Un <code>view&lt;RigidBody2D, Transform2D&gt;</code> coûte donc proportionnellement au nombre de corps rigides, pas au nombre total d'entités.</p>
+<div class="code"><div class="code-head"><span class="file">usage</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code>registry.view&lt;<span class="t">RigidBody2D</span>, <span class="t">Transform2D</span>&gt;(
+    [&amp;](<span class="t">Entity</span> e, <span class="t">RigidBody2D</span>&amp; rb, <span class="t">Transform2D</span>&amp; t) {
+        <span class="k">if</span> (rb.isStatic) <span class="k">return</span>;
+        t.move(rb.velocity * dt);
+    });</code></pre></div>
+<div class="callout warn"><i class="fa-solid fa-triangle-exclamation"></i><div>
+<p><strong>Règles d'or pendant un <code>view</code>.</strong></p>
+<p>• Ne pas ajouter ni retirer de composant <em>du type parcouru</em> : le <code>push_back</code> peut réallouer le tableau dense, et le <code>swap &amp; pop</code> déplace un élément non encore visité.</p>
+<p>• Pour supprimer une entité, utilisez <code>destroyEntity()</code> : la suppression est différée en fin de frame.</p>
+<p>• Créer des entités d'autres types de composants est sans danger (c'est ce que fait <code>shootBall</code> depuis un <code>Script</code>).</p></div></div>
+
+<h2 id="systemes">Systèmes</h2>
+<div class="code"><div class="code-head"><span class="file">ecs/system.h + system_manager.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">struct</span> <span class="t">ISystem</span> {
+    <span class="k">virtual</span> ~<span class="t">ISystem</span>() = <span class="k">default</span>;
+    <span class="k">virtual</span> <span class="k">void</span> onStart(<span class="t">Registry</span>&amp; registry) {}
+    <span class="k">virtual</span> <span class="k">void</span> onUpdate(<span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) = <span class="n">0</span>;
+    <span class="k">virtual</span> <span class="k">void</span> onStop(<span class="t">Registry</span>&amp; registry) {}
+    <span class="k">int</span> priority = <span class="n">0</span>;
+};
+
+<span class="k">class</span> <span class="t">SystemManager</span> {
+<span class="k">public</span>:
+    <span class="k">template</span>&lt;<span class="k">typename</span> T, <span class="k">typename</span>... <span class="t">Args</span>&gt;
+    T&amp; addSystem(<span class="t">Args</span>&amp;&amp;... args) {
+        <span class="k">auto</span> sys = <span class="k">std</span>::make_unique&lt;T&gt;(<span class="k">std</span>::forward&lt;<span class="t">Args</span>&gt;(args)...);
+        T&amp; ref = *sys;
+        m_systems.push_back(<span class="k">std</span>::move(sys));
+        <span class="k">std</span>::sort(m_systems.begin(), m_systems.end(),
+            [](<span class="k">const</span> <span class="k">auto</span>&amp; a, <span class="k">const</span> <span class="k">auto</span>&amp; b) { <span class="k">return</span> a-&gt;priority &lt; b-&gt;priority; });
+        <span class="k">return</span> ref;
+    }
+    <span class="k">void</span> start(<span class="t">Registry</span>&amp; r)           { <span class="k">for</span> (<span class="k">auto</span>&amp; s : m_systems) s-&gt;onStart(r); }
+    <span class="k">void</span> update(<span class="t">Registry</span>&amp; r, <span class="k">float</span> dt){ <span class="k">for</span> (<span class="k">auto</span>&amp; s : m_systems) s-&gt;onUpdate(r, dt); }
+    <span class="k">void</span> stop(<span class="t">Registry</span>&amp; r)            { <span class="k">for</span> (<span class="k">auto</span>&amp; s : m_systems) s-&gt;onStop(r); }
+};</code></pre></div>
+<p><code>addSystem</code> renvoie une référence au système créé : c'est pratique pour le configurer tout de suite, par exemple pour brancher un callback de collision (voir la <a href="docs.html">recette</a>). Le cycle de vie est <code>onStart</code>, <code>onUpdate</code> (chaque frame) puis <code>onStop</code> (à l'arrêt).</p>
+<div class="callout warn"><i class="fa-solid fa-triangle-exclamation"></i><div><p><strong>À savoir sur <code>onStart</code>.</strong> <code>Game::init()</code> appelle <code>m_systems.start()</code> une seule fois, dans le constructeur de <code>Game</code>. Les systèmes ajoutés ensuite (comme <code>PhysicsSystem</code> et <code>CameraSystem</code> dans <code>loadRpgScene</code>) ne reçoivent donc jamais <code>onStart</code>. Aucun système actuel ne l'utilise, mais mettez votre initialisation dans le constructeur du système tant que ce point n'est pas corrigé.</p></div></div>
+
+<h2 id="reflexion-pour-lediteur">Réflexion pour l'éditeur</h2>
+<p>Deux mécanismes complémentaires permettent d'afficher des champs dans l'Inspector :</p>
+<ul>
+  <li><strong>Comportements :</strong> la macro <code>PROPERTY(T, nom, défaut)</code> enregistre automatiquement un <code>PropertyInfo</code> (nom, type énuméré, pointeur) dans <code>IBehavior::m_properties</code>.</li>
+  <li><strong>Composants :</strong> le Core fournit <code>reflectComponent&lt;T&gt;()</code> (spécialisation par composant) et <code>ComponentRegistry</code>, tandis que l'éditeur décrit ses champs affichables via <code>componentDescriptors()</code> (getter/setter par champ, ce qui fonctionne aussi pour les champs privés comme ceux de <code>Transform2D</code>). Voir <a href="editeur.html">Éditeur Qt</a>.</li>
+</ul>
+<p>Types supportés par <code>PropertyInfo</code> : <code>float</code>, <code>int</code>, <code>bool</code>, <code>sf::Vector2f</code> et <code>std::string</code>. Tout autre type déclenche un <code>static_assert</code> explicite à la compilation.</p>
+<div class="pager"><a class="prev" href="architecture.html"><small>Précédent</small>← Vue d’ensemble</a><a class="next" href="modules.html"><small>Suivant</small>Modules du moteur →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#vue-densemble">Vue d&#x27;ensemble</a><a href="#entity-un-index-et-une-generation">Entity : un index et une génération</a><a href="#componentpool-le-sparse-set">ComponentPool : le sparse set</a><a href="#registry-entites-et-composants">Registry : entités et composants</a><a href="#view-iterer-sur-les-entites-qui-ont-tous-les-composants">view : itérer sur les entités qui ont tous les composants</a><a href="#systemes">Systèmes</a><a href="#reflexion-pour-lediteur">Réflexion pour l&#x27;éditeur</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
+ <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>
