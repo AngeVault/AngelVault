@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réseau &amp; HTTPS — AngeVault Engine</title>
+<meta name="description" content="Conception du module réseau d&#x27;AngeVault : client HTTP/HTTPS asynchrone avec libcurl et std::future, intégration à l&#x27;ECS et bonnes pratiques de sécurité.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="reseau.html" class="current" aria-current="page">Réseau &amp; HTTPS</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Réseau &amp; HTTPS</div><span class="eyebrow">Documentation</span><h1>Réseau &amp; HTTPS</h1><p class="lead">Le client HTTP/HTTPS asynchrone prévu pour AngeVault : conception, prototype commenté et façon de l'intégrer à l'ECS.</p></div></section>
+<div class="wrap doc"><article class="prose"><div class="callout plan"><i class="fa-solid fa-lightbulb"></i><div><p><strong>Statut : module prévu.</strong> Le dépôt actuel ne contient pas encore de dossier <code>engine/net</code>, et <code>cmake/Dependencies.cmake</code> désactive le réseau de SFML (<code>SFML_BUILD_NETWORK OFF</code>), qui ne gère pas HTTPS. Cette page décrit la conception visée et un prototype ; ce n'est pas du code déjà livré.</p></div></div>
+
+<h2 id="objectif">Objectif</h2>
+<p>Permettre à un jeu de dialoguer avec un serveur distant (classements, sauvegardes en ligne, mises à jour, authentification) en <strong>HTTPS</strong>, avec des réponses JSON, <strong>sans jamais bloquer la boucle de jeu</strong>.</p>
+<ul>
+  <li><strong>libcurl</strong> pour le transport (HTTPS via un backend TLS : OpenSSL ou Schannel selon la plateforme).</li>
+  <li><strong><code>std::async</code> / <code>std::future</code></strong> pour l'asynchronisme : la requête part sur un autre thread, le jeu consulte le résultat quand il est prêt.</li>
+  <li><strong>nlohmann_json</strong> pour lire les réponses (déjà prévu comme dépendance du futur module <code>scene</code>).</li>
+</ul>
+
+<h2 id="place-dans-larchitecture">Place dans l'architecture</h2>
+<div class="table-wrap"><table>
+<tr><th>Élément</th><th>Proposition</th></tr>
+<tr><td>Module</td><td><code>engine/net</code> → <code>av_module(Net DEPS AngeVault::Core CURL::libcurl)</code></td></tr>
+<tr><td>Dépendances</td><td>À ajouter dans <code>cmake/Dependencies.cmake</code> (FetchContent ou gestionnaire de paquets)</td></tr>
+<tr><td>Namespace</td><td><code>AngeVault::</code></td></tr>
+<tr><td>Intégration ECS</td><td>Un composant porte la requête en cours ; un système (ou un comportement) la consulte sans bloquer</td></tr>
+</table></div>
+
+<h2 id="prototype-du-client">Prototype du client</h2>
+<p>La première ébauche passait directement un <code>CURL*</code> sans récupérer le corps de la réponse. La version ci-dessous ajoute ce qui manque pour qu'elle fonctionne : une fonction d'écriture, le code HTTP, un délai maximal et la libération des ressources.</p>
+<div class="code"><div class="code-head"><span class="file">engine/net/include/http_client.h (prototype)</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#pragma</span> once
+<span class="p">#include</span> &lt;string&gt;
+<span class="p">#include</span> &lt;future&gt;
+<span class="p">#include</span> &lt;curl/curl.h&gt;
+
+<span class="k">namespace</span> <span class="t">AngeVault</span> {
+
+<span class="k">struct</span> <span class="t">HttpResponse</span> {
+    <span class="k">int</span>         statusCode = <span class="n">0</span>;
+    <span class="k">std</span>::string body;
+    <span class="k">std</span>::string error;      <span class="c">// message libcurl si success == false</span>
+    <span class="k">bool</span>        success = <span class="k">false</span>;
+};
+
+<span class="k">class</span> <span class="t">HttpClient</span> {
+<span class="k">public</span>:
+    <span class="c">// À appeler une fois au démarrage du programme, et curl_global_cleanup() à la fin.</span>
+    <span class="k">static</span> <span class="k">void</span> init()     { curl_global_init(<span class="t">CURL_GLOBAL_DEFAULT</span>); }
+    <span class="k">static</span> <span class="k">void</span> shutdown() { curl_global_cleanup(); }
+
+    <span class="k">static</span> <span class="k">std</span>::future&lt;<span class="t">HttpResponse</span>&gt; getAsync(<span class="k">const</span> <span class="k">std</span>::string&amp; url, <span class="k">long</span> timeoutSeconds = <span class="n">10</span>) {
+        <span class="k">return</span> <span class="k">std</span>::async(<span class="k">std</span>::launch::async, [url, timeoutSeconds]() {
+            <span class="t">HttpResponse</span> res;
+            <span class="t">CURL</span>* curl = curl_easy_init();
+            <span class="k">if</span> (!curl) { res.error = <span class="s">"curl_easy_init a echoue"</span>; <span class="k">return</span> res; }
+
+            curl_easy_setopt(curl, <span class="t">CURLOPT_URL</span>, url.c_str());
+            curl_easy_setopt(curl, <span class="t">CURLOPT_WRITEFUNCTION</span>, &amp;<span class="t">HttpClient</span>::onWrite);
+            curl_easy_setopt(curl, <span class="t">CURLOPT_WRITEDATA</span>, &amp;res.body);
+            curl_easy_setopt(curl, <span class="t">CURLOPT_FOLLOWLOCATION</span>, 1L);
+            curl_easy_setopt(curl, <span class="t">CURLOPT_TIMEOUT</span>, timeoutSeconds);
+            curl_easy_setopt(curl, <span class="t">CURLOPT_SSL_VERIFYPEER</span>, 1L);   <span class="c">// ne jamais désactiver</span>
+            curl_easy_setopt(curl, <span class="t">CURLOPT_SSL_VERIFYHOST</span>, 2L);
+
+            <span class="t">CURLcode</span> code = curl_easy_perform(curl);
+            res.success = (code == <span class="t">CURLE_OK</span>);
+            <span class="k">if</span> (res.success)
+                curl_easy_getinfo(curl, <span class="t">CURLINFO_RESPONSE_CODE</span>, &amp;res.statusCode);
+            <span class="k">else</span>
+                res.error = curl_easy_strerror(code);
+
+            curl_easy_cleanup(curl);
+            <span class="k">return</span> res;
+        });
+    }
+
+<span class="k">private</span>:
+    <span class="k">static</span> <span class="k">size_t</span> onWrite(<span class="k">char</span>* data, <span class="k">size_t</span> size, <span class="k">size_t</span> count, <span class="k">void</span>* userdata) {
+        static_cast&lt;<span class="k">std</span>::string*&gt;(userdata)-&gt;append(data, size * count);
+        <span class="k">return</span> size * count;
+    }
+};
+
+} <span class="c">// namespace AngeVault</span></code></pre></div>
+<div class="table-wrap"><table>
+<tr><th>Changement</th><th>Pourquoi</th></tr>
+<tr><td><code>CURLOPT_WRITEFUNCTION</code> + <code>WRITEDATA</code></td><td>Sans elles, libcurl écrit la réponse sur la sortie standard : <code>body</code> reste vide.</td></tr>
+<tr><td><code>CURLINFO_RESPONSE_CODE</code></td><td>Remplit <code>statusCode</code>, que le prototype initial laissait à 0.</td></tr>
+<tr><td><code>curl_global_init</code> / <code>cleanup</code></td><td>libcurl demande une initialisation globale avant tout thread ; on la fait une fois, au démarrage.</td></tr>
+<tr><td><code>CURLOPT_TIMEOUT</code></td><td>Un serveur muet ne doit pas garder un thread indéfiniment.</td></tr>
+<tr><td><code>error</code></td><td>Distingue « le serveur a répondu 404 » (<code>success == true</code>, <code>statusCode == 404</code>) de « la connexion a échoué ».</td></tr>
+</table></div>
+
+<h2 id="utilisation-sans-bloquer-le-jeu">Utilisation sans bloquer le jeu</h2>
+<p>Ne jamais appeler <code>future.get()</code> directement dans <code>onUpdate</code> : cela bloquerait la frame. On garde le <code>future</code> et on teste s'il est prêt, chaque frame, sans attendre.</p>
+<div class="code"><div class="code-head"><span class="file">behaviors/leaderboard.h (exemple)</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">class</span> <span class="t">LeaderboardBehavior</span> : <span class="k">public</span> <span class="t">IBehavior</span> {
+<span class="k">public</span>:
+    <span class="k">void</span> onStart(<span class="t">Entity</span> self, <span class="t">Registry</span>&amp; registry) <span class="k">override</span> {
+        m_pending = <span class="t">AngeVault</span>::<span class="t">HttpClient</span>::getAsync(<span class="s">"https://example.com/api/scores"</span>);
+    }
+
+    <span class="k">void</span> onUpdate(<span class="t">Entity</span> self, <span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) <span class="k">override</span> {
+        <span class="k">if</span> (!m_pending.valid()) <span class="k">return</span>;
+
+        <span class="c">// wait_for(0) : on ne bloque pas, on regarde seulement si c'est prêt</span>
+        <span class="k">if</span> (m_pending.wait_for(<span class="k">std</span>::chrono::seconds(<span class="n">0</span>)) == <span class="k">std</span>::future_status::ready) {
+            <span class="t">AngeVault</span>::<span class="t">HttpResponse</span> res = m_pending.get();
+            <span class="k">if</span> (res.success &amp;&amp; res.statusCode == <span class="n">200</span>) {
+                <span class="c">// parser res.body (JSON) et mettre à jour des composants</span>
+            }
+        }
+    }
+
+<span class="k">private</span>:
+    <span class="k">std</span>::future&lt;<span class="t">AngeVault</span>::<span class="t">HttpResponse</span>&gt; m_pending;
+};</code></pre></div>
+<p>Pour plusieurs requêtes à la fois, un composant <code>PendingRequest { std::future&lt;HttpResponse&gt; … }</code> et un <code>NetSystem</code> qui parcourt ces composants avec <code>registry.view</code> évitent de répéter ce schéma dans chaque comportement.</p>
+
+<h2 id="securite">Sécurité</h2>
+<ul>
+  <li><strong>Laissez la vérification TLS activée</strong> (<code>VERIFYPEER = 1</code>, <code>VERIFYHOST = 2</code>). Désactiver la vérification « pour que ça marche » rend la connexion vulnérable.</li>
+  <li>Selon le backend TLS choisi (OpenSSL notamment), il faut fournir un <strong>bundle de certificats d'autorité</strong> (<code>CURLOPT_CAINFO</code>) ou utiliser le magasin du système.</li>
+  <li>N'enregistrez jamais de secret (clé d'API, jeton) dans le dépôt ni dans les assets distribués avec le jeu.</li>
+  <li>Traitez toute réponse comme non fiable : validez le JSON avant de modifier des composants.</li>
+</ul>
+
+<h2 id="etapes-pour-le-creer">Étapes pour le créer</h2>
+<ol>
+  <li>Choisir comment obtenir libcurl (FetchContent, vcpkg…) et l'ajouter à <code>cmake/Dependencies.cmake</code>.</li>
+  <li>Créer <code>engine/net/</code> avec <code>av_module(Net DEPS …)</code> et l'ajouter à <code>engine/CMakeLists.txt</code> (voir la <a href="docs.html">recette</a>).</li>
+  <li>Placer <code>http_client.h</code> dans <code>engine/net/include/</code>.</li>
+  <li>Ajouter <code>AngeVault::Net</code> à la cible <code>av_engine</code>.</li>
+  <li>Écrire un test avec un serveur local (par exemple une réponse JSON statique) avant de viser un serveur distant.</li>
+</ol>
+<div class="pager"><a class="prev" href="composants.html"><small>Précédent</small>← Référence des composants</a><a class="next" href="roadmap.html"><small>Suivant</small>Feuille de route →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#objectif">Objectif</a><a href="#place-dans-larchitecture">Place dans l&#x27;architecture</a><a href="#prototype-du-client">Prototype du client</a><a href="#utilisation-sans-bloquer-le-jeu">Utilisation sans bloquer le jeu</a><a href="#securite">Sécurité</a><a href="#etapes-pour-le-creer">Étapes pour le créer</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
+ <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="reseau.html">Réseau &amp; HTTPS</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>

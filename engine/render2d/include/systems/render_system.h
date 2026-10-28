@@ -114,7 +114,7 @@ private:
 	LooseFileLoader& m_textureLoader;
 };
 
-void test(Camera2d& cam)
+inline void test(Camera2d& cam)   // inline : ce header est inclus par plusieurs .cpp
 {
 	return;
 }

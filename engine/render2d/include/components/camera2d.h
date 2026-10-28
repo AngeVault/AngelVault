@@ -1,19 +1,21 @@
 #pragma once
+#include "ecs/entity.h"
+#include "ecs/reflect.h"
 #include <SFML/Graphics.hpp>
 
 
 struct Camera2d
 {
 	// state
-	sf::Vector2f position{ 0.f ,0.f };
 	float zoom = 1.f;
 	float minZoom = 0.25f;
 	float maxZoom = 4.f;
+	Entity targetLock = NULL_ENTITY;
 
 	// speed 
-	float panSpeedKeyboard = 100.f;
+	float panSpeedKeyboard = 1000.f;
 	float panSpeedGamepad = 100.f;
-	float zoomStep = 0.2f;
+	float zoomStep = 0.5f;
 	float zoomLerpSpeed = 12.f;
 
 	// border
@@ -29,35 +31,23 @@ struct Camera2d
 		worldMax = max;
 	}
 
-	//
-	sf::View makeView(sf::Vector2u windowSize) const {
-		sf::Vector2f half =
-		{
-			windowSize.x * 0.5f / zoom,
-			windowSize.y * 0.5f / zoom
-		};
-		return sf::View(sf::FloatRect(
-			{ position.x - half.x, position.y - half.y },
-			{ half.x * 2.f, half.y * 2.f }
-		));
-	};
-
-	void clampPosition(sf::Vector2u windowSize)
+	void setTarget(Entity e)
 	{
-		if (worldMax.x <= worldMin.x || worldMax.y <= worldMin.y) return;
-
-		float halfW = (windowSize.x * 0.5f) /zoom;
-		float halfH = (windowSize.y * 0.5f) /zoom;
-
-		float minX = worldMin.x + halfW;
-		float maxX = worldMax.x - halfW;
-		float minY = worldMin.y + halfH;
-		float maxY = worldMax.y - halfH;
-
-		if (minX > maxX) position.x = (worldMin.x + worldMax.x) * 0.5f;
-		else position.x = std::clamp(position.x, minX, maxX);
-		if (minY > maxY) position.y = (worldMin.y + worldMax.y) * 0.5f;
-		else position.y = std::clamp(position.y, minY, maxY);
+		targetLock = e;
 	};
 
 };
+
+template<>
+inline ReflectedComponent reflectComponent<Camera2d>(Camera2d& rb) {
+	return { "Camera2d", {
+	        { "zoom",       PropertyInfo::Type::Float, &rb.zoom       },
+			{ "minZoom", PropertyInfo::Type::Float, &rb.minZoom },
+			{ "maxZoom",   PropertyInfo::Type::Float, &rb.maxZoom   },
+			{ "panSpeedKeyboard",    PropertyInfo::Type::Float, &rb.panSpeedKeyboard    },
+			{ "panSpeedGamepad",    PropertyInfo::Type::Float, &rb.panSpeedGamepad    },
+			{ "zoomStep",    PropertyInfo::Type::Float, &rb.zoomStep    },
+			{ "zoomLerpSpeed",    PropertyInfo::Type::Float, &rb.zoomLerpSpeed    },
+			{ "targetZoom",    PropertyInfo::Type::Float, &rb.targetZoom    },
+	} };
+}
