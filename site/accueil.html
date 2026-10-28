@@ -48,8 +48,8 @@ game.systems().addSystem&lt;<span class="t">ScriptSystem</span>&gt;();     <span
 
 <section class="band"><div class="wrap">
   <div class="stats">
-    <div><b>6</b><span>modules moteur actifs</span></div>
-    <div><b>7</b><span>modules prévus</span></div>
+    <div><b>7</b><span>modules moteur actifs</span></div>
+    <div><b>6</b><span>modules prévus</span></div>
     <div><b>5</b><span>panneaux dans l'éditeur</span></div>
     <div><b>C++20</b><span>CMake ≥ 3.28</span></div>
   </div>
@@ -57,18 +57,22 @@ game.systems().addSystem&lt;<span class="t">ScriptSystem</span>&gt;();     <span
 
 <section class="band alt"><div class="wrap">
   <div class="center"><h2>Ce que contient AngeVault aujourd'hui</h2>
-  <p class="sub">Un noyau ECS, une physique 2D, un rendu SFML, une tilemap et un éditeur : chaque brique vit dans son propre module CMake.</p></div>
+  <p class="sub">Un noyau ECS, une physique 2D, un rendu SFML avec caméra, une tilemap, un Input Manager et un éditeur : chaque brique vit dans son propre module CMake.</p></div>
   <div class="grid g3">
     <a class="card" href="ecs.html"><div class="ico"><i class="fa-solid fa-cubes"></i></div><h3>Core &amp; ECS</h3>
       <p>Entités à génération, <code>ComponentPool</code> en sparse set, <code>Registry::view</code> multi-composants et destruction différée.</p><span class="more">Comprendre l'ECS →</span></a>
+    <a class="card" href="modules.html"><div class="ico"><i class="fa-solid fa-keyboard"></i></div><h3>Input Manager</h3>
+      <p>Des actions nommées (<code>Input::getAxis("Horizontal")</code>) reliées aux touches par un fichier <code>input.cfg</code>, modifiable dans l'éditeur.</p><span class="more">Voir le module Input →</span></a>
+    <a class="card" href="modules.html"><div class="ico"><i class="fa-solid fa-wave-square"></i></div><h3>Maths &amp; easing</h3>
+      <p><code>lerp</code>, <code>damp</code>, <code>smoothDamp</code>, angles et 22 courbes d'easing, testés par <code>test_math</code>.</p><span class="more">Voir le module Core →</span></a>
     <a class="card" href="comportements.html"><div class="ico"><i class="fa-solid fa-gamepad"></i></div><h3>Comportements C++</h3>
       <p>Héritez de <code>IBehavior</code>, déclarez vos champs avec <code>PROPERTY</code> : ils apparaissent tout seuls dans l'Inspector.</p><span class="more">Écrire un comportement →</span></a>
     <a class="card" href="modules.html"><div class="ico"><i class="fa-solid fa-atom"></i></div><h3>Physique 2D</h3>
       <p>Corps rigides en Euler semi-implicite, 5 formes de colliders, grille spatiale de 128 px et triggers.</p><span class="more">Voir les modules →</span></a>
     <a class="card" href="modules.html"><div class="ico"><i class="fa-solid fa-palette"></i></div><h3>Rendu &amp; tilemap</h3>
-      <p><code>Geometry</code> (boîte, cercle, polygone, sprite) triée par couche, tilemap « dual-grid » avec transitions de terrains.</p><span class="more">Voir les modules →</span></a>
+      <p><code>Geometry</code> (boîte, cercle, polygone, sprite) triée par couche, caméra <code>Camera2d</code> qui suit une cible, tilemap « dual-grid ».</p><span class="more">Voir les modules →</span></a>
     <a class="card" href="editeur.html"><div class="ico"><i class="fa-solid fa-window-maximize"></i></div><h3>Éditeur Qt 6</h3>
-      <p>Fenêtre sans bordure, panneaux détachables, thèmes QSS, mode jeu intégré (<kbd>F5</kbd>) et console unifiée.</p><span class="more">Explorer l'éditeur →</span></a>
+      <p>Fenêtre sans bordure, panneaux détachables, catégories dans la Hierarchy, 5 thèmes QSS, mode jeu intégré (<kbd>F5</kbd>) et Input Manager.</p><span class="more">Explorer l'éditeur →</span></a>
     <a class="card" href="demarrage.html"><div class="ico"><i class="fa-solid fa-screwdriver-wrench"></i></div><h3>Build CMake modulaire</h3>
       <p>La fonction <code>av_module()</code> crée une cible <code>AngeVault::&lt;Nom&gt;</code> ; SFML et glm arrivent par FetchContent.</p><span class="more">Compiler le projet →</span></a>
   </div>
@@ -84,26 +88,27 @@ game.systems().addSystem&lt;<span class="t">ScriptSystem</span>&gt;();     <span
     <text class="h" x="60" y="58">AngeVaultEditor</text><text class="m" x="60" y="77">Qt 6 Widgets — Hierarchy, Inspector, Tile Palette, Project, Console</text>
     <rect class="b" x="460" y="32" width="200" height="58" rx="12"/>
     <text class="h" x="478" y="58">Sandbox</text><text class="m" x="478" y="77">main.cpp + behaviors/</text>
-    <rect class="z" x="680" y="32" width="180" height="58" rx="12"/>
-    <text class="h" x="698" y="58">RPG</text><text class="m" x="698" y="77">projet prévu</text>
+    <rect class="b" x="680" y="32" width="180" height="58" rx="12"/>
+    <text class="h" x="698" y="58">RPG</text><text class="m" x="698" y="77">rpg_scene.h + input.cfg</text>
 
     <path class="ln" d="M240 90 V132 M560 90 V132 M770 90 V132"/>
 
     <rect class="d" x="40" y="132" width="820" height="108" rx="16"/>
-    <text class="m" x="58" y="154">MOTEUR — AngeVault::Engine (cible INTERFACE qui regroupe les 6 modules)</text>
+    <text class="m" x="58" y="154">MOTEUR — AngeVault::Engine (cible INTERFACE qui regroupe les 7 modules)</text>
     <g>
-      <rect class="b" x="58" y="172" width="118" height="46" rx="10"/><text class="h" x="117" y="200" text-anchor="middle">Core</text>
-      <rect class="b" x="190" y="172" width="118" height="46" rx="10"/><text class="h" x="249" y="200" text-anchor="middle">Physics2D</text>
-      <rect class="b" x="322" y="172" width="118" height="46" rx="10"/><text class="h" x="381" y="200" text-anchor="middle">Particles</text>
-      <rect class="b" x="454" y="172" width="118" height="46" rx="10"/><text class="h" x="513" y="200" text-anchor="middle">Tilemap</text>
-      <rect class="b" x="586" y="172" width="118" height="46" rx="10"/><text class="h" x="645" y="200" text-anchor="middle">Render2D</text>
-      <rect class="b" x="718" y="172" width="124" height="46" rx="10"/><text class="h" x="780" y="200" text-anchor="middle">Runtime</text>
+      <rect class="b" x="58" y="172" width="104" height="46" rx="10"/><text class="h" x="110" y="200" text-anchor="middle">Core</text>
+      <rect class="b" x="170" y="172" width="104" height="46" rx="10"/><text class="h" x="222" y="200" text-anchor="middle">Physics2D</text>
+      <rect class="b" x="282" y="172" width="104" height="46" rx="10"/><text class="h" x="334" y="200" text-anchor="middle">Particles</text>
+      <rect class="b" x="394" y="172" width="104" height="46" rx="10"/><text class="h" x="446" y="200" text-anchor="middle">Tilemap</text>
+      <rect class="b" x="506" y="172" width="104" height="46" rx="10"/><text class="h" x="558" y="200" text-anchor="middle">Input</text>
+      <rect class="b" x="618" y="172" width="104" height="46" rx="10"/><text class="h" x="670" y="200" text-anchor="middle">Render2D</text>
+      <rect class="b" x="730" y="172" width="104" height="46" rx="10"/><text class="h" x="782" y="200" text-anchor="middle">Runtime</text>
     </g>
 
     <path class="ln" d="M170 240 V276 M450 240 V276 M730 240 V276"/>
 
     <text class="m" x="40" y="268">BIBLIOTHÈQUES</text>
-    <rect class="b" x="40" y="278" width="260" height="46" rx="12"/><text class="h" x="58" y="306">SFML 3.1.0</text><text class="m" x="150" y="306">fenêtre, rendu, entrées</text>
+    <rect class="b" x="40" y="278" width="260" height="46" rx="12"/><text class="h" x="58" y="306">SFML 3.1.0</text><text class="m" x="150" y="306">fenêtre, rendu, événements</text>
     <rect class="b" x="320" y="278" width="260" height="46" rx="12"/><text class="h" x="338" y="306">glm 1.0.1</text><text class="m" x="425" y="306">maths 3D (Transform3D)</text>
     <rect class="b" x="600" y="278" width="260" height="46" rx="12"/><text class="h" x="618" y="306">Qt 6 Widgets</text><text class="m" x="735" y="306">éditeur uniquement</text>
   </svg>
@@ -152,7 +157,7 @@ game.systems().addSystem&lt;<span class="t">ScriptSystem</span>&gt;();     <span
  <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
  <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
  <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
- <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
 </div>
 <div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
 </div></footer>

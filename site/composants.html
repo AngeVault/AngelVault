@@ -113,16 +113,22 @@
 <div class="code"><div class="code-head"><span class="file">usage</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code>registry.addComponent&lt;<span class="t">Geometry</span>&gt;(e, <span class="t">Geometry</span>::<span class="t">CircleData</span>{ <span class="n">16</span>.f, { sf::<span class="t">Color</span>(<span class="n">255</span>, <span class="n">0</span>, <span class="n">0</span>) } }, <span class="c">/*layer*/</span> <span class="n">1</span>);</code></pre></div>
 
 <h3 id="camera2d">Camera2d <span class="tag">render2d/components/camera2d.h</span></h3>
+<p>Une caméra est une entité : sa <strong>position</strong> est celle de son <code>Transform2D</code>. Le composant ne contient que les réglages ; c'est le <code>CameraSystem</code> qui construit la <code>sf::View</code> (voir <a href="modules.html">Render2D</a>).</p>
 <div class="table-wrap"><table>
 <tr><th>Champ</th><th>Défaut</th><th>Description</th></tr>
-<tr><td><code>position</code></td><td><code>{0, 0}</code></td><td>Centre de la vue</td></tr>
-<tr><td><code>zoom</code> / <code>targetZoom</code></td><td><code>1</code></td><td>Zoom courant et zoom visé (lissage par <code>zoomLerpSpeed</code> = 12)</td></tr>
-<tr><td><code>minZoom</code> / <code>maxZoom</code></td><td><code>0.25</code> / <code>4</code></td><td>Bornes du zoom</td></tr>
-<tr><td><code>panSpeedKeyboard</code> / <code>panSpeedGamepad</code></td><td><code>100</code></td><td>Vitesse de déplacement</td></tr>
-<tr><td><code>zoomStep</code></td><td><code>0.2</code></td><td>Pas de zoom</td></tr>
+<tr><td><code>zoom</code> / <code>targetZoom</code></td><td><code>1</code></td><td>Zoom courant et zoom visé (en caméra libre, <code>zoom</code> prend <code>targetZoom</code> à chaque frame)</td></tr>
+<tr><td><code>minZoom</code> / <code>maxZoom</code></td><td><code>0.25</code> / <code>4</code></td><td>Bornes du zoom ; avec des bornes de monde, <code>minZoom</code> est recalculé pour que la vue tienne dans la carte</td></tr>
+<tr><td><code>targetLock</code></td><td><code>NULL_ENTITY</code></td><td>Entité suivie. Valide : la caméra se place sur elle ; sinon la caméra est libre (flèches, <kbd>+</kbd>, <kbd>−</kbd>)</td></tr>
+<tr><td><code>panSpeedKeyboard</code></td><td><code>1000</code></td><td>Vitesse de déplacement au clavier (multipliée par le zoom)</td></tr>
+<tr><td><code>panSpeedGamepad</code></td><td><code>100</code></td><td>Vitesse à la manette (pas encore utilisée)</td></tr>
+<tr><td><code>zoomStep</code></td><td><code>0.5</code></td><td>Pas de zoom par seconde</td></tr>
+<tr><td><code>zoomLerpSpeed</code></td><td><code>12</code></td><td>Lissage du zoom (pas encore utilisé)</td></tr>
 <tr><td><code>worldMin</code> / <code>worldMax</code></td><td><code>{0, 0}</code></td><td>Limites du monde (inactives si max ≤ min)</td></tr>
 </table></div>
-<p>Méthodes : <code>setWorldBorder(min, max)</code>, <code>makeView(tailleFenêtre)</code> → <code>sf::View</code>, <code>clampPosition(tailleFenêtre)</code>.</p>
+<p>Méthodes : <code>setWorldBorder(min, max)</code> et <code>setTarget(entité)</code>. Les huit champs numériques sont exposés à l'Inspector par <code>reflectComponent&lt;Camera2d&gt;</code>.</p>
+<div class="code"><div class="code-head"><span class="file">usage</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">auto</span>&amp; camera = registry.addComponent&lt;<span class="t">Camera2d</span>&gt;(cameraEntity);
+camera.setWorldBorder({ <span class="n">0</span>.f, <span class="n">0</span>.f }, { <span class="n">3000</span>.f, <span class="n">3000</span>.f });
+camera.setTarget(player);   <span class="c">// la caméra suit le joueur</span></code></pre></div>
 
 <h3 id="spritecomponent">SpriteComponent <span class="tag">render2d/components/sprite_component.h</span></h3>
 <p>Enveloppe un <code>sf::Sprite</code> et un <code>layer</code>. Les scènes actuelles utilisent plutôt <code>Geometry::SpriteData</code>.</p>
@@ -153,7 +159,7 @@
  <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
  <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
  <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
- <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
 </div>
 <div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
 </div></footer>

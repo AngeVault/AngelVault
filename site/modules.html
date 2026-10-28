@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Modules du moteur — AngeVault Engine</title>
-<meta name="description" content="Modules du moteur AngeVault : Core, Physics2D, Particles, Tilemap, Render2D, Runtime, et modules prévus (scene, input, assets, animation, audio, ui, ai).">
+<meta name="description" content="Modules du moteur AngeVault : Core (ECS, maths), Physics2D, Particles, Tilemap, Input, Render2D (caméra), Runtime, et modules prévus (scene, assets, animation, audio, ui, ai).">
 <script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
  <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
 </div></header>
 <main id="main">
-<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Architecture / Modules du moteur</div><span class="eyebrow">Architecture</span><h1>Modules du moteur</h1><p class="lead">Tour d'horizon des six modules actifs de engine/ et des modules prévus, avec les systèmes et composants de chacun.</p></div></section>
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Architecture / Modules du moteur</div><span class="eyebrow">Architecture</span><h1>Modules du moteur</h1><p class="lead">Tour d'horizon des sept modules actifs de engine/ et des modules prévus, avec les systèmes et composants de chacun.</p></div></section>
 <div class="wrap doc"><article class="prose"><h2 id="core">Core <span class="tag ok">actif</span></h2>
 <p><code>engine/core</code> — dépend de <code>SFML::System</code> et <code>glm::glm</code>. C'est la base de tout : l'ECS (voir <a href="ecs.html">ECS &amp; Registry</a>) et les composants que presque tout le monde utilise.</p>
 <ul>
@@ -29,7 +29,29 @@
   <li><code>Transform3D</code> : position, quaternion, échelle (glm) et <code>getModelMatrix()</code>.</li>
   <li><code>NameComponent</code> : nom lisible affiché par la Hierarchy.</li>
   <li><code>Script</code> + <code>ScriptSystem</code> : comportements C++ (voir <a href="comportements.html">Comportements</a>).</li>
+  <li><strong>Maths</strong> (<code>math/interpolation.h</code>, <code>math/easing.h</code>) : des fonctions sans état, pour <code>float</code> et <code>sf::Vector2f</code>, dans la même veine que <code>Mathf</code> d'Unity.</li>
 </ul>
+<h3 id="les-outils-de-maths">Les outils de maths</h3>
+<div class="table-wrap"><table>
+<tr><th>Fonction</th><th>Effet</th></tr>
+<tr><td><code>Math::lerp(a, b, t)</code></td><td>Point à <code>t</code> (0..1, borné) entre <code>a</code> et <code>b</code> ; <code>lerpUnclamped</code>, <code>inverseLerp</code> et <code>remap</code> complètent</td></tr>
+<tr><td><code>Math::moveTowards(pos, cible, vitesse * dt)</code></td><td>Avance à <strong>vitesse constante</strong> et s'arrête pile sur la cible</td></tr>
+<tr><td><code>Math::damp(pos, cible, 10.f, dt)</code></td><td>« Lerp avec une vitesse » : rapide puis de plus en plus lent, avec le même résultat à 30 ou à 144 FPS (<code>dampHalfLife</code> : réglage par demi-vie)</td></tr>
+<tr><td><code>Math::smoothDamp(pos, cible, vel, 0.3f, dt)</code></td><td>Ressort amorti (<em>SmoothDamp</em> d'Unity), sans dépassement de la cible ; la vitesse <code>vel</code> est conservée par l'appelant, dans ses composants</td></tr>
+<tr><td><code>deltaAngle</code>, <code>lerpAngle</code>, <code>moveTowardsAngle</code>, <code>dampAngle</code></td><td>Angles en degrés, par le chemin le plus court</td></tr>
+<tr><td><code>angleOf</code>, <code>fromAngle</code>, <code>pingPong</code>, <code>repeat</code>, <code>length</code>, <code>normalize</code>, <code>clampLength</code></td><td>Divers (en SFML l'axe Y descend : <code>angleOf({0, 1})</code> vaut 90°)</td></tr>
+<tr><td><code>Ease::apply(Ease::Type::OutBack, t)</code></td><td>Déforme un <code>t</code> (0..1) : 22 courbes (<code>Linear</code>, <code>SmoothStep</code>, <code>In/Out/InOut</code> de <code>Quad</code>, <code>Cubic</code>, <code>Sine</code>, <code>Back</code>, <code>Bounce</code>, <code>Expo</code>, <code>Elastic</code>…) avec f(0) = 0 et f(1) = 1</td></tr>
+</table></div>
+<div class="code"><div class="code-head"><span class="file">usage</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#include</span> <span class="s">"math/interpolation.h"</span>
+<span class="p">#include</span> <span class="s">"math/easing.h"</span>
+
+<span class="c">// dans un onUpdate : suivre une cible en douceur, au même rythme à tous les framerates</span>
+pos = <span class="t">Math</span>::damp(pos, cible, <span class="n">8</span>.f, dt);
+
+<span class="c">// animer d'un point à un autre en dépassant un peu la cible</span>
+<span class="k">float</span> t = timer / duree;                                      <span class="c">// 0 -&gt; 1</span>
+pos = <span class="t">Math</span>::lerp(depart, arrivee, <span class="t">Ease</span>::apply(<span class="t">Ease</span>::<span class="t">Type</span>::<span class="t">OutBack</span>, t));</code></pre></div>
+<p>Ces fonctions sont vérifiées par le test <code>test_math</code> (voir <a href="demarrage.html">Démarrage &amp; build</a>).</p>
 
 <h2 id="physics2d">Physics2D <span class="tag ok">actif</span></h2>
 <p><code>engine/physics2d</code> — dépend de Core. Deux composants (<code>RigidBody2D</code>, <code>Collider2D</code>) et deux systèmes.</p>
@@ -84,8 +106,36 @@ rb.forceAccumulator = { <span class="n">0</span>.f, <span class="n">0</span>.f }
   <li>La carte grandit automatiquement vers les coordonnées négatives (<code>consumeGrowOffset()</code> donne le décalage appliqué).</li>
 </ul>
 
+<h2 id="input">Input <span class="tag ok">actif</span></h2>
+<p><code>engine/input</code> — dépend de <code>SFML::Window</code>. Le jeu ne lit plus les touches directement : il demande des <strong>actions nommées</strong>, comme avec l'Input Manager d'Unity. Le lien entre une action et les touches est une <em>donnée</em>, pas du code.</p>
+<div class="code"><div class="code-head"><span class="file">comportement</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#include</span> <span class="s">"input/input.h"</span>
+
+<span class="k">const</span> <span class="k">float</span> moveX = <span class="t">Input</span>::getAxis(<span class="s">"Horizontal"</span>);     <span class="c">// -1..1 : flèches, Q/D, stick gauche…</span>
+<span class="k">if</span> (<span class="t">Input</span>::getButtonDown(<span class="s">"Jump"</span>)) { <span class="c">/* vrai à la frame où l'action démarre */</span> }</code></pre></div>
+<div class="table-wrap"><table>
+<tr><th>Élément</th><th>Rôle</th></tr>
+<tr><td><code>InputAction</code></td><td>Un nom, un type (<code>Button</code> : enfoncé / relâché ; <code>Axis</code> : valeur réelle bornée à −1..1), une zone morte (0,2 par défaut, pour les manettes) et une liste de liens</td></tr>
+<tr><td><code>InputBinding</code></td><td>Une entrée physique reliée à une action : <code>Key</code>, <code>MouseButton</code>, <code>MouseWheel</code>, <code>JoystickButton</code> ou <code>JoystickAxis</code>, avec un <code>scale</code> (−1 pour « gauche »)</td></tr>
+<tr><td><code>InputManager</code></td><td>Possède les actions et l'état de la frame. <code>handleEvent</code> reçoit chaque événement SFML, <code>update()</code> calcule l'état des actions avant les systèmes, <code>endFrame()</code> oublie les « Down / Up » et la molette après</td></tr>
+<tr><td><code>Input::</code> (<code>input/input.h</code>)</td><td>Façade : <code>getAxis</code>, <code>getButton</code>, <code>getButtonDown</code>, <code>getButtonUp</code>, <code>getKey</code>, <code>getKeyDown</code>, <code>getMouseButton</code>, <code>mousePosition</code>, <code>mouseWheelDelta</code>. Elle lit l'<code>InputManager</code> du <code>Game</code> en cours (<code>InputManager::current()</code>) ; sans <code>Game</code> (tests…), tout renvoie 0 ou faux</td></tr>
+</table></div>
+<p>Les actions viennent d'un petit fichier texte, <code>assets/input.cfg</code> du projet, une action par bloc :</p>
+<div class="code"><div class="code-head"><span class="file">projects/rpg/assets/input.cfg</span><span class="lang">Shell</span><button class="copy" type="button">Copier</button></div><pre><code><span class="c"># [Nom] button|axis deadzone=&lt;0..1&gt;</span>
+<span class="c">#   key &lt;Touche&gt; [échelle] | mouse &lt;Left|Right|Middle|Extra1|Extra2&gt; [échelle] | wheel [échelle]</span>
+<span class="c">#   joybutton &lt;manette&gt; &lt;bouton&gt; [échelle] | joyaxis &lt;manette&gt; &lt;X|Y|Z|R|U|V|PovX|PovY&gt; [échelle]</span>
+
+[Horizontal] axis
+key Left -1
+key Right
+key Q -1
+key A -1
+key D
+joyaxis 0 X</code></pre></div>
+<p>Si le fichier est absent, le projet charge ses actions par défaut en C++ (<code>defaultRpgInput</code> dans <code>rpg_scene.h</code>). On le modifie dans l'éditeur, sans recompiler : <em>Édition → Input Manager…</em> (voir <a href="editeur.html">Éditeur Qt</a>). Le RPG déclare <code>Horizontal</code>, <code>Vertical</code>, <code>Zoom</code>, <code>ZoomWheel</code>, <code>CameraX</code> et <code>CameraY</code>.</p>
+<div class="callout"><i class="fa-solid fa-circle-info"></i><div><p><strong>Mode embarqué.</strong> Quand le jeu est lancé seul (<code>game.run()</code>), <code>Game</code> passe lui-même les événements de la fenêtre à l'<code>InputManager</code>. Dans l'éditeur, c'est <code>GameView</code> qui les lui transmet après les avoir traduits de Qt vers SFML (<code>qt_sfml_input</code>) : le jeu lit donc ses touches par le même chemin dans <code>rpg.exe</code> et dans l'éditeur.</p></div></div>
+
 <h2 id="render2d">Render2D <span class="tag ok">actif</span></h2>
-<p><code>engine/render2d</code> — dépend de Core, Physics2D, Tilemap et <code>SFML::Graphics</code>. <strong>Seul module qui dessine.</strong></p>
+<p><code>engine/render2d</code> — dépend de Core, Physics2D, Tilemap, Input et <code>SFML::Graphics</code>. <strong>Seul module qui dessine.</strong></p>
 <h3 id="geometry-et-rendersystem-priorite-10">Geometry et RenderSystem (priorité 10)</h3>
 <p>Le composant <code>Geometry</code> contient un <code>std::variant</code> de quatre formes plus un <code>layer</code> :</p>
 <div class="table-wrap"><table>
@@ -98,31 +148,45 @@ rb.forceAccumulator = { <span class="n">0</span>.f, <span class="n">0</span>.f }
 <p>Le <code>style</code> regroupe <code>fillColor</code>, <code>outlineColor</code>, <code>outlineThickness</code> et un <code>textureId</code> optionnel. Chaque frame, <code>RenderSystem</code> collecte les entités ayant <code>Transform2D</code> + <code>Geometry</code>, les <strong>trie par <code>layer</code></strong>, puis dessine chacune avec sa matrice locale.</p>
 <h3 id="textures-loosefileloader">Textures : LooseFileLoader</h3>
 <p>Les textures sont chargées à la demande et mises en cache par identifiant. L'identifiant est résolu via un fichier de correspondance <em>id → chemin</em> ; s'il n'y est pas, il est traité comme un chemin direct. Si le fichier est introuvable, un <strong>damier magenta/noir de 32×32</strong> est utilisé : une texture manquante se voit tout de suite.</p>
-<h3 id="camera-et-autres-systemes">Caméra et autres systèmes</h3>
+<h3 id="camera-camera2d-et-camerasystem-priorite-10">Caméra : Camera2d et CameraSystem (priorité −10)</h3>
+<p>Dans le jeu, la caméra est une <strong>entité</strong> : un <code>Transform2D</code> (sa position) et un composant <code>Camera2d</code> (ses réglages). Le <code>CameraSystem</code>, enregistré par la scène du projet, passe en premier (priorité −10) et appelle <code>window.setView(...)</code> : tous les systèmes de rendu qui suivent dessinent donc dans la vue de la caméra.</p>
+<div class="code"><div class="code-head"><span class="file">scène (rpg_scene.h)</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="t">Entity</span> cameraEntity = registry.createEntity();
+registry.addComponent&lt;<span class="t">Transform2D</span>&gt;(cameraEntity).setPosition({ <span class="n">200</span>.f, <span class="n">100</span>.f });
+<span class="k">auto</span>&amp; camera = registry.addComponent&lt;<span class="t">Camera2d</span>&gt;(cameraEntity);
+camera.setWorldBorder({ <span class="n">0</span>.f, <span class="n">0</span>.f }, { <span class="n">3000</span>.f, <span class="n">3000</span>.f });   <span class="c">// la vue ne sort jamais de la carte</span>
+
+<span class="c">// La caméra suit le joueur</span>
+registry.getComponent&lt;<span class="t">Camera2d</span>&gt;(cameraEntity).setTarget(player);</code></pre></div>
 <ul>
-  <li><code>Camera2d</code> : position, zoom borné (0,25 à 4), pan clavier/manette, lissage du zoom, limites du monde (<code>setWorldBorder</code>, <code>clampPosition</code>) et <code>makeView()</code> qui produit une <code>sf::View</code>.</li>
+  <li><strong>Caméra liée</strong> (<code>targetLock</code> valide) : la position de la caméra est celle de la cible, à chaque frame. Si la cible est détruite, la caméra redevient libre.</li>
+  <li><strong>Caméra libre</strong> (<code>targetLock == NULL_ENTITY</code>) : flèches pour la déplacer, <kbd>+</kbd> / <kbd>−</kbd> pour zoomer.</li>
+  <li><strong>Bornes du monde</strong> : si <code>worldMax</code> dépasse <code>worldMin</code>, le zoom arrière est limité pour que la vue ne dépasse pas la carte (<code>minZoom</code> est recalculé à chaque frame) et <code>clampPosition</code> garde le centre de la vue dans la carte. Une carte plus petite que la vue est centrée.</li>
+  <li>Dans l'éditeur, la vue scène n'utilise <em>pas</em> <code>Camera2d</code> mais sa propre <code>EditorCamera</code> ; les caméras de la scène y sont simplement dessinées.</li>
+</ul>
+<div class="callout warn"><i class="fa-solid fa-triangle-exclamation"></i><div><p><strong>À savoir.</strong> Le <code>CameraSystem</code> lit encore directement <code>sf::Keyboard</code> (flèches, <kbd>+</kbd>, <kbd>−</kbd>) : les actions <code>Zoom</code>, <code>ZoomWheel</code>, <code>CameraX</code> et <code>CameraY</code> déclarées par le RPG ne sont pas encore utilisées. Les champs <code>panSpeedGamepad</code> et <code>zoomLerpSpeed</code> ne sont pas encore lus non plus : le zoom s'applique immédiatement. Voir la <a href="roadmap.html">feuille de route</a>.</p></div></div>
+<h3 id="autres-systemes">Autres systèmes</h3>
+<ul>
   <li><code>TileMapRenderSystem</code> (priorité 5) : dessine la tilemap ; il tient compte des compteurs de version de <code>TileMap</code>.</li>
   <li><code>RenderCollisionSystem</code> (11) et <code>ForceDebugSystem</code> (12) : superpositions de débogage pour voir les colliders et les forces.</li>
-  <li>Utilitaires : <code>TextureFactory</code>, <code>TilesetFactory</code>, <code>ColliderFactory</code>.</li>
+  <li>Utilitaires : <code>LooseFileLoader</code>, <code>TextureFactory</code>, <code>TilesetFactory</code>, <code>ColliderFactory</code>.</li>
 </ul>
 
 <h2 id="runtime">Runtime <span class="tag ok">actif</span></h2>
-<p><code>engine/runtime</code> — dépend de Render2D et <code>SFML::Window</code>. Contient la classe <code>Game</code> : voir <a href="architecture.html">la boucle de jeu</a>. Elle enregistre d'office <code>RenderSystem</code>, <code>RenderCollisionSystem</code> et <code>ForceDebugSystem</code>.</p>
+<p><code>engine/runtime</code> — dépend de Render2D, Input et <code>SFML::Window</code>. Contient la classe <code>Game</code> : voir <a href="architecture.html">la boucle de jeu</a>. Elle enregistre d'office <code>RenderSystem</code>, <code>RenderCollisionSystem</code> et <code>ForceDebugSystem</code>, et possède l'<code>InputManager</code> du jeu (<code>game.input()</code>).</p>
 
 <h2 id="modules-prevus">Modules prévus <span class="tag plan">à venir</span></h2>
-<p>Le <code>CMakeLists.txt</code> de <code>engine/</code> liste ces modules comme « prévus, pas encore créés ». Le premier à voir le jour devrait être <code>scene</code> (voir la <a href="roadmap.html">feuille de route</a>).</p>
+<p>Le <code>CMakeLists.txt</code> de <code>engine/</code> liste ces modules comme « prévus, pas encore créés » (<code>assets scene animation audio ui ai</code>). Chacun a des issues planifiées dans un jalon : voir la <a href="roadmap.html">feuille de route</a>.</p>
 <div class="table-wrap"><table>
-<tr><th>Module</th><th>Contenu prévu</th><th>Dépendances prévues</th></tr>
-<tr><td><code>scene</code></td><td>Sérialisation JSON des scènes (entités, composants, tilemap), identifiants stables, prefabs, registre de comportements (nom → fabrique). Même fichier pour l'éditeur et le jeu.</td><td>Core, Tilemap, <code>nlohmann_json</code></td></tr>
-<tr><td><code>ui</code></td><td>Interface en jeu : boîtes de dialogue, HUD, barres de vie.</td><td>Core, Render2D</td></tr>
-<tr><td><code>input</code></td><td>Gestion des entrées (actions, manettes).</td><td>—</td></tr>
-<tr><td><code>assets</code></td><td>Gestion centralisée des ressources.</td><td>—</td></tr>
-<tr><td><code>animation</code></td><td>Animation de sprites.</td><td>—</td></tr>
-<tr><td><code>audio</code></td><td>Son (le flag <code>SFML_BUILD_AUDIO</code> est prêt, à passer à ON).</td><td>—</td></tr>
-<tr><td><code>ai</code></td><td>Intelligence artificielle des entités.</td><td>—</td></tr>
+<tr><th>Module</th><th>Contenu prévu</th><th>Dépendances prévues</th><th>Issues (jalon)</th></tr>
+<tr><td><code>scene</code></td><td>Sérialisation JSON des scènes (entités, composants, tilemap), identifiants stables, prefabs, registre de comportements (nom → fabrique). Même fichier pour l'éditeur et le jeu.</td><td>Core, Tilemap, <code>nlohmann_json</code></td><td><a href="https://github.com/AngeVault/AngelVault/issues/17">#17</a>, <a href="https://github.com/AngeVault/AngelVault/issues/18">#18</a>, <a href="https://github.com/AngeVault/AngelVault/issues/32">#32</a> (Alpha, Bêta)</td></tr>
+<tr><td><code>ui</code></td><td>Interface en jeu : boîtes de dialogue, HUD, barres de vie.</td><td>Core, Render2D</td><td><a href="https://github.com/AngeVault/AngelVault/issues/34">#34</a> (Bêta)</td></tr>
+<tr><td><code>assets</code></td><td>Gestionnaire de ressources et chemins de projet.</td><td>—</td><td><a href="https://github.com/AngeVault/AngelVault/issues/38">#38</a> (Bêta)</td></tr>
+<tr><td><code>animation</code></td><td>Tiles animées (eau) et états visuels.</td><td>—</td><td><a href="https://github.com/AngeVault/AngelVault/issues/46">#46</a> (Gold)</td></tr>
+<tr><td><code>audio</code></td><td>Musique et effets (le flag <code>SFML_BUILD_AUDIO</code> est prêt, à passer à ON).</td><td>—</td><td><a href="https://github.com/AngeVault/AngelVault/issues/50">#50</a> (Gold)</td></tr>
+<tr><td><code>ai</code></td><td>Steering : errance (<em>wander</em>), poursuite (<em>pursuit</em>)…</td><td>—</td><td><a href="https://github.com/AngeVault/AngelVault/issues/45">#45</a> (Gold)</td></tr>
 </table></div>
-<p>Pour créer l'un d'eux, voir la recette <a href="docs.html">« Ajouter un module »</a>. Seuls <code>scene</code> et <code>ui</code> ont à ce jour un <code>README.md</code> ; les autres lignes du tableau reprennent la liste commentée dans <code>engine/CMakeLists.txt</code> (leur contenu exact reste à définir).</p>
-<div class="pager"><a class="prev" href="ecs.html"><small>Précédent</small>← ECS &amp; Registry</a><a class="next" href="editeur.html"><small>Suivant</small>Éditeur Qt →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#core">Core</a><a href="#physics2d">Physics2D</a><a href="#physicssystem-priorite-0" class="sub">PhysicsSystem (priorité 0)</a><a href="#collisionsystem-priorite-1" class="sub">CollisionSystem (priorité 1)</a><a href="#particles">Particles</a><a href="#tilemap">Tilemap</a><a href="#render2d">Render2D</a><a href="#geometry-et-rendersystem-priorite-10" class="sub">Geometry et RenderSystem (priorité 10)</a><a href="#textures-loosefileloader" class="sub">Textures : LooseFileLoader</a><a href="#camera-et-autres-systemes" class="sub">Caméra et autres systèmes</a><a href="#runtime">Runtime</a><a href="#modules-prevus">Modules prévus</a></aside></div>
+<p>Pour créer l'un d'eux, voir la recette <a href="docs.html">« Ajouter un module »</a>. Seuls <code>scene</code> et <code>ui</code> ont à ce jour un <code>README.md</code> ; les autres lignes reprennent la liste commentée dans <code>engine/CMakeLists.txt</code> et le titre des issues.</p>
+<div class="pager"><a class="prev" href="ecs.html"><small>Précédent</small>← ECS &amp; Registry</a><a class="next" href="editeur.html"><small>Suivant</small>Éditeur Qt →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#core">Core</a><a href="#les-outils-de-maths" class="sub">Les outils de maths</a><a href="#physics2d">Physics2D</a><a href="#physicssystem-priorite-0" class="sub">PhysicsSystem (priorité 0)</a><a href="#collisionsystem-priorite-1" class="sub">CollisionSystem (priorité 1)</a><a href="#particles">Particles</a><a href="#tilemap">Tilemap</a><a href="#input">Input</a><a href="#render2d">Render2D</a><a href="#geometry-et-rendersystem-priorite-10" class="sub">Geometry et RenderSystem (priorité 10)</a><a href="#textures-loosefileloader" class="sub">Textures : LooseFileLoader</a><a href="#camera-camera2d-et-camerasystem-priorite-10" class="sub">Caméra : Camera2d et CameraSystem (priorité −10)</a><a href="#autres-systemes" class="sub">Autres systèmes</a><a href="#runtime">Runtime</a><a href="#modules-prevus">Modules prévus</a></aside></div>
 </main>
 <footer class="site-footer"><div class="wrap">
 <div class="foot">
@@ -130,7 +194,7 @@ rb.forceAccumulator = { <span class="n">0</span>.f, <span class="n">0</span>.f }
  <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
  <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
  <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
- <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
 </div>
 <div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
 </div></footer>

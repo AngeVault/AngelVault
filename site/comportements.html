@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Comportements C++ — AngeVault Engine</title>
-<meta name="description" content="Guide des comportements AngeVault : IBehavior, composant Script, ScriptSystem, macro PROPERTY, exemple complet du PlayerBehavior.">
+<meta name="description" content="Guide des comportements AngeVault : IBehavior, composant Script, ScriptSystem, macro PROPERTY, Input Manager (Input::getAxis) et exemples de PlayerBehavior.">
 <script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
  <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
 </div></header>
 <main id="main">
-<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Comportements C++</div><span class="eyebrow">Documentation</span><h1>Comportements C++</h1><p class="lead">Écrire de la logique de jeu en C++ natif avec IBehavior, le composant Script et la macro PROPERTY.</p></div></section>
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Comportements C++</div><span class="eyebrow">Documentation</span><h1>Comportements C++</h1><p class="lead">Écrire de la logique de jeu en C++ natif avec IBehavior, le composant Script, la macro PROPERTY et l'Input Manager.</p></div></section>
 <div class="wrap doc"><article class="prose"><h2 id="le-modele-ibehavior-script-scriptsystem">Le modèle : IBehavior + Script + ScriptSystem</h2>
 <p>La logique propre à une entité (déplacer le joueur, faire tourner un bloc…) s'écrit dans une classe qui hérite de <code>IBehavior</code>. Cette classe est portée par un composant <code>Script</code>, et c'est le <code>ScriptSystem</code> (priorité 2) qui en appelle les méthodes.</p>
 <div class="code"><div class="code-head"><span class="file">ecs/behavior.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">struct</span> <span class="t">IBehavior</span> {
@@ -107,8 +107,36 @@ carBehavior.behavior = <span class="k">std</span>::make_unique&lt;<span class="t
 </table></div>
 <div class="callout"><i class="fa-solid fa-circle-info"></i><div><p>Le <code>PropertyInfo</code> mémorise l'<strong>adresse</strong> du membre. Un comportement ne doit donc être ni copié ni déplacé après sa création : c'est le cas ici puisqu'il vit derrière un <code>std::unique_ptr</code> dans <code>Script</code>.</p></div></div>
 
-<h2 id="exemple-complet-playerbehavior">Exemple complet : PlayerBehavior</h2>
-<p>Voici le comportement du joueur du Sandbox (extrait de <code>projects/sandbox/behaviors/player_behavior.h</code>). Il combine déplacement, saut avec double saut, et tir d'une balle toutes les 2 secondes.</p>
+<h2 id="lire-les-entrees-linput-manager">Lire les entrées : l'Input Manager</h2>
+<p>Un comportement n'a pas besoin de connaître les touches. Il demande des <strong>actions nommées</strong> à la façade <code>Input::</code> (<code>input/input.h</code>) ; le lien entre une action et les touches est défini dans <code>assets/input.cfg</code> et se modifie dans l'éditeur (<em>Édition → Input Manager…</em>). Voici le joueur du projet RPG (<code>projects/rpg/behaviors/player_behaviors.h</code>) :</p>
+<div class="code"><div class="code-head"><span class="file">behaviors/player_behaviors.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">class</span> <span class="t">PlayerBehavior</span> : <span class="k">public</span> <span class="t">IBehavior</span> {
+<span class="k">public</span>:
+    <span class="t">PROPERTY</span>(<span class="k">float</span>, speed, <span class="n">250</span>.f)
+
+    <span class="k">void</span> onUpdate(<span class="t">Entity</span> self, <span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) <span class="k">override</span>
+    {
+        <span class="k">auto</span>&amp; rb = registry.getComponent&lt;<span class="t">RigidBody2D</span>&gt;(self);
+
+        <span class="c">// Actions de l'Input Manager (assets/input.cfg) : flèches, ZQSD/WASD et stick gauche par défaut</span>
+        <span class="k">const</span> <span class="k">float</span> moveX = <span class="t">Input</span>::getAxis(<span class="s">"Horizontal"</span>);
+        <span class="k">const</span> <span class="k">float</span> moveY = <span class="t">Input</span>::getAxis(<span class="s">"Vertical"</span>);
+
+        rb.velocity.x = moveX * speed;
+        rb.velocity.y = moveY * speed;
+    }
+};</code></pre></div>
+<div class="table-wrap"><table>
+<tr><th>Appel</th><th>Renvoie</th></tr>
+<tr><td><code>Input::getAxis("Horizontal")</code></td><td>−1..1 : somme des liens de l'action, bornée (la molette renvoie des crans). Les axes de manette respectent la zone morte</td></tr>
+<tr><td><code>Input::getButton("Jump")</code></td><td>vrai tant que l'action est maintenue</td></tr>
+<tr><td><code>Input::getButtonDown("Jump")</code> / <code>getButtonUp</code></td><td>vrai uniquement à la frame où l'action s'enclenche / se relâche</td></tr>
+<tr><td><code>Input::getKey</code>, <code>getKeyDown</code>, <code>getMouseButton</code>, <code>mousePosition</code>, <code>mouseWheelDelta</code></td><td>Lecture brute, sans passer par une action</td></tr>
+</table></div>
+<p>Avantages par rapport à <code>sf::Keyboard::isKeyPressed</code> : le joueur peut changer ses touches sans recompiler, la manette et le clavier passent par le même appel, et le comportement fonctionne de la même façon dans <code>rpg.exe</code> et dans l'éditeur (<kbd>F5</kbd>). Sans <code>Game</code> en cours (dans un test, par exemple), toutes les fonctions renvoient 0 ou faux.</p>
+<p>Ajouter une action : une ligne dans <code>input.cfg</code> (ou dans <code>defaultRpgInput</code> pour les valeurs par défaut du projet), puis <code>Input::getButtonDown("Nom")</code> dans le comportement. Le format du fichier est décrit dans <a href="modules.html">le module Input</a>.</p>
+
+<h2 id="exemple-complet-playerbehavior-du-sandbox">Exemple complet : PlayerBehavior du Sandbox</h2>
+<p>Voici le comportement du joueur du Sandbox (extrait de <code>projects/sandbox/behaviors/player_behavior.h</code>). Il combine déplacement, saut avec double saut, et tir d'une balle toutes les 2 secondes. Il lit encore le clavier directement avec <code>sf::Keyboard</code> : le Sandbox n'utilise pas (encore) l'Input Manager.</p>
 <div class="code"><div class="code-head"><span class="file">behaviors/player_behavior.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">class</span> <span class="t">PlayerBehavior</span> : <span class="k">public</span> <span class="t">IBehavior</span> {
 <span class="k">public</span>:
     <span class="t">PROPERTY</span>(<span class="k">float</span>, speed, <span class="n">250</span>.f)
@@ -194,8 +222,8 @@ carBehavior.behavior = <span class="k">std</span>::make_unique&lt;<span class="t
     rbBall.applyImpulse({ <span class="n">50</span> + rbPlayer.velocity.x * <span class="n">2</span>, <span class="n">0</span> + rbPlayer.velocity.y * <span class="n">2</span> });
     <span class="c">// … NameComponent "ball N" …</span>
 }</code></pre></div>
-<div class="callout plan"><i class="fa-solid fa-lightbulb"></i><div><p><strong>Prochainement.</strong> Le module <code>scene</code> prévoit un registre de comportements (<em>nom → fabrique</em>) pour sauvegarder le composant <code>Script</code> dans un fichier de scène JSON. Aujourd'hui, les scripts sont attachés en C++ dans <code>sandbox_scene.h</code>.</p></div></div>
-<div class="pager"><a class="prev" href="demarrage.html"><small>Précédent</small>← Démarrage &amp; build</a><a class="next" href="composants.html"><small>Suivant</small>Référence des composants →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#le-modele-ibehavior-script-scriptsystem">Le modèle : IBehavior + Script + ScriptSystem</a><a href="#votre-premier-comportement">Votre premier comportement</a><a href="#property-des-champs-editables-dans-linspector">PROPERTY : des champs éditables dans l&#x27;Inspector</a><a href="#exemple-complet-playerbehavior">Exemple complet : PlayerBehavior</a><a href="#creer-des-entites-depuis-un-comportement">Créer des entités depuis un comportement</a></aside></div>
+<div class="callout plan"><i class="fa-solid fa-lightbulb"></i><div><p><strong>Prochainement.</strong> Le module <code>scene</code> prévoit un registre de comportements (<em>nom → fabrique</em>) pour sauvegarder le composant <code>Script</code> dans un fichier de scène JSON. Aujourd'hui, les scripts sont attachés en C++ dans <code>sandbox_scene.h</code> et <code>rpg_scene.h</code>.</p></div></div>
+<div class="pager"><a class="prev" href="demarrage.html"><small>Précédent</small>← Démarrage &amp; build</a><a class="next" href="composants.html"><small>Suivant</small>Référence des composants →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#le-modele-ibehavior-script-scriptsystem">Le modèle : IBehavior + Script + ScriptSystem</a><a href="#votre-premier-comportement">Votre premier comportement</a><a href="#property-des-champs-editables-dans-linspector">PROPERTY : des champs éditables dans l&#x27;Inspector</a><a href="#lire-les-entrees-linput-manager">Lire les entrées : l&#x27;Input Manager</a><a href="#exemple-complet-playerbehavior-du-sandbox">Exemple complet : PlayerBehavior du Sandbox</a><a href="#creer-des-entites-depuis-un-comportement">Créer des entités depuis un comportement</a></aside></div>
 </main>
 <footer class="site-footer"><div class="wrap">
 <div class="foot">
@@ -203,7 +231,7 @@ carBehavior.behavior = <span class="k">std</span>::make_unique&lt;<span class="t
  <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
  <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
  <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
- <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
 </div>
 <div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
 </div></footer>

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Démarrage &amp; build — AngeVault Engine</title>
-<meta name="description" content="Guide de démarrage AngeVault : prérequis (CMake 3.28, C++20, Qt 6), presets CMake, options AV_BUILD_*, lancer l&#x27;éditeur, le Sandbox et les tests.">
+<meta name="description" content="Guide de démarrage AngeVault : prérequis (CMake 3.28, C++20, Qt 6), presets CMake, options AV_BUILD_*, lancer l&#x27;éditeur, le RPG, le Sandbox et les tests.">
 <script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
  <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
 </div></header>
 <main id="main">
-<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Démarrage &amp; build</div><span class="eyebrow">Documentation</span><h1>Démarrage &amp; build</h1><p class="lead">De zéro à l'éditeur qui tourne : prérequis, presets CMake, options de build, lancer le Sandbox et les tests.</p></div></section>
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Démarrage &amp; build</div><span class="eyebrow">Documentation</span><h1>Démarrage &amp; build</h1><p class="lead">De zéro à l'éditeur qui tourne : prérequis, presets CMake, options de build, lancer le RPG, le Sandbox et les tests.</p></div></section>
 <div class="wrap doc"><article class="prose"><h2 id="prerequis">Prérequis</h2>
 <div class="table-wrap"><table>
 <tr><th>Outil</th><th>Version</th><th>Pour quoi faire</th></tr>
@@ -29,7 +29,7 @@
 <tr><td>Compilateur C++20</td><td>MSVC 2022 (Windows)</td><td>Les presets Windows utilisent <code>cl.exe</code></td></tr>
 <tr><td>Ninja</td><td>—</td><td>Générateur utilisé par les presets</td></tr>
 <tr><td>Git + accès réseau</td><td>—</td><td>SFML 3.1.0 et glm 1.0.1 sont téléchargés au premier configure (FetchContent)</td></tr>
-<tr><td>Qt 6 (Widgets)</td><td>kit MSVC 2022 64-bit</td><td><strong>Éditeur uniquement</strong> — le moteur et le Sandbox n'en ont pas besoin</td></tr>
+<tr><td>Qt 6 (Widgets)</td><td>kit MSVC 2022 64-bit</td><td><strong>Éditeur uniquement</strong> — le moteur, le RPG et le Sandbox n'en ont pas besoin</td></tr>
 </table></div>
 <div class="callout"><i class="fa-solid fa-circle-info"></i><div><p>Sous Windows, si <code>Qt6_DIR</code> et <code>CMAKE_PREFIX_PATH</code> ne sont pas définis, CMake cherche tout seul le kit le plus récent dans <code>C:/Qt/6.*/msvc*_64</code> et l'affiche (<em>Qt detecte automatiquement</em>).</p></div></div>
 
@@ -43,7 +43,7 @@
 
 <span class="c"># 3. compiler</span>
 <span class="k">cmake</span> <span class="p">--build</span> out/build/x64-debug</code></pre></div>
-<p>Les exécutables sont produits dans <code>out/build/&lt;preset&gt;/bin/</code> : <code>AngeVaultEditor.exe</code>, <code>Sandbox.exe</code> et le test.</p>
+<p>Les exécutables sont produits dans <code>out/build/&lt;preset&gt;/bin/</code> : <code>AngeVaultEditor.exe</code>, <code>rpg.exe</code>, <code>Sandbox.exe</code> et les tests (<code>test_component_pool</code>, <code>test_math</code>).</p>
 
 <h3 id="les-presets">Les presets</h3>
 <div class="table-wrap"><table>
@@ -58,7 +58,18 @@
 <h3 id="les-options">Les options</h3>
 <div class="code"><div class="code-head"><span class="file">terminal</span><span class="lang">Shell</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">cmake</span> <span class="p">--preset</span> x64-debug <span class="p">-DAV_BUILD_EDITOR</span>=OFF     <span class="c"># sans éditeur</span>
 <span class="k">cmake</span> <span class="p">--preset</span> x64-debug <span class="p">-DAV_BUILD_SANDBOX</span>=OFF    <span class="c"># sans Sandbox</span>
+<span class="k">cmake</span> <span class="p">--preset</span> x64-debug <span class="p">-DAV_BUILD_RPG</span>=OFF        <span class="c"># sans le projet RPG</span>
 <span class="k">cmake</span> <span class="p">--preset</span> x64-debug <span class="p">-DAV_BUILD_TESTS</span>=OFF      <span class="c"># sans tests</span></code></pre></div>
+
+<h2 id="lancer-le-rpg">Lancer le RPG</h2>
+<p><code>rpg.exe</code> ouvre sa propre fenêtre 1920×1080, charge les actions d'entrée (<code>assets/input.cfg</code>, ou les actions par défaut s'il est absent) puis la scène de <code>rpg_scene.h</code> : une caméra qui suit le joueur dans un monde de 3000 × 3000 pixels. Lancez-le depuis son dossier <code>bin/</code> : <code>input.cfg</code> et les textures sont cherchés dans <code>assets/</code>, à côté de l'exécutable.</p>
+<div class="table-wrap"><table>
+<tr><th>Touche (par défaut)</th><th>Action de l'Input Manager</th></tr>
+<tr><td><kbd>←</kbd> <kbd>→</kbd> / <kbd>Q</kbd> <kbd>D</kbd> / <kbd>A</kbd> / stick gauche</td><td><code>Horizontal</code> : déplacement gauche / droite</td></tr>
+<tr><td><kbd>↑</kbd> <kbd>↓</kbd> / <kbd>Z</kbd> <kbd>S</kbd> / <kbd>W</kbd> / stick gauche</td><td><code>Vertical</code> : déplacement haut / bas</td></tr>
+<tr><td><kbd>Échap</kbd></td><td>Quitter</td></tr>
+</table></div>
+<p>Les touches se changent sans recompiler, dans <code>assets/input.cfg</code> ou depuis l'éditeur (<em>Édition → Input Manager…</em>). Les actions <code>Zoom</code>, <code>ZoomWheel</code>, <code>CameraX</code> et <code>CameraY</code> existent aussi dans le fichier, mais le <code>CameraSystem</code> ne les lit pas encore (voir <a href="roadmap.html">la feuille de route</a>).</p>
 
 <h2 id="lancer-le-sandbox">Lancer le Sandbox</h2>
 <p><code>Sandbox.exe</code> ouvre sa propre fenêtre 1920×1080, charge la scène de <code>sandbox_scene.h</code> et lance la boucle. Les textures sont copiées dans <code>bin/assets</code> après chaque build.</p>
@@ -72,24 +83,30 @@
 </table></div>
 
 <h2 id="lancer-lediteur">Lancer l'éditeur</h2>
-<p>Lancez <code>AngeVaultEditor.exe</code>. La scène du Sandbox est chargée dans la Hierarchy ; sélectionnez une entité pour éditer ses composants dans l'Inspector.</p>
+<p>Lancez <code>AngeVaultEditor.exe</code>. La scène du RPG (<code>rpg_scene.h</code>) est chargée dans la Hierarchy, avec ses catégories « Caméras » et « Personnages » ; sélectionnez une entité pour éditer ses composants dans l'Inspector.</p>
 <ol>
   <li><strong>Peindre une carte :</strong> choisissez un terrain dans la Tile Palette, puis l'outil Pinceau (<kbd>B</kbd>).</li>
   <li><strong>Jouer :</strong> <kbd>F5</kbd> lance la scène dans l'éditeur, <kbd>F6</kbd> met en pause, <kbd>Maj</kbd>+<kbd>F5</kbd> arrête.</li>
-  <li><strong>Jeu séparé :</strong> <kbd>Ctrl</kbd>+<kbd>F5</kbd> lance <code>Sandbox.exe</code> dans sa propre fenêtre (il est construit avec l'éditeur).</li>
-  <li><strong>Changer de thème :</strong> <em>Édition → Theme</em> (Sombre, Néon rose, ou un fichier <code>.qss</code>).</li>
+  <li><strong>Jeu séparé :</strong> <kbd>Ctrl</kbd>+<kbd>F5</kbd> lance <code>rpg.exe</code> dans sa propre fenêtre (il est construit avec l'éditeur).</li>
+  <li><strong>Régler les touches :</strong> <em>Édition → Input Manager…</em> ; chaque modification est enregistrée dans <code>assets/input.cfg</code> et un jeu lancé avec <kbd>F5</kbd> la prend tout de suite.</li>
+  <li><strong>Ranger la scène :</strong> dans la Hierarchy, glissez une entité sur une catégorie ; glissez une caméra sur une entité pour qu'elle la suive.</li>
+  <li><strong>Changer de thème :</strong> <em>Édition → Thème</em> (Sombre, Néon rose, Néon clair, Sakura clair, Sakura sombre, ou un fichier <code>.qss</code>).</li>
 </ol>
 
 <h2 id="lancer-les-tests">Lancer les tests</h2>
 <div class="code"><div class="code-head"><span class="file">terminal</span><span class="lang">Shell</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">ctest</span> <span class="p">--test-dir</span> out/build/x64-debug <span class="p">--output-on-failure</span></code></pre></div>
-<p>Le test <code>test_component_pool</code> vérifie le sparse set : ajout / lecture, retrait avec <em>swap &amp; pop</em>, callbacks <code>onDestroy</code> et retrait du dernier élément.</p>
+<ul>
+  <li><code>test_component_pool</code> vérifie le sparse set : ajout / lecture, retrait avec <em>swap &amp; pop</em>, callbacks <code>onDestroy</code> et retrait du dernier élément.</li>
+  <li><code>test_math</code> vérifie les outils de maths du Core : <code>lerp</code>, <code>inverseLerp</code>, <code>remap</code>, <code>moveTowards</code> (sans dépasser la cible), <code>damp</code> et <code>dampHalfLife</code>, <code>smoothDamp</code>, les angles (<code>deltaAngle</code>, <code>lerpAngle</code>…), <code>pingPong</code>, <code>repeat</code>, <code>normalize</code>, et que chacune des 22 courbes d'<code>Ease</code> vaut 0 en 0 et 1 en 1.</li>
+</ul>
 
 <h2 id="depannage">Dépannage</h2>
 <details><summary>« Qt 6 introuvable : l'éditeur n'est PAS construit »</summary><div class="body"><p>Le moteur et le Sandbox sont tout de même construits. Installez Qt 6 (kit MSVC 2022 64-bit) et passez son dossier : <code>cmake -DCMAKE_PREFIX_PATH=C:/Qt/6.8.1/msvc2022_64 …</code> ou définissez <code>QT_ROOT</code>.</p></div></details>
 <details><summary>Le premier configure est long ou échoue</summary><div class="body"><p>SFML et glm sont récupérés par Git depuis GitHub (<code>GIT_SHALLOW</code>). Vérifiez l'accès réseau ; les téléchargements ne se refont pas aux configurations suivantes.</p></div></details>
-<details><summary>« Sandbox introuvable » depuis l'éditeur</summary><div class="body"><p><kbd>Ctrl</kbd>+<kbd>F5</kbd> cherche <code>Sandbox.exe</code> à côté de l'éditeur. La cible <code>Sandbox</code> est une dépendance de l'éditeur : recompilez le projet entier.</p></div></details>
+<details><summary>« rpg.exe introuvable » depuis l'éditeur</summary><div class="body"><p><kbd>Ctrl</kbd>+<kbd>F5</kbd> cherche <code>rpg.exe</code> à côté de l'éditeur. La cible <code>rpg</code> est une dépendance de l'éditeur : recompilez le projet entier (et vérifiez que <code>AV_BUILD_RPG</code> est à ON).</p></div></details>
+<details><summary>Les touches de rpg.exe ne suivent pas mes réglages</summary><div class="body"><p><code>rpg.exe</code> lit <code>assets/input.cfg</code> à côté de lui (chemin relatif au dossier de lancement). Depuis l'éditeur, <kbd>Ctrl</kbd>+<kbd>F5</kbd> y recopie le fichier du projet ; en lançant l'exécutable à la main, relancez un build pour que <code>av_copy_assets</code> le recopie. S'il est absent, les actions par défaut du code sont utilisées.</p></div></details>
 <details><summary>Les textures sont des damiers magenta</summary><div class="body"><p>Les assets sont copiés dans <code>bin/assets</code> par <code>av_copy_assets</code> après le build. Relancez un build puis exécutez le programme depuis son dossier <code>bin/</code>.</p></div></details>
-<div class="pager"><a class="prev" href="docs.html"><small>Précédent</small>← Centre de documentation</a><a class="next" href="comportements.html"><small>Suivant</small>Comportements C++ →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#prerequis">Prérequis</a><a href="#configurer-et-compiler">Configurer et compiler</a><a href="#les-presets" class="sub">Les presets</a><a href="#les-options" class="sub">Les options</a><a href="#lancer-le-sandbox">Lancer le Sandbox</a><a href="#lancer-lediteur">Lancer l&#x27;éditeur</a><a href="#lancer-les-tests">Lancer les tests</a><a href="#depannage">Dépannage</a></aside></div>
+<div class="pager"><a class="prev" href="docs.html"><small>Précédent</small>← Centre de documentation</a><a class="next" href="comportements.html"><small>Suivant</small>Comportements C++ →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#prerequis">Prérequis</a><a href="#configurer-et-compiler">Configurer et compiler</a><a href="#les-presets" class="sub">Les presets</a><a href="#les-options" class="sub">Les options</a><a href="#lancer-le-rpg">Lancer le RPG</a><a href="#lancer-le-sandbox">Lancer le Sandbox</a><a href="#lancer-lediteur">Lancer l&#x27;éditeur</a><a href="#lancer-les-tests">Lancer les tests</a><a href="#depannage">Dépannage</a></aside></div>
 </main>
 <footer class="site-footer"><div class="wrap">
 <div class="foot">
@@ -97,7 +114,7 @@
  <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
  <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
  <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
- <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
 </div>
 <div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
 </div></footer>

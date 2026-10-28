@@ -178,23 +178,18 @@ int main(int argc, char** argv) {
     window.setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
 
     auto* palettePanel = new TilePalettePanel(ctx);
-    QDockWidget* hierarchyDock = makeDock(window, "Hierarchy", "dockHierarchy", new HierarchyPanel(ctx));
-    QDockWidget* inspectorDock = makeDock(window, "Inspector", "dockInspector", new InspectorPanel(ctx));
     QDockWidget* projectDock   = makeDock(window, "Project", "dockProject", new ProjectPanel(projectDir()));
     QDockWidget* consoleDock   = makeDock(window, "Console", "dockConsole", new ConsolePanel);
     QDockWidget* paletteDock   = makeDock(window, "Tile Palette", "dockTilePalette", palettePanel);
     window.addActions(palettePanel->toolActions());   // V / B / E / I partout dans la fenêtre
 
     // Disposition par défaut
-    window.addDockWidget(Qt::LeftDockWidgetArea, hierarchyDock);
-    window.splitDockWidget(hierarchyDock, paletteDock, Qt::Vertical);
-    window.addDockWidget(Qt::RightDockWidgetArea, inspectorDock);
     window.addDockWidget(Qt::BottomDockWidgetArea, projectDock);
     window.tabifyDockWidget(projectDock, consoleDock);
     projectDock->raise();
 
     // Affichage > Fenêtres : une case à cocher par panneau
-    const QList<QDockWidget*> docks = { hierarchyDock, inspectorDock, projectDock, consoleDock, paletteDock };
+    const QList<QDockWidget*> docks = {  projectDock, consoleDock, paletteDock };
     for (int i = 0; i < docks.size(); ++i) {
         QAction* toggle = docks[i]->toggleViewAction();
         toggle->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key(Qt::Key_1 + i)));
@@ -207,8 +202,6 @@ int main(int argc, char** argv) {
     constexpr int kLayoutVersion = 1;
     QByteArray defaultLayout;
     QTimer::singleShot(0, &window, [&] {
-        window.resizeDocks({ hierarchyDock, inspectorDock }, { 250, 320 }, Qt::Horizontal);
-        window.resizeDocks({ hierarchyDock, paletteDock }, { 320, 280 }, Qt::Vertical);
         window.resizeDocks({ projectDock }, { 220 }, Qt::Vertical);
         defaultLayout = window.saveState(kLayoutVersion);
         const QByteArray saved = QSettings().value("ui/dockLayout").toByteArray();

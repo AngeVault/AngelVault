@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Centre de documentation — AngeVault Engine</title>
-<meta name="description" content="Centre de documentation AngeVault : guides, recettes (créer une entité, un composant, un système, un module, réagir aux collisions) et glossaire.">
+<meta name="description" content="Centre de documentation AngeVault : guides, recettes (créer une entité, un composant, un système, un module, une action d&#x27;entrée, une caméra, réagir aux collisions) et glossaire.">
 <script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,11 +24,11 @@
 <section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Centre de documentation</div><span class="eyebrow">Documentation</span><h1>Centre de documentation</h1><p class="lead">Les guides, les recettes pas à pas et un petit glossaire pour travailler efficacement avec AngeVault.</p></div></section>
 <div class="wrap doc"><article class="prose"><h2 id="les-guides">Les guides</h2>
 <div class="grid g3" style="margin:20px 0 8px">
-  <a class="card" href="demarrage.html"><div class="ico"><i class="fa-solid fa-rocket"></i></div><h3 id="demarrage-build">Démarrage &amp; build</h3><p>Prérequis, presets CMake, compiler et lancer l'éditeur ou le Sandbox.</p></a>
-  <a class="card" href="comportements.html"><div class="ico"><i class="fa-solid fa-gamepad"></i></div><h3 id="comportements-c">Comportements C++</h3><p><code>IBehavior</code>, <code>Script</code>, <code>PROPERTY</code> et l'exemple du joueur.</p></a>
+  <a class="card" href="demarrage.html"><div class="ico"><i class="fa-solid fa-rocket"></i></div><h3 id="demarrage-build">Démarrage &amp; build</h3><p>Prérequis, presets CMake, compiler et lancer l'éditeur, le RPG ou le Sandbox.</p></a>
+  <a class="card" href="comportements.html"><div class="ico"><i class="fa-solid fa-gamepad"></i></div><h3 id="comportements-c">Comportements C++</h3><p><code>IBehavior</code>, <code>Script</code>, <code>PROPERTY</code>, <code>Input::getAxis</code> et les exemples de joueur.</p></a>
   <a class="card" href="composants.html"><div class="ico"><i class="fa-solid fa-table-list"></i></div><h3 id="reference-des-composants">Référence des composants</h3><p>Chaque champ, chaque valeur par défaut.</p></a>
   <a class="card" href="ecs.html"><div class="ico"><i class="fa-solid fa-cubes"></i></div><h3 id="ecs-registry">ECS &amp; Registry</h3><p>Entités, pools, vues, règles d'or.</p></a>
-  <a class="card" href="editeur.html"><div class="ico"><i class="fa-solid fa-window-maximize"></i></div><h3 id="editeur-qt">Éditeur Qt</h3><p>Panneaux, <code>EditorContext</code>, thèmes.</p></a>
+  <a class="card" href="editeur.html"><div class="ico"><i class="fa-solid fa-window-maximize"></i></div><h3 id="editeur-qt">Éditeur Qt</h3><p>Panneaux, <code>EditorContext</code>, Input Manager, thèmes.</p></a>
   <a class="card" href="roadmap.html"><div class="ico"><i class="fa-solid fa-road"></i></div><h3 id="feuille-de-route">Feuille de route</h3><p>État actuel, prochains modules, points d'attention.</p></a>
 </div>
 
@@ -106,8 +106,40 @@ collisions.onCollision = [&amp;](<span class="k">const</span> <span class="t">Co
 <p>Sans fichier <code>.cpp</code> dans <code>src/</code>, le module est de type <code>INTERFACE</code> (100 % en-têtes) ; avec des sources, c'est une bibliothèque statique. C'est la fonction <code>av_module</code> qui décide.</p>
 </div></details>
 
+<details><summary>Ajouter une action d'entrée</summary><div class="body">
+<p>Une action est un nom (« Jump », « Horizontal ») relié à des touches par le fichier <code>assets/input.cfg</code> du projet. Deux façons de l'ajouter :</p>
+<ol>
+  <li><strong>Dans l'éditeur</strong> : <em>Édition → Input Manager…</em>, ajoutez l'action, choisissez son type (<em>Button</em> ou <em>Axis</em>) et ses liens. Le fichier est enregistré à chaque modification.</li>
+  <li><strong>À la main</strong> dans <code>input.cfg</code> :</li>
+</ol>
+<div class="code"><div class="code-head"><span class="file">assets/input.cfg</span><span class="lang">Shell</span><button class="copy" type="button">Copier</button></div><pre><code>[Jump] button
+key Space
+joybutton 0 0
+
+[Horizontal] axis
+key Left -1
+key Right</code></pre></div>
+<p>Puis, dans un comportement :</p>
+<div class="code"><div class="code-head"><span class="file">comportement</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">if</span> (<span class="t">Input</span>::getButtonDown(<span class="s">"Jump"</span>)) rb.applyImpulse({ <span class="n">0</span>.f, -jumpForce });
+<span class="k">const</span> <span class="k">float</span> moveX = <span class="t">Input</span>::getAxis(<span class="s">"Horizontal"</span>);   <span class="c">// -1..1</span></code></pre></div>
+<p>Pour des valeurs par défaut sans fichier, ajoutez l'action dans <code>defaultRpgInput</code> (<code>rpg_scene.h</code>) avec <code>input.addAction("Jump")</code>.</p>
+</div></details>
+
+<details><summary>Faire suivre une entité par la caméra</summary><div class="body">
+<p>Une caméra est une entité avec un <code>Transform2D</code> et un <code>Camera2d</code>. Donnez-lui une cible avec <code>setTarget</code> et ajoutez le <code>CameraSystem</code> (qui règle la vue de la fenêtre) à la scène :</p>
+<div class="code"><div class="code-head"><span class="file">rpg_scene.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="t">Entity</span> cameraEntity = registry.createEntity();
+registry.addComponent&lt;<span class="t">Transform2D</span>&gt;(cameraEntity);
+<span class="k">auto</span>&amp; camera = registry.addComponent&lt;<span class="t">Camera2d</span>&gt;(cameraEntity);
+camera.setWorldBorder({ <span class="n">0</span>.f, <span class="n">0</span>.f }, { <span class="n">3000</span>.f, <span class="n">3000</span>.f });   <span class="c">// optionnel : limites du monde</span>
+camera.setTarget(player);
+
+<span class="c">// dans loadRpgScene :</span>
+game.systems().addSystem&lt;<span class="t">CameraSystem</span>&gt;(game.window());     <span class="c">// priorité -10 : avant tout le rendu</span></code></pre></div>
+<p>Dans l'éditeur, la même chose se fait en glissant la caméra sur l'entité à suivre dans la Hierarchy ; elle se place alors sur sa cible et ne se déplace plus à la main. Sans cible, la caméra est libre : flèches pour la déplacer, <kbd>+</kbd> / <kbd>−</kbd> pour zoomer.</p>
+</div></details>
+
 <details><summary>Ajouter une texture à une entité</summary><div class="body">
-<p>Déposez l'image dans <code>projects/sandbox/assets/</code> : elle est copiée à côté de l'exécutable après chaque build (<code>av_copy_assets</code>). Puis utilisez son identifiant dans un <code>Geometry::SpriteData</code> :</p>
+<p>Déposez l'image dans <code>projects/rpg/assets/</code> (ou <code>projects/sandbox/assets/</code> pour le Sandbox) : elle est copiée à côté de l'exécutable après chaque build (<code>av_copy_assets</code>). Puis utilisez son identifiant dans un <code>Geometry::SpriteData</code> :</p>
 <div class="code"><div class="code-head"><span class="file">scène</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code>registry.addComponent&lt;<span class="t">Geometry</span>&gt;(player,
     <span class="t">Geometry</span>::<span class="t">SpriteData</span>{ <span class="s">"player"</span>, sf::<span class="t">IntRect</span>({<span class="n">0</span>, <span class="n">0</span>}, {<span class="n">32</span>, <span class="n">64</span>}), sf::<span class="t">Color</span>::<span class="t">White</span> }, <span class="n">1</span>);</code></pre></div>
 <p>Si l'image n'est pas trouvée, un damier magenta s'affiche à la place et la console indique <code>couldn't find …</code>.</p>
@@ -124,14 +156,17 @@ collisions.onCollision = [&amp;](<span class="k">const</span> <span class="t">Co
 <tr><td>Sparse set</td><td>Structure de stockage avec un tableau dense (données contiguës) et un tableau épars (index par entité).</td></tr>
 <tr><td>Dual-grid</td><td>Technique de tilemap où le visuel est posé sur les sommets entre quatre tuiles, pour des transitions de terrain avec peu de textures.</td></tr>
 <tr><td>Behavior</td><td>Une classe C++ héritant d'<code>IBehavior</code>, attachée via le composant <code>Script</code>.</td></tr>
+<tr><td>Action (entrée)</td><td>Un nom (« Horizontal », « Jump ») relié à des touches, des boutons de souris, la molette ou une manette par <code>input.cfg</code> ; lu avec <code>Input::getAxis</code> ou <code>Input::getButtonDown</code>.</td></tr>
+<tr><td>Axe</td><td>Une action qui renvoie une valeur réelle entre −1 et 1 (déplacement, par exemple), par opposition à un bouton qui est enfoncé ou non.</td></tr>
+<tr><td>Catégorie</td><td>Un dossier de la Hierarchy pour ranger les entités ; n'existe que dans l'éditeur.</td></tr>
 <tr><td>Dock</td><td>Un panneau déplaçable de l'éditeur (<code>QDockWidget</code>).</td></tr>
 <tr><td>QSS</td><td>Qt Style Sheets : le langage de thème de l'éditeur, proche du CSS.</td></tr>
 </table></div>
 
 <h2 id="faq">FAQ</h2>
-<details><summary>Pourquoi mes textures s'affichent-elles en damier magenta ?</summary><div class="body"><p>Le chargeur n'a pas trouvé le fichier. Vérifiez que l'image est dans <code>projects/sandbox/assets/</code> (copiée dans <code>bin/assets</code> au build) et que l'identifiant utilisé correspond à un chemin valide depuis le dossier de l'exécutable.</p></div></details>
+<details><summary>Pourquoi mes textures s'affichent-elles en damier magenta ?</summary><div class="body"><p>Le chargeur n'a pas trouvé le fichier. Vérifiez que l'image est dans le dossier <code>assets/</code> du projet (<code>projects/rpg/assets/</code> ou <code>projects/sandbox/assets/</code>, copié dans <code>bin/assets</code> au build) et que l'identifiant utilisé correspond à un chemin valide depuis le dossier de l'exécutable.</p></div></details>
 <details><summary>L'éditeur n'est pas construit, que faire ?</summary><div class="body"><p>CMake n'a pas trouvé Qt 6. Indiquez son dossier avec <code>CMAKE_PREFIX_PATH</code> ou la variable d'environnement <code>QT_ROOT</code>. Voir <a href="demarrage.html">Démarrage &amp; build</a>.</p></div></details>
-<details><summary>Puis-je compiler sans Qt ?</summary><div class="body"><p>Oui : le preset <code>x64-debug-no-editor</code> (ou <code>-DAV_BUILD_EDITOR=OFF</code>) construit le moteur, le Sandbox et les tests sans Qt.</p></div></details>
+<details><summary>Puis-je compiler sans Qt ?</summary><div class="body"><p>Oui : le preset <code>x64-debug-no-editor</code> (ou <code>-DAV_BUILD_EDITOR=OFF</code>) construit le moteur, les projets (RPG et Sandbox) et les tests sans Qt.</p></div></details>
 <details><summary>Où sont les sources de l'ancien prototype RTS ?</summary><div class="body"><p>Dans <code>legacy/rts/</code> : composants, systèmes et utilitaires conservés comme référence, non compilés par le CMake actuel.</p></div></details>
 <div class="pager"><a class="prev" href="editeur.html"><small>Précédent</small>← Éditeur Qt</a><a class="next" href="demarrage.html"><small>Suivant</small>Démarrage &amp; build →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#les-guides">Les guides</a><a href="#demarrage-build" class="sub">Démarrage &amp;amp; build</a><a href="#comportements-c" class="sub">Comportements C++</a><a href="#reference-des-composants" class="sub">Référence des composants</a><a href="#ecs-registry" class="sub">ECS &amp;amp; Registry</a><a href="#editeur-qt" class="sub">Éditeur Qt</a><a href="#feuille-de-route" class="sub">Feuille de route</a><a href="#recettes">Recettes</a><a href="#glossaire">Glossaire</a><a href="#faq">FAQ</a></aside></div>
 </main>
@@ -141,7 +176,7 @@ collisions.onCollision = [&amp;](<span class="k">const</span> <span class="t">Co
  <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
  <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
  <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
- <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
 </div>
 <div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
 </div></footer>

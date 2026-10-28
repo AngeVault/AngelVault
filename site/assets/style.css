@@ -203,7 +203,7 @@ a.card:hover { text-decoration: none; transform: translateY(-3px); border-color:
 .prose li { margin: 6px 0; }
 .prose li::marker { color: var(--accent); }
 .prose :not(pre) > code {
-  background: var(--accent-soft); color: var(--accent); padding: 2px 7px; border-radius: 6px; font-size: .88em;
+  background: var(--accent-soft); color: var(--accent); padding: 2px 7px; border-radius: 6px; font-size: .88em; overflow-wrap: anywhere;
 }
 .prose strong { color: var(--heading); font-weight: 500; }
 .prose hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0; }
@@ -271,6 +271,12 @@ details > .body > :last-child { margin-bottom: 0; }
 .pager a:hover { border-color: var(--line-strong); text-decoration: none; background: var(--card-2); }
 .pager .next { text-align: right; grid-column: 2; }
 .pager .prev { grid-column: 1; }
+
+/* Jalons */
+.progress { height: 8px; border-radius: 999px; background: var(--card-2); overflow: hidden; margin: 12px 0 14px; border: 1px solid var(--line); }
+.progress i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 999px; }
+.card.ms h4 { margin-top: 14px; }
+.card .weeks { margin-top: 8px; font-size: 13px; }
 
 /* Carte code de la bannière d'accueil */
 .hero-code { transform: rotate(1.2deg); }

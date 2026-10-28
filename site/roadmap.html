@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Feuille de route — AngeVault Engine</title>
-<meta name="description" content="État actuel d&#x27;AngeVault, modules prévus (scene, input, assets, UI, animation, audio, IA) et points d&#x27;attention techniques.">
+<meta name="description" content="Feuille de route d&#x27;AngeVault synchronisée avec les issues GitHub : jalons Alpha (04/11/2026), Bêta (25/11/2026) et Gold (16/12/2026), avancement, backlog et points d&#x27;attention.">
 <script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,61 +21,173 @@
  <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
 </div></header>
 <main id="main">
-<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Feuille de route</div><span class="eyebrow">Projet</span><h1>Feuille de route</h1><p class="lead">Où en est AngeVault : ce qui fonctionne, ce qui est prévu, et quelques points d'attention repérés dans le code.</p></div></section>
-<div class="wrap doc"><article class="prose"><h2 id="etat-actuel">État actuel</h2>
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Feuille de route</div><span class="eyebrow">Projet</span><h1>Feuille de route</h1><p class="lead">Le plan réel du projet, tiré des issues GitHub : trois jalons (Alpha, Bêta, Gold), l'avancement et ce qui reste à faire.</p></div></section>
+<div class="wrap doc"><article class="prose"><div class="callout"><i class="fa-solid fa-circle-info"></i><div><p><strong>Synchronisée avec les issues GitHub et avec le code le 27/10/2026.</strong> 62 issues au total dont 6 terminées, réparties en 3 jalons de 8 semaines. La source de vérité reste <a href="https://github.com/AngeVault/AngelVault/issues">la liste des issues</a> et ses <a href="https://github.com/AngeVault/AngelVault/milestones">jalons</a> : cette page est un instantané.</p></div></div>
+
+<h2 id="les-trois-jalons">Les trois jalons</h2>
+<div class="grid g3" style="margin:20px 0 28px">
+<div class="card ms"><span class="tag warn">Alpha · 04/11/2026</span>
+    <h4>6 / 21 terminées</h4><div class="progress" role="img" aria-label="29 % terminé"><i style="width:29%"></i></div>
+    <p>Première version technique : créer, afficher, sauvegarder, recharger une map</p><p class="weeks">Semaines 1 à 2</p></div>
+<div class="card ms"><span class="tag plan">Bêta · 25/11/2026</span>
+    <h4>0 / 23 terminées</h4><div class="progress" role="img" aria-label="0 % terminé"><i style="width:0%"></i></div>
+    <p>Éditeur intégré au moteur, première séquence jouable</p><p class="weeks">Semaines 3 à 5</p></div>
+<div class="card ms"><span class="tag ok">Gold · 16/12/2026</span>
+    <h4>0 / 14 terminées</h4><div class="progress" role="img" aria-label="0 % terminé"><i style="width:0%"></i></div>
+    <p>Projet final stable, démonstration complète</p><p class="weeks">Semaines 6 à 8</p></div>
+</div>
+<p>Chaque issue porte un label de <strong>zone</strong> (<code>area:</code>), une <strong>taille</strong> (S, M ou L), un <strong>type</strong> (<code>core</code> = indispensable, <code>advanced</code> = visé mais non critique, <code>extension</code> = bonus hors jalons) et une <strong>semaine</strong> (1 à 8).</p>
+
+<h2 id="etat-du-code-aujourdhui">État du code aujourd'hui</h2>
 <div class="table-wrap"><table>
 <tr><th>Élément</th><th>État</th><th>Détail</th></tr>
-<tr><td>Core / ECS</td><td><span class="tag ok">opérationnel</span></td><td>Sparse sets, vues, callbacks, destruction différée, test unitaire du pool</td></tr>
+<tr><td>Core / ECS</td><td><span class="tag ok">opérationnel</span></td><td>Sparse sets, vues, callbacks, destruction différée ; outils de maths (<code>lerp</code>, <code>damp</code>, <code>smoothDamp</code>, easing) ; tests du pool et des maths</td></tr>
 <tr><td>Physics2D</td><td><span class="tag ok">opérationnel</span></td><td>Corps rigides, 5 formes, grille spatiale, triggers</td></tr>
-<tr><td>Render2D</td><td><span class="tag ok">opérationnel</span></td><td>Geometry, sprites, caméra, tilemap, calques de debug</td></tr>
+<tr><td>Render2D</td><td><span class="tag ok">opérationnel</span></td><td>Geometry, sprites, <code>CameraSystem</code> (caméra libre ou liée à une cible, bornes du monde), tilemap, calques de debug</td></tr>
+<tr><td>Input</td><td><span class="tag ok">opérationnel</span></td><td>Actions nommées (<code>Input::getAxis</code>…), fichier <code>input.cfg</code>, clavier, souris, molette et manette ; pas encore de test unitaire (<a href="https://github.com/AngeVault/AngelVault/issues/25">#25</a>)</td></tr>
 <tr><td>Tilemap</td><td><span class="tag ok">opérationnel</span></td><td>Dual-grid, 8 types de terrain, animations de tuiles</td></tr>
 <tr><td>Particles</td><td><span class="tag ok">opérationnel</span></td><td>Émetteurs configurables ; système à enregistrer à la main</td></tr>
 <tr><td>Runtime</td><td><span class="tag ok">opérationnel</span></td><td>Mode autonome et mode embarqué</td></tr>
-<tr><td>Éditeur Qt</td><td><span class="tag ok">opérationnel</span></td><td>5 panneaux, mode jeu, thèmes ; menus <em>Fichier</em> et <em>Édition</em> encore à relier</td></tr>
+<tr><td>Éditeur Qt</td><td><span class="tag ok">opérationnel</span></td><td>5 panneaux, catégories dans la Hierarchy, caméras liées, mode jeu, fenêtre Input Manager, 5 thèmes ; menus <em>Fichier</em> et <em>Édition</em> (sauf Input Manager et Thème) encore à relier (<a href="https://github.com/AngeVault/AngelVault/issues/19">#19</a>, <a href="https://github.com/AngeVault/AngelVault/issues/13">#13</a>)</td></tr>
 <tr><td>Projet Sandbox</td><td><span class="tag ok">opérationnel</span></td><td>Joueur, balle, sol, mur, carré tournant</td></tr>
-<tr><td>Projet RPG</td><td><span class="tag warn">à démarrer</span></td><td>Dossier présent, <code>main.cpp</code> vide, non branché au CMake racine</td></tr>
-<tr><td>Prototype RTS</td><td><span class="tag old">legacy</span></td><td><code>legacy/rts</code> : 8 composants, 22 systèmes, 7 utilitaires, hors build</td></tr>
+<tr><td>Module scene (JSON)</td><td><span class="tag plan">Alpha</span></td><td><a href="https://github.com/AngeVault/AngelVault/issues/17">#17</a>, <a href="https://github.com/AngeVault/AngelVault/issues/18">#18</a>, <a href="https://github.com/AngeVault/AngelVault/issues/7">#7</a></td></tr>
+<tr><td>Projet RPG</td><td><span class="tag plan">en cours</span></td><td><code>rpg.exe</code> construit et ouvert par l'éditeur : un joueur déplacé par l'Input Manager et une caméra qui le suit dans un monde de 3000 × 3000 px. Le jeu visé (village, donjon, quêtes, dialogues) est décrit par les issues du jalon Bêta</td></tr>
+<tr><td>Prototype RTS</td><td><span class="tag old">legacy</span></td><td><code>legacy/rts</code> : 8 composants, 22 systèmes, 7 utilitaires, hors build ; décision de reprise : <a href="https://github.com/AngeVault/AngelVault/issues/5">#5</a></td></tr>
 </table></div>
 
-<h2 id="feuille-de-route-proposee">Feuille de route proposée</h2>
-<p>Ordre suggéré à partir des dépendances entre modules et des README déjà présents dans le dépôt.</p>
-<div class="grid g3" style="margin:20px 0 28px">
-  <div class="card"><span class="tag ok">Maintenant</span><h4>Fiabiliser la base</h4>
-    <p>Corriger les points d'attention ci-dessous, relier les menus <em>Fichier</em> et <em>Édition</em> de l'éditeur, étendre les tests au-delà de <code>ComponentPool</code>.</p></div>
-  <div class="card"><span class="tag">Ensuite</span><h4>Module scene</h4>
-    <p>Sérialisation JSON des scènes (entités, composants, tilemap), identifiants stables, prefabs et registre de comportements. Débloque Enregistrer / Ouvrir dans l'éditeur.</p></div>
-  <div class="card"><span class="tag plan">Plus tard</span><h4>Gameplay et contenu</h4>
-    <p><code>input</code>, <code>assets</code>, <code>ui</code> (HUD, dialogues), <code>animation</code>, <code>audio</code>, <code>ai</code>.</p></div>
-</div>
+<h2 id="plan-detaille-par-jalon">Plan détaillé par jalon</h2>
+<h3 id="alpha-04-11-2026">Alpha — 04/11/2026</h3>
+<p>Un éditeur qui sait créer une map, la peindre, la sauvegarder et la recharger. Recette : <em>créer, placer, naviguer, sauvegarder, recharger</em> (<a href="https://github.com/AngeVault/AngelVault/issues/20">#20</a>).</p>
 <div class="table-wrap"><table>
-<tr><th>Étape</th><th>Livrable</th><th>Dépend de</th></tr>
-<tr><td>1. Scene</td><td>Fichier de scène JSON partagé éditeur / jeu, undo/redo possible ensuite</td><td>Core, Tilemap, nlohmann_json</td></tr>
-<tr><td>2. Input</td><td>Actions de jeu abstraites (clavier, manette) au lieu de <code>sf::Keyboard</code> dans les scripts</td><td>Core</td></tr>
-<tr><td>3. Assets</td><td>Chargement centralisé et identifiants stables (remplace le fichier de correspondance du <code>LooseFileLoader</code>)</td><td>Core, Render2D</td></tr>
-<tr><td>4. UI</td><td>HUD, dialogues, barres de vie</td><td>Core, Render2D</td></tr>
-<tr><td>5. Animation</td><td>Animation de sprites pilotée par composant</td><td>Render2D, Assets</td></tr>
-<tr><td>6. Audio</td><td>Sons et musique (passer <code>SFML_BUILD_AUDIO</code> à ON)</td><td>Assets</td></tr>
-<tr><td>7. AI</td><td>Comportements d'entités (déplacement, états)</td><td>Core, Physics2D</td></tr>
+<tr><th>#</th><th>Issue</th><th>Zone</th><th>Taille</th><th>Semaine</th><th>État</th></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/1">#1</a></td><td>Dépôt Git + workflow (branches, PR, review)</td><td><span class="tag old">Infra</span></td><td>S</td><td>S1</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/2">#2</a></td><td>Le squelette CMake compile chez les 3 (Qt inclus)</td><td><span class="tag old">Infra</span></td><td>S</td><td>S1</td><td><span class="tag ok">terminée</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/3">#3</a></td><td>Spike : le widget SFML dans Qt + livraison sur une autre machine</td><td><span class="tag plan">Éditeur</span></td><td>M</td><td>S1</td><td><span class="tag ok">terminée</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/4">#4</a></td><td>Valider le code migré et traiter les points d&#x27;attention</td><td><span class="tag">Moteur</span></td><td>M</td><td>S1</td><td><span class="tag ok">terminée</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/5">#5</a></td><td>Décider quoi reprendre de legacy/rts</td><td><span class="tag old">Docs</span></td><td>S</td><td>S1</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/6">#6</a></td><td>Se mettre d&#x27;accord sur les règles de dépendance entre modules</td><td><span class="tag old">Docs</span></td><td>S</td><td>S1</td><td><span class="tag ok">terminée</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/7">#7</a></td><td>Écrire le format de sauvegarde v1</td><td><span class="tag warn">Données</span></td><td>S</td><td>S2</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/8">#8</a></td><td>Fenêtre principale Qt : menus + panneaux</td><td><span class="tag plan">Éditeur</span></td><td>M</td><td>S2</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/9">#9</a></td><td>Créer une map en choisissant ses dimensions</td><td><span class="tag plan">Éditeur</span></td><td>S</td><td>S2</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/10">#10</a></td><td>Outils pinceau / gomme + palette visuelle de tiles</td><td><span class="tag plan">Éditeur</span></td><td>M</td><td>S2</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/11">#11</a></td><td>Navigation : déplacer la vue et zoomer</td><td><span class="tag plan">Éditeur</span></td><td>S</td><td>S2</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/12">#12</a></td><td>Grille affichée + bascule</td><td><span class="tag plan">Éditeur</span></td><td>S</td><td>S2</td><td><span class="tag ok">terminée</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/13">#13</a></td><td>Annuler / Rétablir (Ctrl+Z / Ctrl+Y)</td><td><span class="tag plan">Éditeur</span></td><td>S</td><td>S2</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/14">#14</a></td><td>3 layers dans TileMap (fond, principal, supérieur)</td><td><span class="tag">Moteur</span></td><td>M</td><td>S2</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/15">#15</a></td><td>Layer actif clairement identifié dans l&#x27;UI</td><td><span class="tag plan">Éditeur</span></td><td>S</td><td>S2</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/16">#16</a></td><td>Afficher la tilemap dans le widget SFML avec le tile_map_render_system</td><td><span class="tag">Moteur</span></td><td>M</td><td>S2</td><td><span class="tag ok">terminée</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/17">#17</a></td><td>Module scene : sauvegarde / chargement JSON de la carte</td><td><span class="tag warn">Données</span></td><td>M</td><td>S2</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/18">#18</a></td><td>Identifiant stable par entité + test aller-retour</td><td><span class="tag warn">Données</span></td><td>S</td><td>S2</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/19">#19</a></td><td>Menu File : Nouvelle / Ouvrir / Sauvegarder</td><td><span class="tag plan">Éditeur</span></td><td>S</td><td>S2</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/20">#20</a></td><td>Recette Alpha : créer, placer, naviguer, sauvegarder, recharger</td><td><span class="tag old">Infra</span></td><td>S</td><td>S2</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/21">#21</a></td><td>Préparer la présentation Alpha</td><td><span class="tag old">Docs</span></td><td>S</td><td>S2</td><td><span class="tag old">à faire</span></td></tr>
+</table></div>
+<h3 id="beta-25-11-2026">Bêta — 25/11/2026</h3>
+<p>L'éditeur est intégré au moteur et on peut jouer une première séquence : du village au donjon.</p>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Issue</th><th>Zone</th><th>Taille</th><th>Semaine</th><th>État</th></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/22">#22</a></td><td>Outil Sélection / Déplacement d&#x27;entités</td><td><span class="tag plan">Éditeur</span></td><td>M</td><td>S3</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/23">#23</a></td><td>Panneau Hierarchy réel</td><td><span class="tag plan">Éditeur</span></td><td>M</td><td>S3</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/24">#24</a></td><td>Boucle de jeu : pas fixe pour la physique + phases</td><td><span class="tag">Moteur</span></td><td>M</td><td>S3</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/25">#25</a></td><td>Module input : actions nommées</td><td><span class="tag">Moteur</span></td><td>M</td><td>S3</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/26">#26</a></td><td>Déplacement du joueur + collisions de tiles</td><td><span class="tag">Moteur</span></td><td>M</td><td>S3</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/27">#27</a></td><td>Composants PNJ / Ennemi / Coffre / Objet</td><td><span class="tag ok">Gameplay</span></td><td>M</td><td>S3</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/28">#28</a></td><td>Caméra de jeu qui suit le joueur</td><td><span class="tag">Moteur</span></td><td>S</td><td>S3</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/29">#29</a></td><td>Inspecteur généré depuis la réflexion des composants</td><td><span class="tag plan">Éditeur</span></td><td>L</td><td>S4</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/30">#30</a></td><td>Palette de prefabs : placer PNJ, ennemi, coffre</td><td><span class="tag plan">Éditeur</span></td><td>M</td><td>S4</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/31">#31</a></td><td>Bouton Play / Stop (snapshot en mémoire)</td><td><span class="tag plan">Éditeur</span></td><td>M</td><td>S4</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/32">#32</a></td><td>Comportements (Script) sérialisables</td><td><span class="tag warn">Données</span></td><td>M</td><td>S4</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/33">#33</a></td><td>Dialogues PNJ : fichiers JSON + affichage en jeu</td><td><span class="tag ok">Gameplay</span></td><td>M</td><td>S4</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/34">#34</a></td><td>Module ui : boîte de dialogue, HUD, barre de vie</td><td><span class="tag">Moteur</span></td><td>M</td><td>S4</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/35">#35</a></td><td>Ramasser des objets + inventaire minimal</td><td><span class="tag ok">Gameplay</span></td><td>M</td><td>S4</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/36">#36</a></td><td>Transitions entre maps</td><td><span class="tag ok">Gameplay</span></td><td>M</td><td>S4</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/37">#37</a></td><td>Outil Zone (transition) dans l&#x27;éditeur</td><td><span class="tag plan">Éditeur</span></td><td>S</td><td>S4</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/38">#38</a></td><td>Module assets : gestionnaire de ressources et chemins de projet</td><td><span class="tag">Moteur</span></td><td>M</td><td>S5</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/39">#39</a></td><td>Quête minimale : accepter, accomplir, récompense</td><td><span class="tag ok">Gameplay</span></td><td>M</td><td>S5</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/40">#40</a></td><td>Un ennemi combattable</td><td><span class="tag ok">Gameplay</span></td><td>L</td><td>S5</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/41">#41</a></td><td>Explorateur Project + glisser-déposer d&#x27;assets</td><td><span class="tag plan">Éditeur</span></td><td>M</td><td>S5</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/42">#42</a></td><td>Autotiling : démarrer l&#x27;intégration (dual-grid) <span class="tag plan">avancé</span></td><td><span class="tag">Moteur</span></td><td>L</td><td>S5</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/43">#43</a></td><td>Première séquence jouable : village -&gt; donjon</td><td><span class="tag ok">Gameplay</span></td><td>M</td><td>S5</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/44">#44</a></td><td>Recette Bêta + liste des manques + planning des 3 dernières semaines</td><td><span class="tag old">Docs</span></td><td>S</td><td>S5</td><td><span class="tag old">à faire</span></td></tr>
+</table></div>
+<h3 id="gold-16-12-2026">Gold — 16/12/2026</h3>
+<p>Le projet est stable et la démonstration complète : contenu, finitions, livrables et soutenance.</p>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Issue</th><th>Zone</th><th>Taille</th><th>Semaine</th><th>État</th></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/45">#45</a></td><td>Module ai : steering (wander, pursuit...) <span class="tag plan">avancé</span></td><td><span class="tag">Moteur</span></td><td>L</td><td>S6</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/46">#46</a></td><td>Module animation : tiles animées (eau) + états visuels <span class="tag plan">avancé</span></td><td><span class="tag">Moteur</span></td><td>M</td><td>S6</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/47">#47</a></td><td>Raccourcis clavier + panneaux escamotables avec layout sauvegardé <span class="tag plan">avancé</span></td><td><span class="tag plan">Éditeur</span></td><td>M</td><td>S6</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/48">#48</a></td><td>Undo/redo des entités (déplacer, ajouter, supprimer) <span class="tag plan">avancé</span></td><td><span class="tag plan">Éditeur</span></td><td>M</td><td>S6</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/49">#49</a></td><td>Contenu démo : map extérieure + intérieur/donjon créées dans l&#x27;éditeur</td><td><span class="tag ok">Gameplay</span></td><td>L</td><td>S6</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/50">#50</a></td><td>Module audio : musique et effets <span class="tag plan">avancé</span></td><td><span class="tag">Moteur</span></td><td>M</td><td>S6</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/51">#51</a></td><td>Transparence des décors <span class="tag plan">avancé</span></td><td><span class="tag">Moteur</span></td><td>M</td><td>S7</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/52">#52</a></td><td>Cycle jour/nuit (shader) + apparition horaire <span class="tag plan">avancé</span></td><td><span class="tag">Moteur</span></td><td>L</td><td>S7</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/53">#53</a></td><td>Scénario complet : début, objectif, conclusion intermédiaire</td><td><span class="tag ok">Gameplay</span></td><td>L</td><td>S7</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/54">#54</a></td><td>Éditeur de dialogues / quêtes minimal (panneau Qt) <span class="tag plan">avancé</span></td><td><span class="tag plan">Éditeur</span></td><td>M</td><td>S7</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/55">#55</a></td><td>Gel des fonctionnalités + tests d&#x27;intégration</td><td><span class="tag old">Infra</span></td><td>S</td><td>S7</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/56">#56</a></td><td>Correction des bugs bloquants</td><td><span class="tag old">Infra</span></td><td>L</td><td>S8</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/57">#57</a></td><td>Livrables : doc technique, bilan, contribution de chacun</td><td><span class="tag old">Docs</span></td><td>M</td><td>S8</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/58">#58</a></td><td>Build de démo sur une autre machine + répétition de la soutenance</td><td><span class="tag old">Infra</span></td><td>M</td><td>S8</td><td><span class="tag old">à faire</span></td></tr>
+</table></div>
+
+<h2 id="backlog-dextensions">Backlog d'extensions</h2>
+<p>Idées sans jalon, à reprendre seulement si le planning le permet.</p>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Issue</th><th>Zone</th><th>Taille</th><th>Semaine</th><th>État</th></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/59">#59</a></td><td>[Extension] Particules : intégration éditeur et effets de lumière</td><td><span class="tag">Moteur</span></td><td>M</td><td>—</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/60">#60</a></td><td>[Extension] Dialogues à choix multiples</td><td><span class="tag ok">Gameplay</span></td><td>M</td><td>—</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/61">#61</a></td><td>[Extension] Inventaire complet et équipement</td><td><span class="tag ok">Gameplay</span></td><td>L</td><td>—</td><td><span class="tag old">à faire</span></td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/62">#62</a></td><td>[Extension] Sélection multiple, duplication, remplissage de zones</td><td><span class="tag plan">Éditeur</span></td><td>M</td><td>—</td><td><span class="tag old">à faire</span></td></tr>
+</table></div>
+
+<h2 id="repartition-par-zone">Répartition par zone</h2>
+<div class="table-wrap"><table>
+<tr><th>Zone</th><th>Issues</th><th>Terminées</th><th>Restantes</th></tr>
+<tr><td><span class="tag">Moteur</span></td><td>16</td><td>2</td><td>14</td></tr>
+<tr><td><span class="tag plan">Éditeur</span></td><td>20</td><td>2</td><td>18</td></tr>
+<tr><td><span class="tag ok">Gameplay</span></td><td>11</td><td>0</td><td>11</td></tr>
+<tr><td><span class="tag warn">Données</span></td><td>4</td><td>0</td><td>4</td></tr>
+<tr><td><span class="tag old">Docs</span></td><td>5</td><td>1</td><td>4</td></tr>
+<tr><td><span class="tag old">Infra</span></td><td>6</td><td>1</td><td>5</td></tr>
+</table></div>
+
+<h2 id="issues-dont-le-code-existe-deja">Issues dont le code existe déjà</h2>
+<p>En lisant la copie du dépôt, plusieurs fonctionnalités des issues ouvertes sont déjà là, au moins en partie. Elles sont à vérifier puis à clôturer ou à reformuler, pour que le tableau de bord GitHub reflète la réalité.</p>
+<div class="table-wrap"><table>
+<tr><th>Issue</th><th>Ce que contient déjà le code</th><th>Reste probablement</th></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/8">#8</a></td><td><code>CustomWindow</code> avec menus dans la barre de titre et 5 panneaux détachables</td><td>Relier les menus (voir <a href="https://github.com/AngeVault/AngelVault/issues/19">#19</a>)</td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/10">#10</a></td><td>Panneau Tile Palette : pinceau, gomme, pipette, taille du pinceau, terrains</td><td>Vérifier le critère « palette visuelle »</td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/11">#11</a></td><td><code>TilemapView</code> : molette = zoom centré sur la souris, clic droit ou molette + glisser = déplacer la vue, <kbd>F</kbd> = cadrer</td><td>—</td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/12">#12</a></td><td>Grille avec bascule <kbd>Ctrl</kbd>+<kbd>G</kbd> (issue déjà fermée)</td><td>—</td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/22">#22</a></td><td>Outil Sélection : clic, glisser pour déplacer, <kbd>Ctrl</kbd> pour aligner sur la grille</td><td>—</td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/23">#23</a></td><td><code>HierarchyPanel</code> : liste, recherche, renommer, supprimer, créer, catégories (dossiers) et glisser-déposer</td><td>—</td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/25">#25</a></td><td>Module <code>engine/input</code> : <code>InputManager</code>, actions de type bouton ou axe, clavier / souris / molette / manette, fichier <code>input.cfg</code> et fenêtre <em>Édition → Input Manager…</em></td><td>Faire lire les actions par le <code>CameraSystem</code> et le Sandbox ; tests</td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/28">#28</a></td><td><code>Camera2d::targetLock</code> + <code>CameraSystem</code> : la caméra suit le joueur du RPG, avec bornes du monde (pull request « Camera » fusionnée)</td><td>Lissage du suivi (<code>zoomLerpSpeed</code> et <code>Math::smoothDamp</code> sont disponibles mais pas branchés)</td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/31">#31</a></td><td>Jouer / Pause / Arrêter (<kbd>F5</kbd>, <kbd>F6</kbd>, <kbd>Maj</kbd>+<kbd>F5</kbd>) avec scène neuve à chaque lancement</td><td>Le « snapshot en mémoire » de la scène éditée</td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/47">#47</a></td><td>Raccourcis de panneaux et disposition mémorisée dans <code>QSettings</code></td><td>Vérifier les raccourcis demandés</td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/42">#42</a></td><td>Rendu dual-grid et transitions de terrains dans <code>TileMap</code> / <code>TileMapRenderSystem</code></td><td>Intégration complète à l'éditeur</td></tr>
+<tr><td><a href="https://github.com/AngeVault/AngelVault/issues/46">#46</a></td><td>Animations de tuiles (<code>TileAnimation</code>)</td><td>États visuels des entités</td></tr>
 </table></div>
 
 <h2 id="points-dattention-reperes-dans-le-code">Points d'attention repérés dans le code</h2>
-<p>Petites choses relevées en lisant le dépôt. Rien de bloquant pour le Sandbox, mais mieux vaut les traiter avant d'ajouter des modules.</p>
+<p>Constats faits dans la copie locale du dépôt. <a href="https://github.com/AngeVault/AngelVault/issues/4">#4</a> (« traiter les points d'attention ») est terminée : certains de ces points sont peut-être déjà corrigés.</p>
 <div class="table-wrap"><table>
-<tr><th>#</th><th>Où</th><th>Constat</th><th>Piste</th></tr>
-<tr><td>1</td><td><code>Game::init()</code></td><td><code>m_systems.start()</code> n'est appelé qu'à la construction : les systèmes ajoutés ensuite (Physics, Collision, Script…) ne reçoivent jamais <code>onStart</code>.</td><td>Appeler <code>onStart</code> dans <code>addSystem</code> si le jeu est déjà démarré, ou exposer un <code>game.start()</code> après le chargement de la scène.</td></tr>
-<tr><td>2</td><td><code>SystemManager</code></td><td><code>std::sort</code> n'est pas stable : l'ordre de deux systèmes de même priorité n'est pas garanti.</td><td>Utiliser <code>std::stable_sort</code>.</td></tr>
-<tr><td>3</td><td><code>ScriptSystem</code></td><td><code>onDestroy</code> n'est appelé qu'à l'arrêt du jeu, pas à la destruction d'une entité isolée.</td><td>Brancher <code>Registry::onDestroy&lt;Script&gt;</code> pour appeler <code>onDestroy</code>.</td></tr>
-<tr><td>4</td><td><code>Game</code> / <code>LooseFileLoader</code></td><td>Le chargeur est construit avec son chemin par défaut <code>games/rts/assets/resources.txt</code>, hérité du prototype RTS. Sans ce fichier, les identifiants de texture sont traités comme des chemins directs.</td><td>Passer un chemin explicite, ou attendre le module <code>assets</code>.</td></tr>
-<tr><td>5</td><td><code>engine/ai/CMakeLists.txt</code></td><td>Contient <code>av_module(Core …)</code> : le nom devrait être <code>AI</code> (sans effet tant que le dossier n'est pas ajouté à <code>engine/CMakeLists.txt</code>).</td><td>Renommer avant d'activer le module.</td></tr>
-<tr><td>6</td><td><code>projects/rpg/CMakeLists.txt</code></td><td>Crée une cible nommée <code>Sandbox</code> sous une option <code>AV_BUILD_RPG</code> qui n'est pas déclarée ; le dossier n'est pas ajouté au CMake racine.</td><td>Renommer la cible <code>RPG</code>, déclarer l'option, ajouter <code>add_subdirectory</code>.</td></tr>
-<tr><td>7</td><td><code>render_system.h</code></td><td>Une fonction <code>inline void test(Camera2d&amp;)</code> vide traîne en bas du fichier.</td><td>La supprimer.</td></tr>
-<tr><td>8</td><td>Intégration continue</td><td>Le dossier <code>.github/</code> est présent mais vide : aucun build ni test automatique.</td><td>Ajouter un workflow qui lance le preset <code>x64-debug-no-editor</code> puis <code>ctest</code>.</td></tr>
-<tr><td>9</td><td>Tests</td><td>Seul <code>ComponentPool</code> est testé.</td><td>Ajouter des tests pour <code>Registry::view</code>, la destruction différée et les collisions.</td></tr>
+<tr><th>#</th><th>Où</th><th>Constat</th><th>Piste</th><th>Lien</th></tr>
+<tr><td>1</td><td><code>Game::init()</code></td><td><code>m_systems.start()</code> n'est appelé qu'à la construction : les systèmes ajoutés ensuite (Physics, Collision, Script…) ne reçoivent jamais <code>onStart</code>.</td><td>Appeler <code>onStart</code> dans <code>addSystem</code> si le jeu est déjà démarré, ou exposer un <code>game.start()</code> après le chargement de la scène.</td><td><a href="https://github.com/AngeVault/AngelVault/issues/24">#24</a></td></tr>
+<tr><td>2</td><td><code>SystemManager</code></td><td><code>std::sort</code> n'est pas stable : l'ordre de deux systèmes de même priorité n'est pas garanti.</td><td>Utiliser <code>std::stable_sort</code>.</td><td><a href="https://github.com/AngeVault/AngelVault/issues/24">#24</a></td></tr>
+<tr><td>3</td><td><code>ScriptSystem</code></td><td><code>onDestroy</code> n'est appelé qu'à l'arrêt du jeu, pas à la destruction d'une entité isolée.</td><td>Brancher <code>Registry::onDestroy&lt;Script&gt;</code> pour appeler <code>onDestroy</code>.</td><td>—</td></tr>
+<tr><td>4</td><td><code>Game</code> / <code>LooseFileLoader</code></td><td>Le chargeur est construit avec son chemin par défaut <code>games/rts/assets/resources.txt</code>, hérité du prototype RTS. Sans ce fichier, les identifiants de texture sont traités comme des chemins directs.</td><td>Passer un chemin explicite, ou attendre le module <code>assets</code>.</td><td><a href="https://github.com/AngeVault/AngelVault/issues/38">#38</a></td></tr>
+<tr><td>5</td><td><code>engine/ai/CMakeLists.txt</code></td><td>Contient <code>av_module(Core …)</code> : le nom devrait être <code>AI</code> (sans effet tant que le dossier n'est pas ajouté à <code>engine/CMakeLists.txt</code>).</td><td>Renommer avant d'activer le module.</td><td><a href="https://github.com/AngeVault/AngelVault/issues/45">#45</a></td></tr>
+<tr><td>6</td><td><code>CameraSystem</code> / <code>rpg_scene.h</code></td><td>Le <code>CameraSystem</code> lit encore <code>sf::Keyboard</code> (flèches, <kbd>+</kbd>, <kbd>−</kbd>) alors que le RPG déclare les actions <code>Zoom</code>, <code>ZoomWheel</code>, <code>CameraX</code> et <code>CameraY</code> : elles ne servent à rien pour l'instant. Les champs <code>panSpeedGamepad</code> et <code>zoomLerpSpeed</code> ne sont pas lus non plus.</td><td>Faire lire les actions par le système (le module Render2D dépend déjà d'Input) et brancher le lissage du zoom.</td><td><a href="https://github.com/AngeVault/AngelVault/issues/25">#25</a></td></tr>
+<tr><td>7</td><td><code>render_system.h</code></td><td>Une fonction <code>inline void test(Camera2d&amp;)</code> vide traîne en bas du fichier.</td><td>La supprimer.</td><td>—</td></tr>
+<tr><td>8</td><td>Intégration continue</td><td>Le dossier <code>.github/</code> est vide dans la copie lue : aucun build ni test automatique.</td><td>Ajouter un workflow qui lance le preset <code>x64-debug-no-editor</code> puis <code>ctest</code>.</td><td><a href="https://github.com/AngeVault/AngelVault/issues/1">#1</a></td></tr>
+<tr><td>9</td><td><code>loadRpgInput</code></td><td>Le chemin <code>assets/input.cfg</code> est relatif au dossier de lancement : lancé depuis un autre dossier, <code>rpg.exe</code> retombe sans bruit sur les actions par défaut du code.</td><td>Résoudre le chemin depuis l'exécutable, ou afficher un avertissement dans la console.</td><td><a href="https://github.com/AngeVault/AngelVault/issues/38">#38</a></td></tr>
+<tr><td>10</td><td>Tests</td><td>Seuls <code>ComponentPool</code> et les outils de maths (<code>test_math</code>) sont testés.</td><td>Ajouter des tests pour <code>Registry::view</code>, la destruction différée, les collisions et l'<code>InputManager</code> (lecture de <code>input.cfg</code>).</td><td><a href="https://github.com/AngeVault/AngelVault/issues/55">#55</a></td></tr>
 </table></div>
 
 <h2 id="contribuer">Contribuer</h2>
-<p>Un bug ou une idée ? Ouvrez un ticket depuis le menu <em>Aide → Signaler un bug</em> de l'éditeur, ou directement sur <a href="https://github.com/AngeVault/angelVault/issues">GitHub</a>. Avant d'ajouter un module, lisez <a href="architecture.html">la vue d'ensemble</a> et la <a href="docs.html">recette « Ajouter un module »</a>.</p>
-<div class="pager"><a class="prev" href="composants.html"><small>Précédent</small>← Référence des composants</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#etat-actuel">État actuel</a><a href="#feuille-de-route-proposee">Feuille de route proposée</a><a href="#points-dattention-reperes-dans-le-code">Points d&#x27;attention repérés dans le code</a><a href="#contribuer">Contribuer</a></aside></div>
+<p>Choisissez une issue de la semaine en cours, ouvrez une branche et une pull request (workflow décrit dans <a href="https://github.com/AngeVault/AngelVault/issues/1">#1</a>). Un bug ou une idée hors plan ? Ouvrez un ticket depuis le menu <em>Aide → Signaler un bug</em> de l'éditeur ou directement sur <a href="https://github.com/AngeVault/AngelVault/issues/new">GitHub</a>. Avant d'ajouter un module, lisez <a href="architecture.html">la vue d'ensemble</a> et la <a href="docs.html">recette « Ajouter un module »</a>.</p>
+<div class="pager"><a class="prev" href="composants.html"><small>Précédent</small>← Référence des composants</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#les-trois-jalons">Les trois jalons</a><a href="#etat-du-code-aujourdhui">État du code aujourd&#x27;hui</a><a href="#plan-detaille-par-jalon">Plan détaillé par jalon</a><a href="#alpha-04-11-2026" class="sub">Alpha — 04/11/2026</a><a href="#beta-25-11-2026" class="sub">Bêta — 25/11/2026</a><a href="#gold-16-12-2026" class="sub">Gold — 16/12/2026</a><a href="#backlog-dextensions">Backlog d&#x27;extensions</a><a href="#repartition-par-zone">Répartition par zone</a><a href="#issues-dont-le-code-existe-deja">Issues dont le code existe déjà</a><a href="#points-dattention-reperes-dans-le-code">Points d&#x27;attention repérés dans le code</a><a href="#contribuer">Contribuer</a></aside></div>
 </main>
 <footer class="site-footer"><div class="wrap">
 <div class="foot">
@@ -83,7 +195,7 @@
  <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
  <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
  <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
- <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
 </div>
 <div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
 </div></footer>

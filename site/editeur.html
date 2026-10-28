@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Éditeur Qt — AngeVault Engine</title>
-<meta name="description" content="Architecture de l&#x27;éditeur AngeVault : EditorContext, panneaux, descripteurs de composants, SfmlWidget, mode jeu F5, thèmes QSS, outils externes et console.">
+<meta name="description" content="Architecture de l&#x27;éditeur AngeVault : EditorContext, catégories et caméras liées, panneaux, descripteurs de composants, SfmlWidget, mode jeu F5, Input Manager, thèmes QSS, outils externes et console.">
 <script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,11 +27,12 @@
 <div class="table-wrap"><table>
 <tr><th>Élément</th><th>Fichiers</th><th>Rôle</th></tr>
 <tr><td>Fenêtre</td><td><code>customWindow</code>, <code>titleBar</code></td><td>Fenêtre sans barre Windows mais avec le comportement natif : redimensionnement par les bords, Aero Snap, <kbd>Win</kbd>+flèches, ombre, coins arrondis. Les menus vivent dans la barre de titre.</td></tr>
-<tr><td>État partagé</td><td><code>editor_context</code></td><td><code>EditorContext</code> : scène, tilemap, sélection, outil actif</td></tr>
+<tr><td>État partagé</td><td><code>editor_context</code></td><td><code>EditorContext</code> : scène, tilemap, sélection, catégories, caméras liées, outil actif</td></tr>
 <tr><td>Vue centrale</td><td><code>tilemap_view</code>, <code>game_view</code>, <code>sfml_widget</code></td><td>Scène éditable ou mode jeu, dessinés par SFML dans un widget Qt</td></tr>
+<tr><td>Entrées</td><td><code>input_settings_dialog</code>, <code>qt_sfml_input</code></td><td>Fenêtre <em>Input Manager</em> ; traduction des événements Qt en événements SFML pour le jeu lancé dans l'éditeur</td></tr>
 <tr><td>Panneaux</td><td><code>panels/*</code></td><td>Hierarchy, Inspector, Project, Console, Tile Palette</td></tr>
 <tr><td>Inspector</td><td><code>component_descriptors</code></td><td>Description des champs de composants affichés</td></tr>
-<tr><td>Confort</td><td><code>theme_manager</code>, <code>external_tools</code></td><td>Thèmes QSS ; ouvrir un script dans VS Code / CLion</td></tr>
+<tr><td>Confort</td><td><code>theme_manager</code>, <code>external_tools</code></td><td>5 thèmes QSS ; ouvrir un script dans VS Code / CLion</td></tr>
 </table></div>
 
 <h2 id="editorcontext-le-bus-central">EditorContext : le bus central</h2>
@@ -44,7 +45,7 @@
   <text class="m" x="450" y="193" text-anchor="middle">Registry · TileMap · sélection</text>
   <text class="m" x="450" y="211" text-anchor="middle">outil · type de tuile · pinceau</text>
 
-  <rect class="b" x="30" y="24" width="250" height="64" rx="12"/><text class="h" x="155" y="52" text-anchor="middle">HierarchyPanel</text><text class="m" x="155" y="72" text-anchor="middle">liste des entités</text>
+  <rect class="b" x="30" y="24" width="250" height="64" rx="12"/><text class="h" x="155" y="52" text-anchor="middle">HierarchyPanel</text><text class="m" x="155" y="72" text-anchor="middle">entités + catégories</text>
   <rect class="b" x="620" y="24" width="250" height="64" rx="12"/><text class="h" x="745" y="52" text-anchor="middle">InspectorPanel</text><text class="m" x="745" y="72" text-anchor="middle">composants de l'entité</text>
   <rect class="b" x="30" y="284" width="250" height="64" rx="12"/><text class="h" x="155" y="312" text-anchor="middle">TilemapView</text><text class="m" x="155" y="332" text-anchor="middle">vue scène SFML</text>
   <rect class="b" x="620" y="284" width="250" height="64" rx="12"/><text class="h" x="745" y="312" text-anchor="middle">TilePalettePanel</text><text class="m" x="745" y="332" text-anchor="middle">outils V B E I · terrains</text>
@@ -54,6 +55,7 @@
   <path class="ln" marker-start="url(#arr3)" marker-end="url(#arr3)" d="M240 284 L340 232"/>
   <path class="ln" marker-start="url(#arr3)" marker-end="url(#arr3)" d="M660 284 L560 232"/>
 
+  <text class="m mono" x="450" y="256" text-anchor="middle">followTargetChanged</text>
   <text class="m mono" x="40" y="132">sceneChanged · selectionChanged</text>
   <text class="m mono" x="590" y="132">entityModified(e, source)</text>
   <text class="m mono" x="40" y="262">selectionChanged · toolChanged</text>
@@ -69,15 +71,22 @@
     <span class="k">void</span> sceneChanged();                          <span class="c">// entités ajoutées / supprimées / renommées</span>
     <span class="k">void</span> selectionChanged(<span class="t">Entity</span> e);              <span class="c">// NULL_ENTITY si plus rien n'est sélectionné</span>
     <span class="k">void</span> entityModified(<span class="t">Entity</span> e, <span class="t">QObject</span>* source);
+    <span class="k">void</span> followTargetChanged(<span class="t">Entity</span> camera);      <span class="c">// la caméra suit une autre entité (ou plus rien)</span>
     <span class="k">void</span> toolChanged(<span class="t">EditorTool</span> tool);
     <span class="k">void</span> paintTypeChanged(<span class="t">TileType</span> type);
     <span class="k">void</span> brushSizeChanged(<span class="k">int</span> size);</code></pre></div>
-<p>Les outils de la vue scène sont <code>EditorTool::Select, Paint, Erase, Pick</code>. L'éditeur charge la scène du Sandbox avec <code>loadSandboxEntities(ctx.scene())</code> : c'est la raison d'être de la séparation entités / systèmes dans <code>sandbox_scene.h</code>.</p>
+<p>Les outils de la vue scène sont <code>EditorTool::Select, Paint, Erase, Pick</code>. L'éditeur charge la scène du RPG avec <code>loadRpgEntities(ctx.scene())</code> : c'est la raison d'être de la séparation entités / systèmes dans <code>rpg_scene.h</code>.</p>
+<h3 id="categories-et-cameras-liees">Catégories et caméras liées</h3>
+<p>Deux notions n'existent que dans l'éditeur, et <code>EditorContext</code> les porte :</p>
+<ul>
+  <li><strong>Catégories</strong> : des dossiers pour ranger les entités dans la Hierarchy, comme les objets vides « dossier » d'Unity (<code>addCategory</code>, <code>renameCategory</code>, <code>removeCategory</code>, <code>categoryOf</code>, <code>setCategory</code>). Rien n'est ajouté aux entités du jeu. Au démarrage, <code>main()</code> range les caméras libres dans « Caméras » et les entités qui ont un <code>Script</code> dans « Personnages ».</li>
+  <li><strong>Caméras liées</strong> (<code>followTarget</code>, <code>setFollowTarget</code>, <code>snapFollowers</code>) : une caméra dont <code>Camera2d::targetLock</code> est valide est placée sur sa cible et <strong>ne peut plus être déplacée à la main</strong> (<code>isPositionLocked</code>), puisque c'est ce que fera le <code>CameraSystem</code> en jeu. Quand on déplace la cible, les caméras qui la suivent se replacent.</li>
+</ul>
 
 <h2 id="les-panneaux">Les panneaux</h2>
 <div class="table-wrap"><table>
 <tr><th>Panneau</th><th>Ce qu'il fait</th><th>Interactions</th></tr>
-<tr><td><strong>Hierarchy</strong></td><td>Arbre des entités de la scène avec recherche</td><td>clic : sélectionner · double-clic / <kbd>F2</kbd> : renommer · <kbd>Suppr</kbd> : supprimer · bouton + ou clic droit : créer</td></tr>
+<tr><td><strong>Hierarchy</strong></td><td>Arbre des entités de la scène, rangées en catégories, avec recherche</td><td>clic : sélectionner · double-clic / <kbd>F2</kbd> : renommer (entité ou catégorie) · <kbd>Suppr</kbd> : supprimer · bouton + ou clic droit : créer une entité ou une catégorie · glisser une entité sur une catégorie : l'y ranger · glisser une caméra sur une entité : elle la suit</td></tr>
 <tr><td><strong>Inspector</strong></td><td>Composants de l'entité sélectionnée avec champs éditables, sections repliables, bouton « ajouter un composant »</td><td>Les <code>PROPERTY</code> des scripts s'affichent automatiquement</td></tr>
 <tr><td><strong>Project</strong></td><td>Navigateur des assets (dossiers à gauche, contenu avec aperçus d'images à droite)</td><td>double-clic : ouvrir ; les scripts s'ouvrent dans VS Code ou CLion ; surveillance du dossier en direct</td></tr>
 <tr><td><strong>Console</strong></td><td>Journal unifié avec filtres Info / Warning / Error, recherche, défilement automatique</td><td>Capte <code>std::cout</code>, <code>std::cerr</code>, <code>sf::err()</code> et <code>qDebug/qWarning/qCritical</code></td></tr>
@@ -87,7 +96,7 @@
 
 <h2 id="afficher-un-composant-dans-linspector">Afficher un composant dans l'Inspector</h2>
 <p>L'Inspector ne connaît pas les composants : il lit <code>componentDescriptors()</code>. Chaque champ a un <strong>getter</strong> et un <strong>setter</strong> ; cela fonctionne donc aussi pour les champs privés (<code>Transform2D::setPosition</code>) et pour les variantes (la forme d'un <code>Collider2D</code>).</p>
-<div class="code"><div class="code-head"><span class="file">editor/src/component_descriptors.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">enum</span> <span class="k">class</span> <span class="t">FieldKind</span> { <span class="t">Float</span>, <span class="t">Int</span>, <span class="t">Bool</span>, <span class="t">Vec2</span>, <span class="t">String</span>, <span class="t">Color</span>, <span class="t">Label</span> };
+<div class="code"><div class="code-head"><span class="file">editor/src/component_descriptors.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">enum</span> <span class="k">class</span> <span class="t">FieldKind</span> { <span class="t">Float</span>, <span class="t">Int</span>, <span class="t">Bool</span>, <span class="t">Vec2</span>, <span class="t">String</span>, <span class="t">Color</span>, <span class="t">Label</span>, <span class="t">Choice</span> };
 
 <span class="k">struct</span> <span class="t">FieldDesc</span> {
     <span class="t">QString</span> name;
@@ -96,6 +105,8 @@
     <span class="k">std</span>::function&lt;<span class="k">void</span>(<span class="k">const</span> <span class="t">QVariant</span>&amp;)&gt; set;   <span class="c">// vide = lecture seule</span>
     <span class="k">double</span> min = -1e9, max = 1e9, step = <span class="n">1.0</span>;
     <span class="k">int</span> decimals = <span class="n">2</span>;
+    <span class="t">QStringList</span> choices;            <span class="c">// Choice : liste déroulante, la valeur est l'index choisi</span>
+    <span class="k">bool</span> rebuildOnChange = <span class="k">false</span>;   <span class="c">// la modification change les champs affichés</span>
 };
 
 <span class="k">struct</span> <span class="t">ComponentDesc</span> {
@@ -107,7 +118,7 @@
 };
 
 <span class="k">const</span> <span class="k">std</span>::vector&lt;<span class="t">ComponentDesc</span>&gt;&amp; componentDescriptors();</code></pre></div>
-<p>Pour exposer un nouveau composant : ajoutez une entrée dans <code>componentDescriptors()</code> (<code>component_descriptors.cpp</code>). Aucun autre fichier de l'éditeur n'est à modifier.</p>
+<p>Pour exposer un nouveau composant : ajoutez une entrée dans <code>componentDescriptors()</code> (<code>component_descriptors.cpp</code>). Aucun autre fichier de l'éditeur n'est à modifier. Le type de champ <code>Choice</code> affiche une liste déroulante (la valeur est l'index choisi), et <code>rebuildOnChange</code> redessine les champs quand la modification les change (par exemple la forme d'un <code>Geometry</code>).</p>
 
 <h2 id="sfmlwidget-sfml-dans-qt">SfmlWidget : SFML dans Qt</h2>
 <p><code>SfmlWidget</code> est un <code>QWidget</code> qui désactive son moteur de peinture Qt (<code>paintEngine()</code> renvoie <code>nullptr</code>) pour laisser SFML dessiner dans sa surface. Il crée sa <code>sf::RenderWindow</code> au premier affichage et déclenche un rendu environ 60 fois par seconde avec un <code>QTimer</code>.</p>
@@ -116,8 +127,8 @@
 <span class="c">// Appelée ~60 fois par seconde : dessinez dans la fenêtre. clear() et display() sont faits pour vous.</span>
 <span class="k">std</span>::function&lt;<span class="k">void</span>(sf::<span class="t">RenderWindow</span>&amp;)&gt; onFrame;</code></pre></div>
 <ul>
-  <li><strong><code>TilemapView</code></strong> : la vue scène. Molette = zoom centré sur la souris ; clic droit ou molette + glisser = déplacer la vue ; outil Sélection = cliquer/glisser une entité (<kbd>Ctrl</kbd> = aligner sur la grille) ; <kbd>F</kbd> = cadrer la carte. Sa caméra (<code>Camera2d</code>) est celle de l'éditeur, <em>pas</em> un composant de la scène. Elle dessine avec un <code>TileMapRenderSystem</code> puis un <code>RenderSystem</code>.</li>
-  <li><strong><code>GameView</code></strong> : le mode jeu. Elle crée un <code>Game</code> en mode embarqué (<code>Game(fenêtreExistante)</code>) et appelle <code>tick(dt)</code> à chaque frame ; elle est détruite à l'arrêt, ce qui appelle <code>onStop</code> des systèmes.</li>
+  <li><strong><code>TilemapView</code></strong> : la vue scène. Molette = zoom centré sur la souris ; clic droit ou molette + glisser = déplacer la vue ; outil Sélection = cliquer/glisser une entité (<kbd>Ctrl</kbd> = aligner sur la grille) ; <kbd>F</kbd> = cadrer la carte. Sa caméra est une <code>EditorCamera</code> (position, zoom de 0,05 à 8), <em>pas</em> un composant de la scène ni un <code>Camera2d</code> : elle n'est jamais sauvegardée avec la scène. Un <strong>gizmo</strong> apparaît sur l'entité sélectionnée : flèche rouge = déplacement en X seulement, flèche verte = Y seulement, carré central = déplacement libre. Les caméras de la scène y sont dessinées (<code>drawCameras</code>). Elle dessine avec un <code>TileMapRenderSystem</code> puis un <code>RenderSystem</code>.</li>
+  <li><strong><code>GameView</code></strong> : le mode jeu. Elle crée un <code>Game</code> en mode embarqué (<code>Game(fenêtreExistante)</code>), y charge la scène du RPG et appelle <code>tick(dt)</code> à chaque frame ; elle est détruite à l'arrêt, ce qui appelle <code>onStop</code> des systèmes. Le clavier, la souris et la molette reçus par Qt sont traduits en événements SFML (<code>QtSfml::toSfmlEvent</code>) puis transmis à l'<code>InputManager</code> du jeu : le jeu lit ses entrées comme dans <code>rpg.exe</code>. La touche <kbd>Tab</kbd> est réservée au jeu (la navigation Qt est désactivée dans cette vue).</li>
 </ul>
 
 <h2 id="executer-jouer-dans-lediteur">Exécuter : jouer dans l'éditeur</h2>
@@ -125,12 +136,31 @@
 <tr><th>Raccourci</th><th>Action</th><th>Ce qui se passe</th></tr>
 <tr><td><kbd>F5</kbd></td><td>Jouer</td><td>Une <code>GameView</code> neuve (scène remise à zéro) s'empile par-dessus la vue tilemap</td></tr>
 <tr><td><kbd>F6</kbd></td><td>Pause / reprise</td><td><code>GameView::setPaused</code></td></tr>
-<tr><td><kbd>Maj</kbd>+<kbd>F5</kbd></td><td>Arrêter</td><td>La <code>GameView</code> est supprimée ; retour à la tilemap. Arrête aussi <code>Sandbox.exe</code> s'il tourne</td></tr>
-<tr><td><kbd>Ctrl</kbd>+<kbd>F5</kbd></td><td>Lancer Sandbox.exe</td><td>Lance l'exécutable construit dans le même dossier <code>bin/</code>, dans sa propre fenêtre (<code>QProcess</code>)</td></tr>
+<tr><td><kbd>Maj</kbd>+<kbd>F5</kbd></td><td>Arrêter</td><td>La <code>GameView</code> est supprimée ; retour à la tilemap. Arrête aussi <code>rpg.exe</code> s'il tourne</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>F5</kbd></td><td>Lancer rpg.exe</td><td>Lance l'exécutable construit dans le même dossier <code>bin/</code>, dans sa propre fenêtre (<code>QProcess</code>). Avant le lancement, l'éditeur copie <code>assets/input.cfg</code> du projet dans <code>bin/assets/</code> pour que le jeu prenne les touches à jour</td></tr>
 </table></div>
+<p>L'éditeur ouvre le projet RPG : le panneau Project montre <code>projects/rpg</code> (défini par CMake avec <code>AV_PROJECT_DIR</code>) et <code>rpg</code> est une dépendance de l'éditeur, donc construit avec lui.</p>
+
+<h2 id="input-manager-edition-input-manager">Input Manager : <em>Édition → Input Manager…</em></h2>
+<p>La fenêtre <code>InputSettingsDialog</code> (non modale, une seule à la fois) liste les actions du projet et leurs liens : touches, souris, molette, manette. Chaque modification est <strong>enregistrée tout de suite</strong> dans <code>assets/input.cfg</code> du projet (créé à partir des actions par défaut du projet s'il n'existe pas encore).</p>
+<ul>
+  <li>Pour chaque action : nom, type (<em>Button</em> ou <em>Axis</em>), zone morte et tableau de liens avec leur échelle.</li>
+  <li><code>KeyCaptureButton</code> : on clique sur le bouton, puis on appuie sur la touche à enregistrer (<kbd>Échap</kbd> annule).</li>
+  <li>Quand le fichier change, le signal <code>saved()</code> fait appeler <code>GameView::reloadInput()</code> : un jeu en cours dans l'éditeur prend les nouvelles touches sans redémarrer.</li>
+</ul>
+<p>Le format du fichier est décrit dans <a href="modules.html">le module Input</a>.</p>
 
 <h2 id="themes-qss">Thèmes QSS</h2>
-<p>Les thèmes sont des feuilles de style Qt (<code>.qss</code>) : deux sont intégrés aux ressources (<strong>Sombre</strong> et <strong>Néon rose</strong>) et n'importe quel <code>.qss</code> du disque peut être chargé. Le choix est mémorisé et réappliqué au démarrage. La palette de ce site est celle du thème Néon rose :</p>
+<p>Les thèmes sont des feuilles de style Qt (<code>.qss</code>) : cinq sont intégrés aux ressources et n'importe quel <code>.qss</code> du disque peut être chargé (<em>Édition → Thème</em>). Le choix est mémorisé et réappliqué au démarrage ; <em>Recharger le thème</em> relit le fichier courant pendant qu'on l'édite.</p>
+<div class="table-wrap"><table>
+<tr><th>Thème</th><th>Fichier</th></tr>
+<tr><td>Sombre</td><td><code>appstyles.qss</code> (thème par défaut)</td></tr>
+<tr><td>Néon rose</td><td><code>neon_pink.qss</code></td></tr>
+<tr><td>Néon clair</td><td><code>neon_light.qss</code></td></tr>
+<tr><td>Sakura clair</td><td><code>sakura_light.qss</code></td></tr>
+<tr><td>Sakura sombre</td><td><code>sakura_dark.qss</code></td></tr>
+</table></div>
+<p>La palette de ce site est celle du thème Néon rose :</p>
 <div class="table-wrap"><table>
 <tr><th>Couleur</th><th>Valeur</th><th>Usage</th></tr>
 <tr><td>Anthracite</td><td><code>#17161a</code> / <code>#1d1b21</code> / <code>#26232b</code></td><td>Fonds</td></tr>
@@ -149,8 +179,9 @@
 </ul>
 
 <h2 id="le-menu-aide-pointe-vers-ce-site">Le menu Aide pointe vers ce site</h2>
-<p>Les entrées <em>À propos d'AngeVault</em> et <em>Documentation</em> du menu <em>Aide</em> ouvrent respectivement les pages <code>accueil</code> et <code>docs</code> du site Google Sites du projet : les noms de pages de ce site (<code>accueil.html</code>, <code>docs.html</code>) suivent volontairement les mêmes slugs.</p>
-<div class="pager"><a class="prev" href="modules.html"><small>Précédent</small>← Modules du moteur</a><a class="next" href="docs.html"><small>Suivant</small>Centre de documentation →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#vue-densemble">Vue d&#x27;ensemble</a><a href="#editorcontext-le-bus-central">EditorContext : le bus central</a><a href="#les-panneaux">Les panneaux</a><a href="#afficher-un-composant-dans-linspector">Afficher un composant dans l&#x27;Inspector</a><a href="#sfmlwidget-sfml-dans-qt">SfmlWidget : SFML dans Qt</a><a href="#executer-jouer-dans-lediteur">Exécuter : jouer dans l&#x27;éditeur</a><a href="#themes-qss">Thèmes QSS</a><a href="#outils-externes-et-console">Outils externes et console</a><a href="#le-menu-aide-pointe-vers-ce-site">Le menu Aide pointe vers ce site</a></aside></div>
+<p>Les entrées <em>À propos d'AngeVault</em> et <em>Documentation</em> du menu <em>Aide</em> ouvrent respectivement les pages <code>accueil</code> et <code>docs</code> du site Google Sites du projet (<code>sites.google.com/view/angelvault/…</code>) : les noms de pages de ce site (<code>accueil.html</code>, <code>docs.html</code>) suivent volontairement les mêmes slugs. <em>Signaler un bug</em> ouvre la liste des issues GitHub.</p>
+<div class="callout plan"><i class="fa-solid fa-lightbulb"></i><div><p><strong>Menus encore sans action.</strong> Dans <em>Fichier</em> (Nouveau projet, Ouvrir, Enregistrer…) et dans <em>Édition</em> (Annuler, Rétablir, Préférences), les entrées existent mais ne sont pas encore reliées. Seuls <em>Quitter</em>, <em>Input Manager…</em>, le sous-menu <em>Thème</em>, <em>Affichage</em>, <em>Exécuter</em> et <em>Aide</em> font quelque chose. Voir la <a href="roadmap.html">feuille de route</a>.</p></div></div>
+<div class="pager"><a class="prev" href="modules.html"><small>Précédent</small>← Modules du moteur</a><a class="next" href="docs.html"><small>Suivant</small>Centre de documentation →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#vue-densemble">Vue d&#x27;ensemble</a><a href="#editorcontext-le-bus-central">EditorContext : le bus central</a><a href="#categories-et-cameras-liees" class="sub">Catégories et caméras liées</a><a href="#les-panneaux">Les panneaux</a><a href="#afficher-un-composant-dans-linspector">Afficher un composant dans l&#x27;Inspector</a><a href="#sfmlwidget-sfml-dans-qt">SfmlWidget : SFML dans Qt</a><a href="#executer-jouer-dans-lediteur">Exécuter : jouer dans l&#x27;éditeur</a><a href="#input-manager-edition-input-manager">Input Manager : Édition → Input Manager…</a><a href="#themes-qss">Thèmes QSS</a><a href="#outils-externes-et-console">Outils externes et console</a><a href="#le-menu-aide-pointe-vers-ce-site">Le menu Aide pointe vers ce site</a></aside></div>
 </main>
 <footer class="site-footer"><div class="wrap">
 <div class="foot">
@@ -158,7 +189,7 @@
  <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
  <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
  <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
- <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
 </div>
 <div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
 </div></footer>

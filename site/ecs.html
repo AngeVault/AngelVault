@@ -180,7 +180,7 @@
     <span class="k">void</span> stop(<span class="t">Registry</span>&amp; r)            { <span class="k">for</span> (<span class="k">auto</span>&amp; s : m_systems) s-&gt;onStop(r); }
 };</code></pre></div>
 <p><code>addSystem</code> renvoie une référence au système créé : c'est pratique pour le configurer tout de suite, par exemple pour brancher un callback de collision (voir la <a href="docs.html">recette</a>). Le cycle de vie est <code>onStart</code>, <code>onUpdate</code> (chaque frame) puis <code>onStop</code> (à l'arrêt).</p>
-<div class="callout warn"><i class="fa-solid fa-triangle-exclamation"></i><div><p><strong>À savoir sur <code>onStart</code>.</strong> <code>Game::init()</code> appelle <code>m_systems.start()</code> une seule fois, dans le constructeur de <code>Game</code>. Les systèmes ajoutés ensuite (comme <code>PhysicsSystem</code> dans <code>loadSandboxScene</code>) ne reçoivent donc jamais <code>onStart</code>. Aucun système actuel ne l'utilise, mais mettez votre initialisation dans le constructeur du système tant que ce point n'est pas corrigé.</p></div></div>
+<div class="callout warn"><i class="fa-solid fa-triangle-exclamation"></i><div><p><strong>À savoir sur <code>onStart</code>.</strong> <code>Game::init()</code> appelle <code>m_systems.start()</code> une seule fois, dans le constructeur de <code>Game</code>. Les systèmes ajoutés ensuite (comme <code>PhysicsSystem</code> et <code>CameraSystem</code> dans <code>loadRpgScene</code>) ne reçoivent donc jamais <code>onStart</code>. Aucun système actuel ne l'utilise, mais mettez votre initialisation dans le constructeur du système tant que ce point n'est pas corrigé.</p></div></div>
 
 <h2 id="reflexion-pour-lediteur">Réflexion pour l'éditeur</h2>
 <p>Deux mécanismes complémentaires permettent d'afficher des champs dans l'Inspector :</p>
@@ -197,7 +197,7 @@
  <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
  <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a><a href="docs.html">Centre de documentation</a></div>
  <div><h4>Documentation</h4><a href="demarrage.html">Démarrage &amp; build</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="roadmap.html">Feuille de route</a></div>
- <div><h4>Projet</h4><a href="https://github.com/AngeVault/angelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
 </div>
 <div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
 </div></footer>
