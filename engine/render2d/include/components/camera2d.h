@@ -1,6 +1,7 @@
 #pragma once
 #include "ecs/entity.h"
-#include <SFML/Graphics.hpp>
+#include <SFML/System/Vector2.hpp>
+#include "ecs/reflect.h"
 
 
 struct Camera2d
@@ -20,7 +21,6 @@ struct Camera2d
 	// border
 	sf::Vector2f worldMin{ 0.f , 0.f };
 	sf::Vector2f worldMax{ 0.f , 0.f };
-
 	float targetZoom = 1.f;
 
 	// helper 
