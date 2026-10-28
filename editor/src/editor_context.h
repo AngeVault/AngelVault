@@ -1,12 +1,15 @@
 #pragma once
 #include "RtsTile_map.hpp"
 #include "ecs/registry.h"
+#include "RtsTile_map.hpp"
+#include "Layer.h"
 
 #include <QHash>
 #include <QObject>
 #include <QString>
 #include <QStringList>
 #include <vector>
+
 
 // Outils de la vue scène (choisis dans la Tile Palette)
 enum class EditorTool { Select, Paint, Erase, Pick };
@@ -20,7 +23,9 @@ public:
     explicit EditorContext(QObject* parent = nullptr);
 
     Registry& scene() { return m_scene; }
-    TileMap& map() { return m_map; }
+    // --- Map and layers ---
+    TileMap& map() { return m_map[m_layer.getLayerIndex(m_selectedLayer->getName())]; }
+    void createLayer(const std::string& name, LayersType type);
 
     // --- Entités ---
     std::vector<Entity> entities() const;
@@ -78,7 +83,9 @@ signals:
 
 private:
     Registry m_scene;
-    TileMap m_map;
+    LayerManager m_layer;
+    Layer* m_selectedLayer;
+    std::vector<TileMap> m_map;
     Entity m_selected = NULL_ENTITY;
     QStringList m_categories;
     QHash<quint64, QString> m_entityCategory;   // clé : index + génération de l'entité
