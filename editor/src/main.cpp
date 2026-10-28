@@ -88,20 +88,26 @@ int main(int argc, char** argv) {
 
     // Scène éditée : état partagé par tous les panneaux (déclaré avant la fenêtre : il lui survit)
     EditorContext ctx;
-    loadRpgEntities(ctx.scene());       // en attendant les projets : la scène du RPG (rpg_scene.h)
-    ctx.snapAllFollowers();   // les caméras liées se placent sur leur cible
-    {   // Rangement de départ dans la Hierarchy (catégories : dossiers de l'éditeur).
-        // Une caméra qui suit une entité s'affiche déjà sous elle : seules les caméras libres vont dans « Caméras ».
-        QString cameras, characters;
-        for (Entity e : ctx.entities()) {
-            Registry& reg = ctx.scene();
-            if (reg.hasComponent<Camera2d>(e)) {
-                if (reg.isValid(reg.getComponent<Camera2d>(e).targetLock)) continue;
-                if (cameras.isEmpty()) cameras = ctx.addCategory("Caméras");
-                ctx.setCategory(e, cameras);
-            } else if (reg.hasComponent<Script>(e)) {
-                if (characters.isEmpty()) characters = ctx.addCategory("Personnages");
-                ctx.setCategory(e, characters);
+    // Entités dans l'éditeur : désactivées pour le moment (le code reste là).
+    // Pour les remettre : passer kShowEntitiesInEditor à true.
+    // Le mode Jouer (F5) et rpg.exe ne sont pas concernés : ils chargent toujours rpg_scene.h.
+    constexpr bool kShowEntitiesInEditor = false;
+    if constexpr (kShowEntitiesInEditor) {
+        loadRpgEntities(ctx.scene());       // en attendant les projets : la scène du RPG (rpg_scene.h)
+        ctx.snapAllFollowers();   // les caméras liées se placent sur leur cible
+        {   // Rangement de départ dans la Hierarchy (catégories : dossiers de l'éditeur).
+            // Une caméra qui suit une entité s'affiche déjà sous elle : seules les caméras libres vont dans « Caméras ».
+            QString cameras, characters;
+            for (Entity e : ctx.entities()) {
+                Registry& reg = ctx.scene();
+                if (reg.hasComponent<Camera2d>(e)) {
+                    if (reg.isValid(reg.getComponent<Camera2d>(e).targetLock)) continue;
+                    if (cameras.isEmpty()) cameras = ctx.addCategory("Caméras");
+                    ctx.setCategory(e, cameras);
+                } else if (reg.hasComponent<Script>(e)) {
+                    if (characters.isEmpty()) characters = ctx.addCategory("Personnages");
+                    ctx.setCategory(e, characters);
+                }
             }
         }
     }
