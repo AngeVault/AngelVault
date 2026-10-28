@@ -15,18 +15,18 @@ struct CaseInventory
     Entity entity = NULL_ENTITY;
 };
 
-struct Inventory
+struct InventoryComponent
 {
     int size = 10;
-    Inventory() =delete;
-    Inventory(const Inventory&) =delete;
-    Inventory(int _size) : size(_size) {};
+    InventoryComponent() =delete;
+    InventoryComponent(const InventoryComponent&) =delete;
+    InventoryComponent(int _size) : size(_size) {};
     std::array<CaseInventory,size> inventory;
 };
 
 
 template<>
-inline ReflectedComponent reflectComponent<Inventory>(Inventory& rb) {
+inline ReflectedComponent reflectComponent<InventoryComponent>(InventoryComponent& rb) {
     return { "Inventory", {
 	            { "size",       PropertyInfo::Type::Int, &rb.size       }
         } };
