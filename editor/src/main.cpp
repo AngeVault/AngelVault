@@ -24,7 +24,9 @@
 #include <QDesktopServices>
 #include <QDir>
 #include <QDockWidget>
+#include <QFileDialog>
 #include <QFileInfo>
+#include <QInputDialog>
 #include <QLabel>
 #include <QMessageBox>
 #include <QPointer>
@@ -34,6 +36,7 @@
 #include <QTimer>
 #include <QUrl>
 
+#include <functional>
 #include <iostream>
 
 namespace {
@@ -73,6 +76,34 @@ QDockWidget* makeDock(QMainWindow& window, const QString& title, const QString& 
     return dock;
 }
 
+// Projets récents (Fichier > Récents), du plus récent au plus ancien
+QStringList recentProjects() {
+    QStringList list = QSettings().value("recentProjects").toStringList();
+    list.erase(std::remove_if(list.begin(), list.end(), [](const QString& p) { return !QFileInfo::exists(p); }), list.end());
+    return list;
+}
+void addRecentProject(const QString& path) {
+    QStringList list = recentProjects();
+    const QString clean = QFileInfo(path).absoluteFilePath();
+    list.removeAll(clean);
+    list.prepend(clean);
+    while (list.size() > 8) list.removeLast();
+    QSettings().setValue("recentProjects", list);
+}
+
+// Laisse fermer la fenêtre seulement si canClose() le permet (modifications non enregistrées)
+class CloseGuard : public QObject {
+public:
+    CloseGuard(QObject* parent, std::function<bool()> canClose) : QObject(parent), m_canClose(std::move(canClose)) {}
+protected:
+    bool eventFilter(QObject* watched, QEvent* e) override {
+        if (e->type() == QEvent::Close && !m_canClose()) { e->ignore(); return true; }
+        return QObject::eventFilter(watched, e);
+    }
+private:
+    std::function<bool()> m_canClose;
+};
+
 auto addLink = [](QMenu* menu, const QString& text, const QString& url) {
     QObject::connect(menu->addAction(text), &QAction::triggered, [url] { QDesktopServices::openUrl(QUrl(url)); });
 };
@@ -88,47 +119,79 @@ int main(int argc, char** argv) {
 
     // Scène éditée : état partagé par tous les panneaux (déclaré avant la fenêtre : il lui survit)
     EditorContext ctx;
-    // Entités dans l'éditeur : désactivées pour le moment (le code reste là).
-    // Pour les remettre : passer kShowEntitiesInEditor à true.
-    // Le mode Jouer (F5) et rpg.exe ne sont pas concernés : ils chargent toujours rpg_scene.h.
-    constexpr bool kShowEntitiesInEditor = false;
-    if constexpr (kShowEntitiesInEditor) {
-        loadRpgEntities(ctx.scene());       // en attendant les projets : la scène du RPG (rpg_scene.h)
-        ctx.snapAllFollowers();   // les caméras liées se placent sur leur cible
-        {   // Rangement de départ dans la Hierarchy (catégories : dossiers de l'éditeur).
-            // Une caméra qui suit une entité s'affiche déjà sous elle : seules les caméras libres vont dans « Caméras ».
-            QString cameras, characters;
-            for (Entity e : ctx.entities()) {
-                Registry& reg = ctx.scene();
-                if (reg.hasComponent<Camera2d>(e)) {
-                    if (reg.isValid(reg.getComponent<Camera2d>(e).targetLock)) continue;
-                    if (cameras.isEmpty()) cameras = ctx.addCategory("Caméras");
-                    ctx.setCategory(e, cameras);
-                } else if (reg.hasComponent<Script>(e)) {
-                    if (characters.isEmpty()) characters = ctx.addCategory("Personnages");
-                    ctx.setCategory(e, characters);
-                }
+
+    // Rangement de départ dans la Hierarchy (catégories : dossiers de l'éditeur) pour des entités importées.
+    // Une caméra qui suit une entité s'affiche déjà sous elle : seules les caméras libres vont dans « Caméras ».
+    auto defaultCategories = [&ctx] {
+        QString cameras, characters;
+        for (Entity e : ctx.entities()) {
+            Registry& reg = ctx.scene();
+            if (reg.hasComponent<Camera2d>(e)) {
+                if (reg.isValid(reg.getComponent<Camera2d>(e).targetLock)) continue;
+                if (cameras.isEmpty()) cameras = ctx.addCategory("Caméras");
+                ctx.setCategory(e, cameras);
+            } else if (reg.hasComponent<Script>(e)) {
+                if (characters.isEmpty()) characters = ctx.addCategory("Personnages");
+                ctx.setCategory(e, characters);
             }
+        }
+    };
+
+    // Ouvre un .angproj et sa scène de départ.
+    // Projet RPG sans fichier de scène : on la crée avec les entités de rpg_scene.h (une seule fois).
+    auto openProjectFile = [&](const QString& path, QString* error) -> bool {
+        if (!ctx.openProject(path, error)) return false;
+        if (!QFileInfo::exists(ctx.scenePath()) && QFileInfo(path).fileName() == "rpg.angproj") {
+            ctx.importEntities([](Registry& registry) { loadRpgEntities(registry); });
+            defaultCategories();
+            ctx.saveScene();
+        }
+        addRecentProject(path);
+        return true;
+    };
+
+    {   // Projet ouvert au démarrage : le dernier ouvert (Fichier > Récents), sinon le RPG
+        const QString rpgProject = projectDir() + "/rpg.angproj";
+        if (!QFileInfo::exists(rpgProject)) {   // premier lancement : on crée le fichier projet du RPG
+            Project rpg;
+            rpg.name = "RPG";
+            rpg.window.title = "RPG";
+            rpg.scenes = { rpg.startScene };
+            std::string err;
+            if (!rpg.save(rpgProject.toUtf8().toStdString(), &err)) std::cerr << "[Projet] " << err << std::endl;
+        }
+        QStringList candidates = recentProjects();
+        candidates.append(rpgProject);
+        for (const QString& candidate : candidates) {
+            QString err;
+            if (openProjectFile(candidate, &err)) break;
+            std::cerr << "[Projet] " << err.toStdString() << std::endl;
         }
     }
 
     CustomWindow window;
     ThemeManager themes(&window);
     themes.restoreSaved();                              // dernier thème choisi
-    window.setWindowTitle("AngeVault Editor");
+    // Titre : projet — scène (* = modifications non enregistrées)
+    auto updateTitle = [&] {
+        const QString project = ctx.hasProject() ? QString::fromStdString(ctx.project().name) + "  —  " : QString();
+        window.setWindowTitle(QString("%1%2%3  —  AngeVault Editor").arg(project, ctx.sceneName(), ctx.isDirty() ? " *" : ""));
+    };
+    updateTitle();
+    QObject::connect(&ctx, &EditorContext::dirtyChanged, &window, updateTitle);
+    QObject::connect(&ctx, &EditorContext::documentChanged, &window, updateTitle);
     window.setWindowIcon(QIcon(":/resources/icons/icon.png"));
     window.setMinimumSize(640, 400);
 
     // --- Menus de la barre de titre :
     QMenu* file = window.addMenu("&Fichier");
-    addAction(file, "Nouveau projet", QKeySequence::New);
-    addAction(file, "Ouvrir...", QKeySequence::Open);
+    QAction* newProjectAction = addAction(file, "Nouveau projet...");
+    QAction* openAction = addAction(file, "Ouvrir...", QKeySequence::Open);   // .angproj ou .scene
     QMenu* recent = file->addMenu("Récents");
-    recent->addAction("sandbox");
-    recent->addAction("rpg");
     file->addSeparator();
-    addAction(file, "Enregistrer", QKeySequence::Save);
-    addAction(file, "Enregistrer sous...", QKeySequence::SaveAs);
+    QAction* newSceneAction = addAction(file, "Nouvelle scène", QKeySequence::New);
+    QAction* saveAction = addAction(file, "Enregistrer", QKeySequence::Save);
+    QAction* saveAsAction = addAction(file, "Enregistrer sous...", QKeySequence::SaveAs);
     file->addSeparator();
     QObject::connect(addAction(file, "Quitter", QKeySequence(Qt::ALT | Qt::Key_F4)),
                      &QAction::triggered, &window, &QWidget::close);
@@ -184,18 +247,24 @@ int main(int argc, char** argv) {
     window.setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
 
     auto* palettePanel = new TilePalettePanel(ctx);
-    QDockWidget* projectDock   = makeDock(window, "Project", "dockProject", new ProjectPanel(projectDir()));
+    auto* projectPanel = new ProjectPanel(ctx.hasProject() ? ctx.projectDir() : projectDir());
+    QDockWidget* hierarchyDock = makeDock(window, "Hierarchy", "dockHierarchy", new HierarchyPanel(ctx));
+    QDockWidget* inspectorDock = makeDock(window, "Inspector", "dockInspector", new InspectorPanel(ctx));
+    QDockWidget* projectDock   = makeDock(window, "Project", "dockProject", projectPanel);
     QDockWidget* consoleDock   = makeDock(window, "Console", "dockConsole", new ConsolePanel);
     QDockWidget* paletteDock   = makeDock(window, "Tile Palette", "dockTilePalette", palettePanel);
     window.addActions(palettePanel->toolActions());   // V / B / E / I partout dans la fenêtre
 
     // Disposition par défaut
+    window.addDockWidget(Qt::LeftDockWidgetArea, hierarchyDock);
+    window.splitDockWidget(hierarchyDock, paletteDock, Qt::Vertical);
+    window.addDockWidget(Qt::RightDockWidgetArea, inspectorDock);
     window.addDockWidget(Qt::BottomDockWidgetArea, projectDock);
     window.tabifyDockWidget(projectDock, consoleDock);
     projectDock->raise();
 
     // Affichage > Fenêtres : une case à cocher par panneau
-    const QList<QDockWidget*> docks = {  projectDock, consoleDock, paletteDock };
+    const QList<QDockWidget*> docks = { hierarchyDock, inspectorDock, projectDock, consoleDock, paletteDock };
     for (int i = 0; i < docks.size(); ++i) {
         QAction* toggle = docks[i]->toggleViewAction();
         toggle->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key(Qt::Key_1 + i)));
@@ -205,9 +274,11 @@ int main(int argc, char** argv) {
     QAction* resetLayout = windowsMenu->addAction("Réinitialiser la disposition");
 
     // Mémorise la disposition (après l'affichage, quand les tailles sont connues)
-    constexpr int kLayoutVersion = 1;
+    constexpr int kLayoutVersion = 2;   // 2 : Hierarchy et Inspector de retour (l'ancienne disposition est ignorée)
     QByteArray defaultLayout;
     QTimer::singleShot(0, &window, [&] {
+        window.resizeDocks({ hierarchyDock, inspectorDock }, { 250, 320 }, Qt::Horizontal);
+        window.resizeDocks({ hierarchyDock, paletteDock }, { 320, 280 }, Qt::Vertical);
         window.resizeDocks({ projectDock }, { 220 }, Qt::Vertical);
         defaultLayout = window.saveState(kLayoutVersion);
         const QByteArray saved = QSettings().value("ui/dockLayout").toByteArray();
@@ -245,11 +316,16 @@ int main(int argc, char** argv) {
     QProcess gameProcess;
     gameProcess.setWorkingDirectory(QCoreApplication::applicationDirPath());   // pour trouver assets/
 
+    auto inputPath = [&]() -> QString {
+        if (!ctx.hasProject()) return projectDir() + "/assets/input.cfg";
+        return QString::fromStdString(ctx.project().resolve(ctx.project().inputPath));
+    };
+
     // Édition > Input Manager... : fenêtre non modale, une seule à la fois
     QPointer<InputSettingsDialog> inputDialog;
     QObject::connect(inputSettings, &QAction::triggered, [&] {
         if (!inputDialog) {
-            inputDialog = new InputSettingsDialog(projectDir() + "/assets/input.cfg",
+            inputDialog = new InputSettingsDialog(inputPath(),
                                                   [](InputManager& input) { defaultRpgInput(input); }, &window);
             inputDialog->setAttribute(Qt::WA_DeleteOnClose);
             // jeu lancé dans l'éditeur : il prend les nouvelles touches tout de suite
@@ -279,7 +355,7 @@ int main(int argc, char** argv) {
 
     QObject::connect(play, &QAction::triggered, [&] {
         if (gameView) return;
-        gameView = new GameView;                 // scène neuve à chaque lancement
+        gameView = new GameView(ctx.sceneSnapshot(), inputPath());   // une COPIE de la scène éditée
         viewports->addWidget(gameView);
         viewports->setCurrentWidget(gameView);
         gameView->setFocus();
@@ -316,16 +392,15 @@ int main(int argc, char** argv) {
                                  "\n\nCompilez la cible rpg, puis réessayez.");
             return;
         }
-        {   // rpg.exe lit bin/assets/input.cfg : on y copie la version du projet (Input Manager)
-            const QString src = projectDir() + "/assets/input.cfg";
-            const QString dst = QFileInfo(exe).absolutePath() + "/assets/input.cfg";
-            if (QFileInfo::exists(src)) {
-                QDir().mkpath(QFileInfo(dst).absolutePath());
-                QFile::remove(dst);
-                QFile::copy(src, dst);
-            }
+        // rpg.exe joue les fichiers : on enregistre d'abord la scène (comme « Enregistrer et lancer »)
+        if (ctx.isDirty() && !ctx.scenePath().isEmpty()) {
+            QString err;
+            if (!ctx.saveScene(&err)) { QMessageBox::warning(&window, "Enregistrement impossible", err); return; }
         }
-        gameProcess.start(exe, {});
+        QStringList args;   // rpg.exe <projet.angproj> <scène>
+        if (ctx.hasProject()) args << ctx.projectFile();
+        if (ctx.hasProject() && !ctx.scenePath().isEmpty()) args << ctx.scenePath();
+        gameProcess.start(exe, args);
     });
     QObject::connect(&gameProcess, &QProcess::started, [&] { updatePlayState(); });
     QObject::connect(&gameProcess, &QProcess::finished, [&](int code, QProcess::ExitStatus status) {
@@ -338,6 +413,94 @@ int main(int argc, char** argv) {
         if (error == QProcess::FailedToStart)
             window.statusBar()->showMessage("Impossible de lancer rpg.exe : " + gameProcess.errorString(), 5000);
     });
+
+    // --- Fichier : ouvrir / enregistrer ---------------------------------------------------------
+    std::function<bool()> saveSceneAs = [&]() -> bool {
+        const QString dir = ctx.hasProject() ? ctx.projectDir() + "/scenes" : QDir::homePath();
+        const QString suggested = ctx.scenePath().isEmpty() ? dir + "/nouvelle.scene" : ctx.scenePath();
+        QString path = QFileDialog::getSaveFileName(&window, "Enregistrer la scène", suggested, "Scènes AngeVault (*.scene)");
+        if (path.isEmpty()) return false;
+        if (!path.endsWith(".scene", Qt::CaseInsensitive)) path += ".scene";
+        QString err;
+        if (!ctx.saveSceneAs(path, &err)) { QMessageBox::warning(&window, "Enregistrement impossible", err); return false; }
+        window.statusBar()->showMessage("Scène enregistrée : " + QDir::toNativeSeparators(path), 4000);
+        return true;
+    };
+    auto saveScene = [&]() -> bool {
+        if (ctx.scenePath().isEmpty()) return saveSceneAs();
+        QString err;
+        if (!ctx.saveScene(&err)) { QMessageBox::warning(&window, "Enregistrement impossible", err); return false; }
+        window.statusBar()->showMessage("Scène enregistrée : " + QDir::toNativeSeparators(ctx.scenePath()), 4000);
+        return true;
+    };
+    // Avant de quitter / ouvrir autre chose : proposer d'enregistrer. false = annuler.
+    auto maybeSave = [&]() -> bool {
+        if (!ctx.isDirty()) return true;
+        const auto answer = QMessageBox::question(&window, "Modifications non enregistrées",
+            QString("Enregistrer les modifications de « %1 » ?").arg(ctx.sceneName()),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+        if (answer == QMessageBox::Cancel) return false;
+        if (answer == QMessageBox::Discard) return true;
+        return saveScene();
+    };
+    auto openFile = [&](const QString& path) {
+        if (!maybeSave()) return;
+        QString err;
+        const bool isProject = path.endsWith(kProjectExtension, Qt::CaseInsensitive);
+        const bool ok = isProject ? openProjectFile(path, &err) : ctx.openScene(path, &err);
+        if (!ok) QMessageBox::warning(&window, "Ouverture impossible", err);
+        else window.statusBar()->showMessage("Ouvert : " + QDir::toNativeSeparators(path), 4000);
+    };
+
+    QObject::connect(saveAction, &QAction::triggered, [&] { saveScene(); });
+    QObject::connect(saveAsAction, &QAction::triggered, [&] { saveSceneAs(); });
+    QObject::connect(newSceneAction, &QAction::triggered, [&] { if (maybeSave()) ctx.newScene(); });
+    QObject::connect(openAction, &QAction::triggered, [&] {
+        const QString start = ctx.hasProject() ? ctx.projectDir() : QDir::homePath();
+        const QString path = QFileDialog::getOpenFileName(&window, "Ouvrir un projet ou une scène", start,
+            "Projets et scènes AngeVault (*.angproj *.scene);;Projets (*.angproj);;Scènes (*.scene)");
+        if (!path.isEmpty()) openFile(path);
+    });
+    QObject::connect(newProjectAction, &QAction::triggered, [&] {
+        if (!maybeSave()) return;
+        const QString dir = QFileDialog::getExistingDirectory(&window, "Dossier du nouveau projet", QDir::homePath());
+        if (dir.isEmpty()) return;
+        bool ok = false;
+        const QString name = QInputDialog::getText(&window, "Nouveau projet", "Nom du projet :",
+                                                   QLineEdit::Normal, QFileInfo(dir).fileName(), &ok).trimmed();
+        if (!ok || name.isEmpty()) return;
+        Project created;
+        std::string err;
+        if (!Project::create(dir.toUtf8().toStdString(), name.toUtf8().toStdString(), created, &err)) {
+            QMessageBox::warning(&window, "Création impossible", QString::fromUtf8(err.c_str()));
+            return;
+        }
+        openFile(QString::fromStdString(created.filePath));
+    });
+    QObject::connect(recent, &QMenu::aboutToShow, [&] {   // liste à jour à chaque ouverture du menu
+        recent->clear();
+        const QStringList list = recentProjects();
+        if (list.isEmpty()) recent->addAction("(aucun)")->setEnabled(false);
+        for (const QString& path : list) {
+            QAction* a = recent->addAction(QFileInfo(path).completeBaseName() + "   " + QDir::toNativeSeparators(path));
+            QObject::connect(a, &QAction::triggered, [&, path] { openFile(path); });
+        }
+    });
+    QObject::connect(projectPanel, &ProjectPanel::sceneOpenRequested, [&](const QString& path) { openFile(path); });
+    // Entités glissées de la Hierarchy vers le panneau Project : un prefab par entité, dans ce dossier
+    QObject::connect(projectPanel, &ProjectPanel::entitiesDropped, [&](const QByteArray& data, const QString& dir) {
+        for (Entity e : ctx.entitiesFromMime(data)) {
+            QString err;
+            if (!ctx.createPrefab(e, ctx.defaultPrefabPath(e, dir), &err)) QMessageBox::warning(&window, "Prefab", err);
+        }
+    });
+    QObject::connect(&ctx, &EditorContext::statusMessage, &window, [&](const QString& text) {
+        window.statusBar()->showMessage(text, 6000);
+    });
+    QObject::connect(&ctx, &EditorContext::documentChanged, projectPanel, [&] {
+        if (ctx.hasProject()) projectPanel->setRootDir(ctx.projectDir());
+    });
+    window.installEventFilter(new CloseGuard(&window, maybeSave));   // quitter : enregistrer ?
 
     window.resize(1280, 780);
     window.show();

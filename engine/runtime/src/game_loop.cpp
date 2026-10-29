@@ -11,6 +11,13 @@ Game::Game() {
     init();
 }
 
+Game::Game(sf::Vector2u size, const std::string& title, bool vsync) {
+    m_ownWindow.emplace(sf::VideoMode(size), title, sf::Style::Default, sf::State::Windowed);
+    m_ownWindow->setVerticalSyncEnabled(vsync);
+    m_window = &*m_ownWindow;
+    init();
+}
+
 Game::Game(sf::RenderWindow& target) : m_window(&target) {
     init();
 }

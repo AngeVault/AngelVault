@@ -20,6 +20,10 @@ class InspectorPanel : public QWidget {
 public:
     explicit InspectorPanel(EditorContext& context, QWidget* parent = nullptr);
 
+protected:
+    void dragEnterEvent(QDragEnterEvent* e) override;   // comportement (.h) glissé depuis le panneau Project
+    void dropEvent(QDropEvent* e) override;
+
 private:
     void rebuild();
     void refreshValues();

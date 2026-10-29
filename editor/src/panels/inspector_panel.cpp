@@ -2,10 +2,16 @@
 #include "component_descriptors.h"
 #include "editor_context.h"
 
+#include "components/script_component.h"
+#include "ecs/behavior_factory.h"
+
 #include <QApplication>
 #include <QCheckBox>
 #include <QColorDialog>
 #include <QComboBox>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
 #include <QDoubleSpinBox>
 #include <QEvent>
 #include <QFormLayout>
@@ -73,6 +79,12 @@ InspectorPanel::InspectorPanel(EditorContext& context, QWidget* parent) : QWidge
     // Reconstruit au prochain tour de boucle : jamais pendant le clic d'un bouton du panneau
     connect(&m_ctx, &EditorContext::selectionChanged, this, &InspectorPanel::rebuild, Qt::QueuedConnection);
     connect(&m_ctx, &EditorContext::sceneChanged, this, [this] { if (!m_ctx.hasSelection()) rebuild(); }, Qt::QueuedConnection);
+    // Comportement ajouté / retiré (glisser-déposer, menu) : sections à refaire
+    connect(&m_ctx, &EditorContext::componentsChanged, this, [this](Entity e) {
+        if (e == m_ctx.selected()) rebuild();
+    }, Qt::QueuedConnection);
+    // Glisser un comportement (.h) depuis le panneau Project : il s'ajoute à l'entité sélectionnée
+    setAcceptDrops(true);
     // Caméra liée / déliée : la Position passe en lecture seule (ou redevient modifiable)
     connect(&m_ctx, &EditorContext::followTargetChanged, this, [this](Entity e) {
         if (e == m_ctx.selected()) rebuild();
@@ -119,6 +131,26 @@ void InspectorPanel::rebuild() {
         v->addWidget(buildSection(name, bool(desc.remove), onRemove, form));
         for (const FieldDesc& field : desc.fields(reg, e))
             form->addRow(field.name, createEditor(field, e));
+    }
+
+    // Comportements : une section par comportement du Script (comme les scripts d'Unity)
+    if (reg.hasComponent<Script>(e)) {
+        Script& script = reg.getComponent<Script>(e);
+        for (std::size_t i = 0; i < script.behaviors.size(); ++i) {
+            IBehavior* b = script.behaviors[i].behavior.get();
+            if (!b) continue;
+            std::string name = BehaviorFactory::get().nameOf(*b);
+            QString title = QString::fromStdString(name);
+            if (name.empty()) title = tr("Comportement (REGISTER_BEHAVIOR manquant)");
+            QFormLayout* form = nullptr;
+            auto onRemove = [this, e, i] { m_ctx.removeBehavior(e, i); };
+            QWidget* section = buildSection(title, true, onRemove, form);
+            section->setToolTip(QString::fromStdString(BehaviorFactory::get().fileOf(name)));
+            v->addWidget(section);
+            const std::vector<FieldDesc> fields = behaviorFields(b);
+            if (fields.empty()) form->addRow(new QLabel(tr("(aucune PROPERTY)")));
+            for (const FieldDesc& field : fields) form->addRow(field.name, createEditor(field, e));
+        }
     }
 
     v->addWidget(buildAddButton(e));
@@ -214,6 +246,18 @@ QWidget* InspectorPanel::buildAddButton(Entity e) {
             m_ctx.notifyEntityModified(e, this);
             QMetaObject::invokeMethod(this, &InspectorPanel::rebuild, Qt::QueuedConnection);
         });
+    }
+    // Comportements enregistrés (REGISTER_BEHAVIOR) : on peut en mettre plusieurs
+    const std::vector<std::string> behaviors = BehaviorFactory::get().names();
+    if (!behaviors.empty()) {
+        if (!menu->isEmpty()) menu->addSeparator();
+        QMenu* sub = menu->addMenu(tr("Comportement"));
+        for (const std::string& name : behaviors) {
+            QAction* a = sub->addAction(QString::fromStdString(name));
+            a->setToolTip(QString::fromStdString(BehaviorFactory::get().fileOf(name)));
+            connect(a, &QAction::triggered, this, [this, e, name] { m_ctx.addBehavior(e, name); });
+        }
+        sub->setToolTipsVisible(true);
     }
     if (menu->isEmpty()) {
         menu->addAction(tr("Tous les composants sont déjà présents"))->setEnabled(false);
@@ -348,4 +392,27 @@ QWidget* InspectorPanel::createEditor(const FieldDesc& f, Entity e) {
 void InspectorPanel::refreshValues() {
     if (!m_ctx.hasSelection()) return;
     for (auto& refresh : m_refreshers) refresh();
+}
+
+// ---- Glisser-déposer : comportements (.h) depuis le panneau Project ----------------------------
+
+namespace {
+QStringList droppedFiles(const QMimeData* mime) {
+    QStringList files;
+    if (!mime || !mime->hasUrls()) return files;
+    for (const QUrl& url : mime->urls())
+        if (url.isLocalFile()) files << url.toLocalFile();
+    return files;
+}
+}
+
+void InspectorPanel::dragEnterEvent(QDragEnterEvent* e) {
+    if (m_ctx.hasSelection() && !droppedFiles(e->mimeData()).isEmpty()) e->acceptProposedAction();
+}
+
+void InspectorPanel::dropEvent(QDropEvent* e) {
+    const QStringList files = droppedFiles(e->mimeData());
+    if (files.isEmpty() || !m_ctx.hasSelection()) return;
+    e->acceptProposedAction();
+    m_ctx.dropFiles(files, m_ctx.selected());
 }

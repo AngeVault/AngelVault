@@ -5,6 +5,7 @@
 #include "utils/loose_file_loader.h"
 #include "input/input_manager.h"
 #include <optional>
+#include <string>
 
 // Deux façons d'utiliser Game :
 //  - autonome (Sandbox.exe) : Game game; ... game.run();         -> ouvre sa propre fenêtre
@@ -13,6 +14,7 @@
 class Game {
 public:
     Game();                                       // crée sa fenêtre 1920x1080
+    Game(sf::Vector2u size, const std::string& title, bool vsync = true);   // fenêtre réglée (ex. depuis le .angproj)
     explicit Game(sf::RenderWindow& target);      // dessine dans une fenêtre fournie (ex. SfmlWidget)
     ~Game();
 

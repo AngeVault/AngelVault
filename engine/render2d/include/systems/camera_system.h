@@ -8,12 +8,25 @@
 #include "ecs/entity.h"
 #include "components/transform2d.h"
 #include "ecs/registry.h"
+#include "input/input.h"
+#include "math/interpolation.h"
+
+#include <algorithm>
+#include <cmath>
 
 #include <SFML/Graphics.hpp>
 
+// Entrées utilisées (actions de l'Input Manager, voir assets/input.cfg du projet) :
+//   CameraX / CameraY : déplacer une caméra libre        Zoom : zoom continu (touches, gâchettes)
+//   ZoomWheel         : zoom par crans (molette)
 class CameraSystem : public ISystem
 {
 public:
+    static constexpr const char* kActionPanX = "CameraX";
+    static constexpr const char* kActionPanY = "CameraY";
+    static constexpr const char* kActionZoom = "Zoom";
+    static constexpr const char* kActionZoomWheel = "ZoomWheel";
+
     CameraSystem(sf::RenderWindow& window) : m_window(window) {priority = -10;} ;
     sf::View makeView(Entity e,Registry& registry, Camera2d& camera,sf::Vector2u windowSize) const {
         sf::Vector2f position = registry.getComponent<Transform2D>(e).getPosition();
@@ -36,37 +49,10 @@ public:
             sf::Vector2f position = registry.getComponent<Transform2D>(e).getPosition();
             if (camera.targetLock == NULL_ENTITY)
             {
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
-                {
-                    position.x -= camera.panSpeedKeyboard * camera.zoom *dt;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
-                {
-                    position.x += camera.panSpeedKeyboard * camera.zoom*dt;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
-                {
-                    position.y -= camera.panSpeedKeyboard * camera.zoom*dt;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
-                {
-                    position.y += camera.panSpeedKeyboard * camera.zoom*dt;
-                }
-
-
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Add))
-                {
-                    camera.targetZoom += camera.zoomStep *dt ;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Subtract))
-                {
-                    camera.targetZoom -= camera.zoomStep *dt ;
-                }
-                if (camera.targetZoom != camera.zoom)
-                {
-                    camera.zoom = camera.targetZoom ;
-                }
-
+                // Déplacement : vitesse en pixels écran / s, donc plus lent dans le monde quand on zoome
+                const float speed = camera.panSpeedKeyboard / std::max(camera.zoom, 0.001f) * dt;
+                position.x += Input::getAxis(kActionPanX) * speed;
+                position.y += Input::getAxis(kActionPanY) * speed;
             }
             else
             {
@@ -80,6 +66,14 @@ public:
                 }
 
             }
+            // Zoom (caméra libre ou qui suit) : on règle la cible, le zoom la rejoint en douceur
+            const float zoomHeld = Input::getAxis(kActionZoom);        // maintenu : par seconde
+            const float zoomNotches = Input::getAxis(kActionZoomWheel); // crans de molette de la frame
+            if (zoomHeld != 0.f) camera.targetZoom *= std::pow(1.f + camera.zoomStep, zoomHeld * dt);
+            if (zoomNotches != 0.f) camera.targetZoom *= std::pow(1.f + camera.zoomStep * 0.25f, zoomNotches);
+            camera.targetZoom = std::clamp(camera.targetZoom, camera.minZoom, camera.maxZoom);
+            camera.zoom = Math::damp(camera.zoom, camera.targetZoom, camera.zoomLerpSpeed, dt);   // même douceur à tout FPS
+
             if (position != registry.getComponent<Transform2D>(e).getPosition())
             {
                 registry.getComponent<Transform2D>(e).setPosition(position);

@@ -15,6 +15,12 @@
 #include <QFileInfo>
 #include <QFileSystemModel>
 #include <QFileSystemWatcher>
+#include <QInputDialog>
+#include <QMessageBox>
+#include <QMimeData>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QRegularExpression>
 #include <QHBoxLayout>
 #include <QHash>
 #include <QHeaderView>
@@ -29,8 +35,85 @@
 #include <QUrl>
 #include <QVBoxLayout>
 
+#include <functional>
+
 namespace {
 constexpr int kPathRole = Qt::UserRole + 1;
+constexpr const char* kEntityMime = "application/x-angevault-entities";   // = EditorContext::kEntityMimeType
+
+// Liste des fichiers : on peut les glisser (vers la Hierarchy, l'Inspector, la vue scène)
+// et y déposer des entités venant de la Hierarchy (= créer des prefabs dans ce dossier).
+class ProjectFileList : public QListWidget {
+public:
+    std::function<void(const QByteArray& entities)> onEntitiesDropped;
+
+protected:
+    QMimeData* mimeData(const QList<QListWidgetItem*>& items) const override {
+        auto* mime = new QMimeData;
+        QList<QUrl> urls;
+        for (QListWidgetItem* item : items) urls << QUrl::fromLocalFile(item->data(kPathRole).toString());
+        mime->setUrls(urls);
+        return mime;
+    }
+    void dragEnterEvent(QDragEnterEvent* e) override {
+        if (e->mimeData()->hasFormat(kEntityMime)) e->acceptProposedAction();
+        else if (e->source() == this) e->ignore();   // pas de déplacement d'icônes dans la liste
+        else e->ignore();
+    }
+    void dragMoveEvent(QDragMoveEvent* e) override {
+        if (e->mimeData()->hasFormat(kEntityMime)) e->acceptProposedAction();
+        else e->ignore();
+    }
+    void dropEvent(QDropEvent* e) override {
+        if (!e->mimeData()->hasFormat(kEntityMime) || !onEntitiesDropped) { e->ignore(); return; }
+        e->acceptProposedAction();
+        onEntitiesDropped(e->mimeData()->data(kEntityMime));
+    }
+};
+
+// "EnemyAI" -> "enemy_ai" (nom de fichier d'un nouveau behavior)
+QString snakeCase(const QString& name) {
+    QString out;
+    for (int i = 0; i < name.size(); ++i) {
+        const QChar ch = name[i];
+        if (ch.isUpper() && i > 0 && (name[i - 1].isLower() || (i + 1 < name.size() && name[i + 1].isLower()))) out += '_';
+        out += ch.toLower();
+    }
+    return out;
+}
+
+// Modèle d'un nouveau comportement
+QString behaviorTemplate(const QString& className) {
+    return QString(R"(#pragma once
+#include "ecs/behavior.h"
+#include "ecs/behavior_factory.h"
+#include "ecs/registry.h"
+#include "components/transform2d.h"
+#include "input/input.h"
+
+// Comportement « %1 ».
+// Après compilation, glissez ce fichier sur une entité (Hierarchy, Inspector ou vue scène),
+// ou Inspector > Ajouter un composant > Comportement > %1.
+class %1 : public IBehavior {
+public:
+    // Réglages visibles dans l'Inspector et enregistrés dans la scène (float, int, bool, sf::Vector2f, std::string)
+    PROPERTY(float, speed, 100.f)
+
+    // Appelé une fois, avant le premier onUpdate
+    void onStart(Entity self, Registry& registry) override {
+    }
+
+    // Appelé à chaque frame (dt en secondes)
+    void onUpdate(Entity self, Registry& registry, float dt) override {
+        // auto& transform = registry.getComponent<Transform2D>(self);
+        // transform.move({ Input::getAxis("Horizontal") * speed * dt, 0.f });
+    }
+};
+
+// Nom utilisé dans les fichiers .scene / .prefab
+REGISTER_BEHAVIOR(%1)
+)").arg(className);
+}
 constexpr int kThumb = 56;
 
 bool isImage(const QFileInfo& fi) {
@@ -107,7 +190,9 @@ ProjectPanel::ProjectPanel(const QString& rootDir, QWidget* parent)
         m_tree->expand(rootIdx);
     });
 
-    m_list = new QListWidget;
+    auto* fileList = new ProjectFileList;
+    fileList->onEntitiesDropped = [this](const QByteArray& data) { emit entitiesDropped(data, m_current); };
+    m_list = fileList;
     m_list->setObjectName("projectFiles");
     m_list->setViewMode(QListView::IconMode);
     m_list->setResizeMode(QListView::Adjust);
@@ -117,6 +202,11 @@ ProjectPanel::ProjectPanel(const QString& rootDir, QWidget* parent)
     m_list->setWordWrap(true);
     m_list->setUniformItemSizes(true);
     m_list->setSpacing(4);
+    m_list->setDragEnabled(true);                          // glisser un fichier vers la scène / une entité
+    m_list->setAcceptDrops(true);                          // déposer une entité = créer un prefab
+    m_list->viewport()->setAcceptDrops(true);              // (setMovement(Static) l'avait désactivé)
+    m_list->setDragDropMode(QAbstractItemView::DragDrop);
+    m_list->setDefaultDropAction(Qt::CopyAction);
 
     split->addWidget(m_tree);
     split->addWidget(m_list);
@@ -198,9 +288,23 @@ void ProjectPanel::refresh() {
     }
 }
 
+void ProjectPanel::setRootDir(const QString& dir) {
+    const QString clean = QDir::cleanPath(dir);
+    if (clean.isEmpty() || clean == m_root) return;
+    m_root = clean;
+    m_dirs->setRootPath(m_root);
+    m_tree->setRootIndex(m_dirs->index(QFileInfo(m_root).absolutePath()));
+    const QModelIndex rootIdx = m_dirs->index(m_root);   // on ne montre que le dossier du projet
+    for (int r = 0; r < m_dirs->rowCount(rootIdx.parent()); ++r)
+        m_tree->setRowHidden(r, rootIdx.parent(), m_dirs->index(r, 0, rootIdx.parent()) != rootIdx);
+    m_tree->expand(rootIdx);
+    setCurrentDir(m_root);
+}
+
 void ProjectPanel::openPath(const QString& path) {
     const QFileInfo fi(path);
     if (fi.isDir()) setCurrentDir(path);
+    else if (fi.suffix().compare("scene", Qt::CaseInsensitive) == 0) emit sceneOpenRequested(path);   // ouvrir dans l'éditeur
     else if (ExternalTools::isScript(fi)) ExternalTools::openScript(path, this);   // CLion / VS Code
     else QDesktopServices::openUrl(QUrl::fromLocalFile(path));                     // application par défaut
 }
@@ -236,6 +340,8 @@ void ProjectPanel::showContextMenu(const QString& path, const QPoint& globalPos)
         group->addAction(a);
         connect(a, &QAction::triggered, this, [e] { setPreferredEditor(e); });
     }
+    menu.addSeparator();
+    connect(menu.addAction(tr("Créer un behavior C++...")), &QAction::triggered, this, [this] { createBehavior(); });
     menu.addSeparator();
     connect(menu.addAction(tr("Copier le chemin")), &QAction::triggered, this,
             [path] { QGuiApplication::clipboard()->setText(QDir::toNativeSeparators(path)); });
@@ -288,4 +394,35 @@ QIcon ProjectPanel::iconFor(const QString& path, bool isDir) {
         it = m_thumbnails.insert(key, icon.isNull() ? provider.icon(fi) : icon);
     }
     return *it;
+}
+
+void ProjectPanel::createBehavior() {
+    bool ok = false;
+    const QString name = QInputDialog::getText(this, tr("Nouveau behavior"),
+        tr("Nom de la classe (ex. EnemyAI) :"), QLineEdit::Normal, QString(), &ok).trimmed();
+    if (!ok || name.isEmpty()) return;
+    if (!QRegularExpression("^[A-Za-z_][A-Za-z0-9_]*$").match(name).hasMatch()) {
+        QMessageBox::warning(this, tr("Nouveau behavior"), tr("« %1 » n'est pas un nom de classe C++ valide.").arg(name));
+        return;
+    }
+    // Toujours dans behaviors/ : c'est ce dossier que CMake inclut automatiquement
+    const QString dir = m_root + "/behaviors";
+    QDir().mkpath(dir);
+    const QString path = dir + "/" + snakeCase(name) + ".h";
+    if (QFileInfo::exists(path)) {
+        QMessageBox::warning(this, tr("Nouveau behavior"), tr("%1 existe déjà.").arg(QDir::toNativeSeparators(path)));
+        return;
+    }
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, tr("Nouveau behavior"), tr("Impossible d'écrire %1").arg(QDir::toNativeSeparators(path)));
+        return;
+    }
+    file.write(behaviorTemplate(name).toUtf8());
+    file.close();
+    setCurrentDir(dir);
+    ExternalTools::openScript(path, this);   // ouvert dans CLion / VS Code
+    QMessageBox::information(this, tr("Nouveau behavior"),
+        tr("%1 a été créé.\n\nC'est du C++ : recompilez l'éditeur (et rpg) pour pouvoir l'utiliser, "
+           "puis glissez le fichier sur une entité.").arg(QDir::toNativeSeparators(path)));
 }

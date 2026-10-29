@@ -54,6 +54,9 @@ protected:
     void mouseReleaseEvent(QMouseEvent* e) override;
     void keyPressEvent(QKeyEvent* e) override;
     void leaveEvent(QEvent* e) override;
+    void dragEnterEvent(QDragEnterEvent* e) override;   // prefab (.prefab) ou comportement (.h) du panneau Project
+    void dragMoveEvent(QDragMoveEvent* e) override;
+    void dropEvent(QDropEvent* e) override;
     void resizeEvent(QResizeEvent* e) override;
 
 private:

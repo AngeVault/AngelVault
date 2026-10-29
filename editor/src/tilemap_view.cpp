@@ -7,7 +7,10 @@
 #include "systems/render_system.h"
 #include "systems/tile_map_render_system.hpp"
 
+#include <QDragEnterEvent>
+#include <QDropEvent>
 #include <QKeyEvent>
+#include <QMimeData>
 #include <QMouseEvent>
 #include <QWheelEvent>
 
@@ -60,6 +63,7 @@ sf::FloatRect localBounds(Registry& r, Entity e) {
 
 TilemapView::TilemapView(EditorContext& context, QWidget* parent) : SfmlWidget(parent), m_ctx(context) {
     setMouseTracking(true);
+    setAcceptDrops(true);   // prefabs et comportements glissés depuis le panneau Project
     if (m_ctx.map().width == 0) {   // carte de démo tant qu'il n'y a pas de projet
         buildTileset();
         buildDemoMap();
@@ -513,4 +517,38 @@ void TilemapView::keyPressEvent(QKeyEvent* e) {
     default: break;
     }
     SfmlWidget::keyPressEvent(e);
+}
+
+// ---- Glisser-déposer depuis le panneau Project ----------------------------------------------------
+//   .prefab : une instance à l'endroit du dépôt (Ctrl : alignée sur la demi-case)
+//   .h      : le comportement est ajouté à l'entité sous la souris
+
+namespace {
+QStringList localFiles(const QMimeData* mime) {
+    QStringList out;
+    if (mime && mime->hasUrls())
+        for (const QUrl& url : mime->urls()) if (url.isLocalFile()) out << url.toLocalFile();
+    return out;
+}
+}
+
+void TilemapView::dragEnterEvent(QDragEnterEvent* e) {
+    if (!localFiles(e->mimeData()).isEmpty()) e->acceptProposedAction();
+}
+
+void TilemapView::dragMoveEvent(QDragMoveEvent* e) {
+    if (!localFiles(e->mimeData()).isEmpty()) e->acceptProposedAction();
+}
+
+void TilemapView::dropEvent(QDropEvent* e) {
+    const QStringList files = localFiles(e->mimeData());
+    if (files.isEmpty()) return;
+    e->acceptProposedAction();
+    sf::Vector2f world = toWorld(e->position());
+    if (e->modifiers() & Qt::ControlModifier) {
+        const float step = m_ctx.map().tileSize * 0.5f;
+        world = { std::round(world.x / step) * step, std::round(world.y / step) * step };
+    }
+    m_ctx.dropFiles(files, pickEntity(toWorld(e->position())), world);
+    setFocus();
 }

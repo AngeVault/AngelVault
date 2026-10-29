@@ -7,8 +7,10 @@
 #include "components/rigid_body2d.h"
 #include "components/script_component.h"
 #include "components/transform2d.h"
+#include "ecs/behavior_factory.h"
 
 #include <QColor>
+#include <algorithm>
 #include <QPointF>
 #include <cmath>
 #include <typeinfo>
@@ -590,64 +592,8 @@ std::vector<ComponentDesc> build() {
         list.push_back(d);
     }
 
-    // ---------------------------------------------------------------- Script (comportement)
-    {
-        /**
-         * Describes the Script component.
-         *
-         * This component acts as a dynamic wrapper around a behavior instance. The
-         * script behavior may expose properties via a PROPERTY(...) mechanism. Those
-         * runtime properties are read from raw pointers and converted into editor
-         * fields. This allows editor-driven editing without hardcoded knowledge of
-         * each behavior implementation.
-         */
-        ComponentDesc d{ "Script" };
-        d.has = [](Registry& r, Entity e) { return r.hasComponent<Script>(e); };
-        d.remove = [](Registry& r, Entity e) { r.removeComponent<Script>(e); };
-        d.fields = [](Registry& r, Entity e) {
-            std::vector<FieldDesc> f;
-            IBehavior* b = r.getComponent<Script>(e).behavior.get();
-            if (!b) { f.push_back(label(QObject::tr("Comportement"), QObject::tr("(aucun)"))); return f; }
-            f.push_back(label(QObject::tr("Comportement"), cleanTypeName(typeid(*b).name())));
-
-            // Properties exposed by the behavior instance
-            for (size_t i = 0; i < b->m_properties.size(); ++i) {
-                const PropertyInfo& p = b->m_properties[i];
-                FieldDesc fd{ QString::fromStdString(p.name) };
-                void* ptr = p.ptr;
-                switch (p.type) {
-                case PropertyInfo::Type::Float:
-                    fd.kind = FieldKind::Float;
-                    fd.get = [ptr] { return QVariant(double(*static_cast<float*>(ptr))); };
-                    fd.set = [ptr](const QVariant& v) { *static_cast<float*>(ptr) = float(v.toDouble()); };
-                    break;
-                case PropertyInfo::Type::Int:
-                    fd.kind = FieldKind::Int;
-                    fd.get = [ptr] { return QVariant(*static_cast<int*>(ptr)); };
-                    fd.set = [ptr](const QVariant& v) { *static_cast<int*>(ptr) = v.toInt(); };
-                    break;
-                case PropertyInfo::Type::Bool:
-                    fd.kind = FieldKind::Bool;
-                    fd.get = [ptr] { return QVariant(*static_cast<bool*>(ptr)); };
-                    fd.set = [ptr](const QVariant& v) { *static_cast<bool*>(ptr) = v.toBool(); };
-                    break;
-                case PropertyInfo::Type::Vec2f:
-                    fd.kind = FieldKind::Vec2;
-                    fd.get = [ptr] { return v2(*static_cast<sf::Vector2f*>(ptr)); };
-                    fd.set = [ptr](const QVariant& v) { *static_cast<sf::Vector2f*>(ptr) = toV2(v); };
-                    break;
-                case PropertyInfo::Type::String:
-                    fd.kind = FieldKind::String;
-                    fd.get = [ptr] { return QVariant(QString::fromStdString(*static_cast<std::string*>(ptr))); };
-                    fd.set = [ptr](const QVariant& v) { *static_cast<std::string*>(ptr) = v.toString().toStdString(); };
-                    break;
-                }
-                f.push_back(fd);
-            }
-            return f;
-        };
-        list.push_back(d);
-    }
+    // Script : pas de descripteur ici. Chaque comportement a sa propre section dans l'Inspector
+    // (voir behaviorFields() plus bas et InspectorPanel::rebuild).
 
     return list;
 }
@@ -664,4 +610,48 @@ std::vector<ComponentDesc> build() {
 const std::vector<ComponentDesc>& componentDescriptors() {
     static const std::vector<ComponentDesc> list = build();
     return list;
+}
+
+/**
+ * Fields of one behavior: its PROPERTY values (float, int, bool, vec2, string).
+ * Used by the Inspector, which shows one section per behavior of the Script component.
+ */
+std::vector<FieldDesc> behaviorFields(IBehavior* b) {
+    std::vector<FieldDesc> f;
+    if (!b) return f;
+    // Properties exposed by the behavior instance
+    for (size_t i = 0; i < b->m_properties.size(); ++i) {
+        const PropertyInfo& p = b->m_properties[i];
+        FieldDesc fd{ QString::fromStdString(p.name) };
+        void* ptr = p.ptr;
+        switch (p.type) {
+        case PropertyInfo::Type::Float:
+            fd.kind = FieldKind::Float;
+            fd.get = [ptr] { return QVariant(double(*static_cast<float*>(ptr))); };
+            fd.set = [ptr](const QVariant& v) { *static_cast<float*>(ptr) = float(v.toDouble()); };
+            break;
+        case PropertyInfo::Type::Int:
+            fd.kind = FieldKind::Int;
+            fd.get = [ptr] { return QVariant(*static_cast<int*>(ptr)); };
+            fd.set = [ptr](const QVariant& v) { *static_cast<int*>(ptr) = v.toInt(); };
+            break;
+        case PropertyInfo::Type::Bool:
+            fd.kind = FieldKind::Bool;
+            fd.get = [ptr] { return QVariant(*static_cast<bool*>(ptr)); };
+            fd.set = [ptr](const QVariant& v) { *static_cast<bool*>(ptr) = v.toBool(); };
+            break;
+        case PropertyInfo::Type::Vec2f:
+            fd.kind = FieldKind::Vec2;
+            fd.get = [ptr] { return v2(*static_cast<sf::Vector2f*>(ptr)); };
+            fd.set = [ptr](const QVariant& v) { *static_cast<sf::Vector2f*>(ptr) = toV2(v); };
+            break;
+        case PropertyInfo::Type::String:
+            fd.kind = FieldKind::String;
+            fd.get = [ptr] { return QVariant(QString::fromStdString(*static_cast<std::string*>(ptr))); };
+            fd.set = [ptr](const QVariant& v) { *static_cast<std::string*>(ptr) = v.toString().toStdString(); };
+            break;
+        }
+        f.push_back(fd);
+    }
+    return f;
 }

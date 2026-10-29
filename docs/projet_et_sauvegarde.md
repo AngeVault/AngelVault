@@ -1,6 +1,9 @@
 # Projet `.angproj` et sauvegarde des scènes / maps
 
-Ce document propose une façon d'organiser un projet AngeVault sur le disque. Il couvre aussi la sauvegarde et le chargement des scènes (entités + composants) et des tilemaps. C'est une proposition : rien de tout ça n'est encore codé.
+Ce document décrit comment un projet AngeVault est organisé sur le disque, et comment les scènes (entités + composants) et les tilemaps sont sauvegardées et rechargées.
+
+> **État (implémenté)** : `.angproj` (§3), scènes `.scene` avec `PersistentId` (§4) et `BehaviorFactory` (§4.4), serializers des composants (§5), menus Fichier, étoile `*` et F5 sur une copie de la scène (§8), `rpg.exe` qui lit le projet. Code : `engine/scene/`, test : `tests/test_scene.cpp`.
+> **Pas encore fait** : la sauvegarde de la map (§6, les tiles peintes ne sont pas encore enregistrées), les migrations de version (§7), l'export binaire.
 
 Objectifs :
 
@@ -434,3 +437,45 @@ Le module `scene` ne doit **pas** dépendre de Qt : `rpg.exe` en a besoin.
 - **`targetLock`** : il pointe toujours vers la bonne entité après rechargement, même si l'ordre de création a changé ;
 - **composant inconnu** dans le fichier : la scène se charge quand même, avec un avertissement ;
 - **RLE** : encoder puis décoder une map aléatoire redonne la même map, et une map vide prend peu de place.
+
+---
+
+## 11. Behaviors et prefabs (implémenté)
+
+### Behaviors : un fichier = un (ou plusieurs) comportement(s)
+
+- Tous les `.h` de `projects/rpg/behaviors/` sont inclus **automatiquement** : CMake génère `rpg_behaviors.h`, qui sert au jeu et à l'éditeur. Il n'y a plus de liste à tenir à jour.
+- Une entité peut avoir **plusieurs** comportements (`Script::behaviors`), comme plusieurs scripts sur un GameObject Unity :
+  ```cpp
+  auto& script = registry.addComponent<Script>(e);
+  script.add<PlayerBehavior>();
+  script.add<EnemyAI>().speed = 80.f;
+  if (auto* ai = script.get<EnemyAI>()) { ... }
+  ```
+- Créer un comportement :
+  1. dans le panneau Project, clic droit > **Créer un behavior C++...** : le fichier part d'un modèle, avec `PROPERTY` et `REGISTER_BEHAVIOR` ;
+  2. recompiler (c'est du C++) ;
+  3. **glisser le fichier `.h`** sur une entité : dans la Hierarchy, dans l'Inspector ou dans la vue de la scène.
+- Le lien entre un fichier et sa classe passe par `REGISTER_BEHAVIOR`, qui retient `__FILE__`.
+- Dans la scène :
+  ```json
+  "Script": { "behaviors": [ { "name": "PlayerBehavior", "properties": { "speed": 250 } } ] }
+  ```
+  L'ancien format, à un seul `"behavior"`, se lit toujours.
+
+### Prefabs (`.prefab`)
+
+- **Créer** :
+  - glisser une entité de la Hierarchy vers le panneau Project (le prefab est créé dans le dossier ouvert) ;
+  - ou clic droit sur l'entité > **Créer un prefab**, qui le range dans `prefabs/`.
+  - Les caméras qui suivent l'entité sont incluses dans le prefab.
+- **Utiliser dans l'éditeur** :
+  - glisser le `.prefab` dans la vue de la scène, où il apparaît sous la souris (Ctrl : aligné sur la demi-case) ;
+  - ou le glisser dans la Hierarchy.
+- **Utiliser en jeu**, depuis un behavior :
+  ```cpp
+  #include "scene/prefab.h"
+  auto r = instantiatePrefabFile(registry, "prefabs/Enemy.prefab", sf::Vector2f{ x, y });
+  ```
+- Chaque instance reçoit de nouveaux `PersistentId`. Les liens internes sont recréés : la caméra de l'instance suit le Player de l'instance.
+- **Pas encore fait** : modifier un prefab ne met pas à jour les instances déjà posées. Ce sont des copies, pas des liens comme dans Unity.

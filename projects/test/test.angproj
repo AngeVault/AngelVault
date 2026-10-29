@@ -1,0 +1,21 @@
+{
+  "format": "angeVault.project",
+  "version": 1,
+  "name": "test",
+  "startScene": "scenes/main.scene",
+  "scenes": [
+    "scenes/main.scene"
+  ],
+  "paths": {
+    "assets": "assets",
+    "input": "assets/input.cfg"
+  },
+  "window": {
+    "title": "test",
+    "size": [
+      1920,
+      1080
+    ],
+    "vsync": true
+  }
+}

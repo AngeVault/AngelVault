@@ -56,7 +56,7 @@ target_include_directories(AngeVaultEditor PRIVATE src)
 target_compile_definitions(AngeVaultEditor PRIVATE AV_PROJECT_DIR="${CMAKE_SOURCE_DIR}/projects/rpg")
 
 # Projet ouvert dans l'éditeur : le RPG (projects/rpg/rpg_scene.h), joué avec Exécuter > Jouer
-target_include_directories(AngeVaultEditor PRIVATE ${CMAKE_SOURCE_DIR}/projects/rpg)
+target_link_libraries(AngeVaultEditor PRIVATE rpg_project)   # rpg_scene.h + tous les behaviors (rpg_behaviors.h)
 
 # Textures -> bin/assets, à côté de l'exécutable : les tilesets (rangés dans projects/sandbox/assets)
 # puis les assets du RPG
