@@ -10,7 +10,9 @@ add_subdirectory(runtime)     # boucle de jeu (Game)
 # Modules prévus, pas encore créés (un README par dossier) :
 #   assets  scene  animation  audio  ui  ai
 
-add_library(av_engine INTERFACE)
+add_library(av_engine INTERFACE
+        tilemap/include/map_save.h
+        tilemap/src/map_save.cpp)
 add_library(AngeVault::Engine ALIAS av_engine)
 target_link_libraries(av_engine INTERFACE
     AngeVault::Core AngeVault::Physics2D AngeVault::Particles AngeVault::Tilemap

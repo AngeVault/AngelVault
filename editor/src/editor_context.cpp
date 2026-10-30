@@ -1,4 +1,5 @@
 #include "editor_context.h"
+#include "map_save.h"
 
 #include "components/camera2d.h"
 #include "components/name.h"
@@ -169,6 +170,7 @@ void EditorContext::setPaintType(TileType type) {
     if (type == m_paintType) return;
     m_paintType = type;
     emit paintTypeChanged(type);
+    save_editor_context(*this);
 }
 
 void EditorContext::setBrushSize(int size) {

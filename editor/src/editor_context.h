@@ -1,8 +1,6 @@
 #pragma once
 #include "RtsTile_map.hpp"
-#include "ecs/registry.h"
-#include "RtsTile_map.hpp"
-#include "Layer.h"
+#include <../../../engine/core/include/ecs/registry.h>
 
 #include <QHash>
 #include <QObject>
@@ -21,6 +19,8 @@ class EditorContext : public QObject {
     Q_OBJECT
 public:
     explicit EditorContext(QObject* parent = nullptr);
+
+    friend void save_editor_context(EditorContext &ctx);
 
     Registry& scene() { return m_scene; }
     // --- Map and layers ---

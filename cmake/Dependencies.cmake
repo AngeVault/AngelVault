@@ -11,4 +11,7 @@ FetchContent_Declare(SFML
 FetchContent_Declare(glm
     GIT_REPOSITORY https://github.com/g-truc/glm.git
     GIT_TAG 1.0.1 GIT_SHALLOW ON SYSTEM EXCLUDE_FROM_ALL)
-FetchContent_MakeAvailable(SFML glm)
+FetchContent_Declare(json
+        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+        DOWNLOAD_EXTRACT_TIMESTAMP ON SYSTEM EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(SFML glm json)

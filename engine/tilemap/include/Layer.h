@@ -1,7 +1,4 @@
 #pragma once
-#include <array>
-#include <cmath>
-#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -30,6 +27,6 @@ public:
     void addLayer(std::string name, LayersType layerType);
     void modifyLayer(int index, Layers instruction, const std::string& name);
     int getLayerIndex(const std::string& name);
-    int getSize() { return m_layers.size(); }
+    int getSize() const { return m_layers.size(); }
     Layer& getLayer(int index);
 };
