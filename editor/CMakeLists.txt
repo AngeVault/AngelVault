@@ -11,8 +11,13 @@ add_executable(AngeVaultEditor WIN32
     src/game_view.h
     src/game_view.cpp
     src/input_settings_dialog.h
-    src/tile_def_dialog.h
-    src/tile_def_dialog.cpp
+    src/tileset_dialog.h
+    src/tileset_dialog.cpp
+    src/tileset_view.h
+    src/tileset_view.cpp
+    src/tileset_import.h
+    src/tileset_import.cpp
+    src/brush_footprint.h
     src/systems_dialog.h
     src/systems_dialog.cpp
     src/input_settings_dialog.cpp

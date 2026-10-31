@@ -1,0 +1,19 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Tree C",
+  "image": "assets/tilesets/fantasy_iso/tree_c.png",
+  "tileSize": [
+    155,
+    204
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 4,
+  "anchor": [
+    78,
+    191
+  ],
+  "autotile": "none"
+}

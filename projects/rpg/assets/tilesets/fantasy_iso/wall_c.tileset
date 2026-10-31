@@ -1,0 +1,19 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Wall C",
+  "image": "assets/tilesets/fantasy_iso/wall_c.png",
+  "tileSize": [
+    136,
+    190
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 24,
+  "anchor": [
+    68,
+    157
+  ],
+  "autotile": "none"
+}

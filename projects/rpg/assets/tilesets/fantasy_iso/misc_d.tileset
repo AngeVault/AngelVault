@@ -1,0 +1,19 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Misc D",
+  "image": "assets/tilesets/fantasy_iso/misc_d.png",
+  "tileSize": [
+    114,
+    142
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 20,
+  "anchor": [
+    57,
+    138
+  ],
+  "autotile": "none"
+}

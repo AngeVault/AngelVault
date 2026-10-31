@@ -1,0 +1,19 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Door C",
+  "image": "assets/tilesets/fantasy_iso/door_c.png",
+  "tileSize": [
+    124,
+    186
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 24,
+  "anchor": [
+    62,
+    155
+  ],
+  "autotile": "none"
+}

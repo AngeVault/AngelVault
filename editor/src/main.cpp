@@ -256,7 +256,7 @@ int main(int argc, char** argv) {
     QDockWidget* projectDock   = makeDock(window, "Project", "dockProject", projectPanel);
     QDockWidget* consoleDock   = makeDock(window, "Console", "dockConsole", new ConsolePanel);
     QDockWidget* paletteDock   = makeDock(window, "Tile Palette", "dockTilePalette", palettePanel);
-    window.addActions(palettePanel->toolActions());   // V / B / E / I partout dans la fenêtre
+    window.addActions(palettePanel->toolActions());   // V / B / E / G / I et taille du pinceau partout dans la fenêtre
 
     // Disposition par défaut
     window.addDockWidget(Qt::LeftDockWidgetArea, hierarchyDock);
@@ -277,11 +277,11 @@ int main(int argc, char** argv) {
     QAction* resetLayout = windowsMenu->addAction("Réinitialiser la disposition");
 
     // Mémorise la disposition (après l'affichage, quand les tailles sont connues)
-    constexpr int kLayoutVersion = 2;   // 2 : Hierarchy et Inspector de retour (l'ancienne disposition est ignorée)
+    constexpr int kLayoutVersion = 3;   // 3 : Tile Palette plus haute (grille des tilesets) ; l'ancienne disposition est ignorée
     QByteArray defaultLayout;
     QTimer::singleShot(0, &window, [&] {
         window.resizeDocks({ hierarchyDock, inspectorDock }, { 250, 320 }, Qt::Horizontal);
-        window.resizeDocks({ hierarchyDock, paletteDock }, { 320, 280 }, Qt::Vertical);
+        window.resizeDocks({ hierarchyDock, paletteDock }, { 230, 520 }, Qt::Vertical);
         window.resizeDocks({ projectDock }, { 220 }, Qt::Vertical);
         defaultLayout = window.saveState(kLayoutVersion);
         const QByteArray saved = QSettings().value("ui/dockLayout").toByteArray();

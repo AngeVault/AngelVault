@@ -14,7 +14,21 @@
 #include <vector>
 
 // Outils de la vue scène (choisis dans la Tile Palette)
-enum class EditorTool { Select, Paint, Erase, Pick };
+enum class EditorTool { Select, Paint, Erase, Fill, Pick };
+
+// Forme du pinceau (Pinceau / Gomme)
+enum class BrushShape { Square, Circle };
+
+// Ce que l'on peint : un tileset de la carte active, en autotile ou une (ou plusieurs) tile(s) de sa feuille
+struct TileBrush {
+    int slot = -1;               // n° du tileset dans la carte active (-1 = rien de choisi)
+    bool autotile = false;       // peindre le terrain : les pièces sont choisies selon les voisines
+    int tile = 0;                // tile choisie (coin haut-gauche du bloc s'il y en a plusieurs)
+    int width = 1, height = 1;   // bloc de tiles choisi dans la feuille (« tampon »), en tiles
+    bool valid() const { return slot >= 0; }
+    bool isStamp() const { return !autotile && (width > 1 || height > 1); }
+    bool operator==(const TileBrush&) const = default;
+};
 
 // État partagé de l'éditeur : la scène ouverte, la tilemap, la sélection et l'outil actif.
 // Tous les panneaux (Hierarchy, Inspector, vue scène...) lisent et modifient CET objet
@@ -35,7 +49,9 @@ public:
     Entity createTilemap(TileMapOrientation orientation, int width, int height, QString* error = nullptr);
     Entity addTilemapFromFile(const QString& mapPath, QString* error = nullptr);   // .map existant
     void notifyMapEdited();                   // cases peintes : scène « modifiée »
-    void notifyTilesChanged();                // liste des tiles / réglages changés : palette à refaire
+    void notifyTilesChanged();                // liste des tilesets / réglages changés : palette à refaire
+    // Un .tileset vient d'être modifié et enregistré : les autres tilemaps de la scène qui l'utilisent suivent
+    void notifyTilesetSaved(const std::shared_ptr<Tileset>& tileset);
 
     // --- Entités ---
     std::vector<Entity> entities() const;
@@ -119,10 +135,13 @@ public:
     // --- Outils de la Tile Palette ---
     EditorTool tool() const { return m_tool; }
     void setTool(EditorTool tool);
-    uint16_t paintTile() const { return m_paintTile; }   // id de la tile à peindre (index + 1 dans la carte)
-    void setPaintTile(uint16_t id);
-    int brushSize() const { return m_brushSize; }
+    const TileBrush& brush() const { return m_brush; }
+    void setBrush(const TileBrush& brush);
+    static constexpr int kMaxBrushSize = 32;
+    int brushSize() const { return m_brushSize; }       // côté du pinceau, en cases (1 .. kMaxBrushSize)
     void setBrushSize(int size);
+    BrushShape brushShape() const { return m_brushShape; }
+    void setBrushShape(BrushShape shape);
 
 signals:
     void sceneChanged();                          // entités ajoutées / supprimées / renommées
@@ -131,9 +150,10 @@ signals:
     void followTargetChanged(Entity camera);
     void componentsChanged(Entity e);             // composants ou comportements ajoutés / retirés (Inspector)      // la caméra suit une autre entité (ou plus rien)
     void toolChanged(EditorTool tool);
-    void paintTileChanged(uint16_t id);
+    void brushChanged(const TileBrush& brush);
     void tilemapChanged();                        // autre tilemap active, ou ses tiles / réglages ont changé
     void brushSizeChanged(int size);
+    void brushShapeChanged(BrushShape shape);
     void dirtyChanged(bool dirty);
     void documentChanged();
     void statusMessage(const QString& text);      // pour la barre d'état (glisser-déposer, prefabs...)                       // autre projet / scène ouverte, ou enregistrée sous un autre nom
@@ -155,8 +175,9 @@ private:
     SceneMeta sceneMeta();
 
     EditorTool m_tool = EditorTool::Select;
-    uint16_t m_paintTile = 1;
+    TileBrush m_brush;
     Entity m_activeTilemap = NULL_ENTITY;
     void refreshActiveTilemap();   // émet tilemapChanged si la tilemap active change
     int m_brushSize = 1;
+    BrushShape m_brushShape = BrushShape::Square;
 };

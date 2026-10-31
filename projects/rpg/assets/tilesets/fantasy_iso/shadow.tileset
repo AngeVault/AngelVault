@@ -1,0 +1,19 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Shadow",
+  "image": "assets/tilesets/fantasy_iso/shadow.png",
+  "tileSize": [
+    138,
+    197
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 52,
+  "anchor": [
+    69,
+    163
+  ],
+  "autotile": "none"
+}

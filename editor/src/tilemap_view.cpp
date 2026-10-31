@@ -6,6 +6,9 @@
 #include "components/transform2d.h"
 #include "systems/render_system.h"
 #include "systems/tilemap_render_system.h"
+#include "brush_footprint.h"
+
+#include <QApplication>
 
 #include <QDragEnterEvent>
 #include <QDropEvent>
@@ -16,6 +19,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <queue>
 
 namespace {
 const sf::Color kSelection(255, 170, 40);
@@ -298,24 +302,71 @@ void TilemapView::drawBrush(sf::RenderTarget& target) {
     const EditorTool tool = m_ctx.tool();
     if (!map || tool == EditorTool::Select) return;
 
-    sf::Color fill(255, 255, 255, 40), outline(255, 255, 255, 200);
-    if (tool == EditorTool::Erase) { fill = sf::Color(255, 60, 60, 50); outline = sf::Color(255, 90, 90, 200); }
-    else if (tool == EditorTool::Pick) { fill = sf::Color::Transparent; outline = sf::Color(120, 200, 255, 230); }
-
-    const int n = (tool == EditorTool::Pick) ? 1 : m_ctx.brushSize();
-    const sf::Vector2i start = m_hoveredTile - sf::Vector2i((n - 1) / 2, (n - 1) / 2);
     const sf::Vector2f o = m_ctx.activeMapOffset();
-    for (int y = start.y; y < start.y + n; ++y)
-        for (int x = start.x; x < start.x + n; ++x) {
-            if (!map->inBounds(x, y)) continue;
-            const auto corners = map->cellCorners(x, y);
-            sf::ConvexShape cell(4);
-            for (int i = 0; i < 4; ++i) cell.setPoint(i, corners[i] + o);
-            cell.setFillColor(fill);
-            cell.setOutlineColor(outline);
-            cell.setOutlineThickness(-1.5f / m_camera.zoom);
-            target.draw(cell);
+    const float px = 1.f / m_camera.zoom;
+    auto outlineCell = [&](sf::Vector2i c, sf::Color fill, sf::Color outline, float thickness) {
+        if (!map->inBounds(c.x, c.y)) return;
+        const auto corners = map->cellCorners(c.x, c.y);
+        sf::ConvexShape cell(4);
+        for (int i = 0; i < 4; ++i) cell.setPoint(i, corners[i] + o);
+        cell.setFillColor(fill);
+        cell.setOutlineColor(outline);
+        cell.setOutlineThickness(-thickness * px);
+        target.draw(cell);
+    };
+    // Isométrique : de l'arrière vers l'avant, pour que les aperçus se recouvrent comme les vraies tiles
+    auto sortBackToFront = [](std::vector<sf::Vector2i>& cells) {
+        std::stable_sort(cells.begin(), cells.end(), [](sf::Vector2i a, sf::Vector2i b) { return a.x + a.y < b.x + b.y; });
+    };
+
+    if (tool == EditorTool::Pick || tool == EditorTool::Fill) {
+        const sf::Color c = tool == EditorTool::Pick ? sf::Color(120, 200, 255, 230) : sf::Color(255, 210, 90, 230);
+        outlineCell(m_hoveredTile, sf::Color(c.r, c.g, c.b, 35), c, 2.f);
+        return;
+    }
+
+    const bool erase = tool == EditorTool::Erase;
+    const TileBrush& brush = m_ctx.brush();
+    const Tileset* ts = map->tileset(brush.slot);
+    const sf::Color fill = erase ? sf::Color(255, 60, 60, 45) : sf::Color(255, 255, 255, 25);
+    const sf::Color outline = erase ? sf::Color(255, 90, 90, 210) : sf::Color(255, 255, 255, 190);
+    const sf::Color ghost(255, 255, 255, 150);
+    TilemapRenderer& renderer = m_tilemapRenderer->renderer();
+
+    // Maj enfoncée : la ligne qui sera tracée depuis le dernier point
+    if ((QApplication::keyboardModifiers() & Qt::ShiftModifier) && m_hasStrokeEnd && !m_painting)
+        for (sf::Vector2i c : cellLine(m_strokeEnd, m_hoveredTile)) outlineCell(c, sf::Color(255, 255, 255, 18), sf::Color(255, 255, 255, 90), 1.f);
+
+    if (!erase && ts && brush.isStamp()) {   // tampon : le bloc de tiles, coin haut-gauche sur la case visée
+        std::vector<sf::Vector2i> cells;
+        const sf::Vector2i first = ts->tileCoords(brush.tile);
+        for (int j = 0; j < brush.height; ++j)
+            for (int i = 0; i < brush.width; ++i) cells.push_back(m_hoveredTile + sf::Vector2i{ i, j });
+        sortBackToFront(cells);
+        for (sf::Vector2i c : cells) {
+            if (!map->inBounds(c.x, c.y)) continue;
+            const sf::Vector2i d = c - m_hoveredTile;
+            const int index = ts->tileIndex(first.x + d.x, first.y + d.y);
+            if (index >= 0) renderer.drawGhost(target, *map, o, brush.slot, index, c.x, c.y, ghost);
         }
+        for (sf::Vector2i c : cells) outlineCell(c, sf::Color::Transparent, outline, 1.5f);
+        return;
+    }
+
+    std::vector<sf::Vector2i> cells;
+    for (sf::Vector2i d : brushFootprint(m_ctx.brushSize(), m_ctx.brushShape())) cells.push_back(m_hoveredTile + d);
+    sortBackToFront(cells);
+    if (!erase && ts) {
+        const int tile = brush.autotile ? int(kAutoTile) : brush.tile;
+        // Grand pinceau : l'aperçu des tiles seulement au centre (sinon on ne voit plus la carte)
+        if (cells.size() <= 64) {
+            for (sf::Vector2i c : cells)
+                if (map->inBounds(c.x, c.y)) renderer.drawGhost(target, *map, o, brush.slot, tile, c.x, c.y, ghost);
+        } else {
+            renderer.drawGhost(target, *map, o, brush.slot, tile, m_hoveredTile.x, m_hoveredTile.y, ghost);
+        }
+    }
+    for (sf::Vector2i c : cells) outlineCell(c, fill, outline, cells.size() > 1 ? 1.f : 1.5f);
 }
 
 void TilemapView::updateCursor() {
@@ -352,27 +403,126 @@ Entity TilemapView::pickEntity(sf::Vector2f world) {
     return best;
 }
 
-void TilemapView::paintAt(sf::Vector2i tile) {
-    TileMapData* map = m_ctx.activeMap();
-    if (!map) return;
-    const EditorTool tool = m_ctx.tool();
+// ---- Peinture ------------------------------------------------------------------------------------
 
-    if (tool == EditorTool::Pick) {   // pipette : la tile de la case devient le pinceau
-        const uint16_t id = map->get(tile.x, tile.y);
-        if (id) { m_ctx.setPaintTile(id); m_ctx.setTool(EditorTool::Paint); }
-        return;
-    }
-    const uint16_t id = (tool == EditorTool::Erase) ? 0 : m_ctx.paintTile();
-    if (tool == EditorTool::Paint && !map->tile(id)) {
-        emit statusText(tr("Aucune tile à peindre : ajoutez-en une dans le panneau Tile Palette (+ Tile)"));
-        return;
-    }
-    const int n = m_ctx.brushSize();
-    const sf::Vector2i start = tile - sf::Vector2i((n - 1) / 2, (n - 1) / 2);
+QString TilemapView::describeCell(const TileMapData& map, TileCell cell) const {
+    const Tileset* ts = map.tilesetOf(cell);
+    if (!ts) return tr("Vide");
+    const QString name = QString::fromStdString(ts->name);
+    return cellIsAuto(cell) ? tr("%1 (autotile)").arg(name) : tr("%1, tile %2").arg(name).arg(cellTile(cell));
+}
+
+void TilemapView::pickAt(sf::Vector2i cell) {
+    const TileMapData* map = m_ctx.activeMap();
+    if (!map) return;
+    const TileCell c = map->get(cell.x, cell.y);
+    if (!map->tilesetOf(c)) { emit statusText(tr("Pipette : case vide")); return; }
+    TileBrush b;
+    b.slot = cellSlot(c);
+    b.autotile = cellIsAuto(c);
+    b.tile = b.autotile ? map->tileset(b.slot)->previewTile() : cellTile(c);
+    m_ctx.setBrush(b);
+    m_ctx.setTool(EditorTool::Paint);
+    emit statusText(tr("Pipette : %1").arg(describeCell(*map, c)));
+}
+
+bool TilemapView::dab(sf::Vector2i cell) {
+    TileMapData* map = m_ctx.activeMap();
+    if (!map) return false;
+    const bool erase = m_ctx.tool() == EditorTool::Erase;
+    const TileBrush& brush = m_ctx.brush();
+    const Tileset* ts = map->tileset(brush.slot);
+    if (!erase && !ts) return false;
+
     bool changed = false;
-    for (int y = start.y; y < start.y + n; ++y)
-        for (int x = start.x; x < start.x + n; ++x) changed |= map->set(x, y, id);   // hors carte : ignoré
-    if (changed) m_ctx.notifyMapEdited();
+    if (!erase && brush.isStamp()) {
+        // Tampon : posé sur une grille qui part du début du tracé (glisser = motif répété sans chevauchement)
+        const sf::Vector2i aligned = m_strokeOrigin + sf::Vector2i{
+            floorDiv(cell.x - m_strokeOrigin.x, brush.width) * brush.width,
+            floorDiv(cell.y - m_strokeOrigin.y, brush.height) * brush.height };
+        if (aligned == m_lastDab) return false;
+        m_lastDab = aligned;
+        const sf::Vector2i first = ts->tileCoords(brush.tile);
+        for (int j = 0; j < brush.height; ++j)
+            for (int i = 0; i < brush.width; ++i) {
+                const int index = ts->tileIndex(first.x + i, first.y + j);
+                if (index >= 0) changed |= map->set(aligned.x + i, aligned.y + j, makeCell(brush.slot, index));
+            }
+        return changed;
+    }
+    const TileCell value = erase ? 0 : makeCell(brush.slot, brush.autotile ? int(kAutoTile) : brush.tile);
+    for (sf::Vector2i d : brushFootprint(m_ctx.brushSize(), m_ctx.brushShape()))
+        changed |= map->set(cell.x + d.x, cell.y + d.y, value);   // hors carte : ignoré
+    return changed;
+}
+
+void TilemapView::beginStroke(sf::Vector2i cell) {
+    m_strokeOrigin = cell;
+    m_lastDab = { INT32_MIN, INT32_MIN };
+    m_lastPainted = cell;
+    m_strokeChanged = dab(cell);
+}
+
+void TilemapView::strokeTo(sf::Vector2i cell) {
+    if (cell == m_lastPainted) return;
+    // Toutes les cases entre la position précédente et celle-ci : un geste rapide ne laisse pas de trous
+    const std::vector<sf::Vector2i> line = cellLine(m_lastPainted, cell);
+    for (std::size_t i = 1; i < line.size(); ++i) m_strokeChanged |= dab(line[i]);
+    m_lastPainted = cell;
+    if (m_strokeChanged) m_ctx.notifyMapEdited();
+}
+
+// Remplir : la zone de cases identiques (4 voisines) sous la souris prend le pinceau
+void TilemapView::floodFill(sf::Vector2i start) {
+    TileMapData* map = m_ctx.activeMap();
+    if (!map || !map->inBounds(start.x, start.y)) return;
+    const TileBrush& brush = m_ctx.brush();
+    const Tileset* ts = map->tileset(brush.slot);
+    if (!ts) return;
+    const TileCell target = map->get(start.x, start.y);
+    const sf::Vector2i first = ts->tileCoords(brush.tile);
+    auto valueAt = [&](sf::Vector2i c) -> TileCell {
+        if (brush.autotile) return makeCell(brush.slot, kAutoTile);
+        if (!brush.isStamp()) return makeCell(brush.slot, brush.tile);
+        // tampon : motif répété à partir de la case cliquée
+        const int i = ((c.x - start.x) % brush.width + brush.width) % brush.width;
+        const int j = ((c.y - start.y) % brush.height + brush.height) % brush.height;
+        const int index = ts->tileIndex(first.x + i, first.y + j);
+        return index >= 0 ? makeCell(brush.slot, index) : target;
+    };
+    if (!brush.isStamp() && valueAt(start) == target) return;
+
+    std::vector<uint8_t> seen(std::size_t(map->width()) * map->height(), 0);
+    std::queue<sf::Vector2i> todo;
+    todo.push(start);
+    seen[std::size_t(start.y) * map->width() + start.x] = 1;
+    int count = 0;
+    bool changed = false;
+    while (!todo.empty()) {
+        const sf::Vector2i c = todo.front();
+        todo.pop();
+        changed |= map->set(c.x, c.y, valueAt(c));
+        ++count;
+        for (sf::Vector2i d : kTileEdgeDirs) {
+            const sf::Vector2i n = c + d;
+            if (!map->inBounds(n.x, n.y)) continue;
+            uint8_t& s = seen[std::size_t(n.y) * map->width() + n.x];
+            if (s || map->get(n.x, n.y) != target) continue;
+            s = 1;
+            todo.push(n);
+        }
+    }
+    if (changed) {
+        m_ctx.notifyMapEdited();
+        emit statusText(tr("Remplir : %1 case(s)").arg(count));
+    }
+}
+
+void TilemapView::changeBrushSize(int delta) {
+    m_ctx.setBrushSize(m_ctx.brushSize() + delta);
+    const int n = m_ctx.brushSize();
+    emit statusText(tr("Pinceau : %1 x %1 (%2)").arg(n)
+                        .arg(m_ctx.brushShape() == BrushShape::Circle ? tr("rond") : tr("carré")));
 }
 
 void TilemapView::updateHover(const QPointF& pos) {
@@ -386,12 +536,18 @@ void TilemapView::updateHover(const QPointF& pos) {
     if (valid == m_hoverValid && tile == m_hoveredTile) return;
     m_hoveredTile = tile;
     m_hoverValid = valid;
-    const TileDef* def = valid ? map->tile(map->get(tile.x, tile.y)) : nullptr;
     emit hoveredTileChanged(valid ? tile.x : -1, valid ? tile.y : -1,
-                            valid ? (def ? QString::fromStdString(def->name) : tr("Vide")) : QString());
+                            valid ? describeCell(*map, map->get(tile.x, tile.y)) : QString());
 }
 
 void TilemapView::wheelEvent(QWheelEvent* e) {
+    // Ctrl + molette : taille du pinceau (la molette seule zoome)
+    if (e->modifiers() & Qt::ControlModifier) {
+        const int d = e->angleDelta().y() != 0 ? e->angleDelta().y() : e->angleDelta().x();
+        if (d != 0 && m_ctx.tool() != EditorTool::Select) changeBrushSize(d > 0 ? 1 : -1);
+        e->accept();
+        return;
+    }
     const float steps = e->angleDelta().y() / 120.f;
     if (steps == 0.f) return;
     const sf::Vector2f before = toWorld(e->position());
@@ -425,10 +581,26 @@ void TilemapView::mousePressEvent(QMouseEvent* e) {
             }
         } else {
             updateHover(e->position());
-            if (m_hoverValid) {
-                paintAt(m_hoveredTile);
-                m_lastPainted = m_hoveredTile;
-                m_painting = m_ctx.tool() != EditorTool::Pick;
+            const EditorTool tool = m_ctx.tool();
+            TileMapData* map = m_ctx.activeMap();
+            if (m_hoverValid && map) {
+                if (tool == EditorTool::Pick || (e->modifiers() & Qt::AltModifier)) {
+                    pickAt(m_hoveredTile);                       // Alt + clic : pipette rapide
+                } else if (tool == EditorTool::Paint && !map->tileset(m_ctx.brush().slot)) {
+                    emit statusText(tr("Rien à peindre : choisissez une tile dans la Tile Palette (ou ajoutez un tileset)"));
+                } else if (tool == EditorTool::Fill) {
+                    if (!map->tileset(m_ctx.brush().slot)) emit statusText(tr("Rien à peindre : choisissez une tile dans la Tile Palette"));
+                    else floodFill(m_hoveredTile);
+                } else if ((e->modifiers() & Qt::ShiftModifier) && m_hasStrokeEnd) {
+                    // Maj + clic : ligne droite depuis la fin du tracé précédent
+                    beginStroke(m_strokeEnd);
+                    strokeTo(m_hoveredTile);
+                    m_painting = true;
+                } else {
+                    beginStroke(m_hoveredTile);
+                    if (m_strokeChanged) m_ctx.notifyMapEdited();
+                    m_painting = true;
+                }
             }
         }
     }
@@ -463,9 +635,10 @@ void TilemapView::mouseMoveEvent(QMouseEvent* e) {
         if (m_dragHandle == GizmoHandle::Y) pos.x = m_dragStart.x;
         m_ctx.scene().getComponent<Transform2D>(m_dragEntity).setPosition(pos);
         m_ctx.notifyEntityModified(m_dragEntity, this);
-    } else if (m_painting && m_hoverValid && m_hoveredTile != m_lastPainted) {
-        paintAt(m_hoveredTile);
-        m_lastPainted = m_hoveredTile;
+    } else if (m_painting && (e->buttons() & Qt::LeftButton)) {
+        // hors carte aussi : la ligne est coupée au bord, pas abandonnée
+        if (const TileMapData* map = m_ctx.activeMap())
+            strokeTo(map->cellAt(toWorld(e->position()) - m_ctx.activeMapOffset()));
     }
     SfmlWidget::mouseMoveEvent(e);
 }
@@ -480,6 +653,7 @@ void TilemapView::mouseReleaseEvent(QMouseEvent* e) {
         m_dragHandle = GizmoHandle::None;
         m_hoverHandle = GizmoHandle::None;   // recalculée au prochain mouvement
         updateCursor();
+        if (m_painting) { m_strokeEnd = m_lastPainted; m_hasStrokeEnd = true; }
         m_painting = false;
         m_lastPainted = { INT32_MIN, INT32_MIN };
     }
@@ -501,6 +675,7 @@ void TilemapView::keyPressEvent(QKeyEvent* e) {
         if (m_ctx.hasSelection()) m_ctx.destroyEntity(m_ctx.selected());
         return;
     case Qt::Key_Escape: m_ctx.clearSelection(); return;
+    case Qt::Key_Shift: return;   // l'aperçu de ligne se met à jour à la prochaine image
     default: break;
     }
     SfmlWidget::keyPressEvent(e);

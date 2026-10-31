@@ -1,0 +1,19 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Tree D",
+  "image": "assets/tilesets/fantasy_iso/tree_d.png",
+  "tileSize": [
+    154,
+    225
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 12,
+  "anchor": [
+    77,
+    197
+  ],
+  "autotile": "none"
+}

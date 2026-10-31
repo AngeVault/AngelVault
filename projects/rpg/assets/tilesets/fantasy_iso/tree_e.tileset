@@ -1,0 +1,19 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Tree E",
+  "image": "assets/tilesets/fantasy_iso/tree_e.png",
+  "tileSize": [
+    191,
+    193
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 20,
+  "anchor": [
+    94,
+    161
+  ],
+  "autotile": "none"
+}

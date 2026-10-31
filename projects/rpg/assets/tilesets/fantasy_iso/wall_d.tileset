@@ -1,0 +1,19 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Wall D",
+  "image": "assets/tilesets/fantasy_iso/wall_d.png",
+  "tileSize": [
+    153,
+    199
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 76,
+  "anchor": [
+    77,
+    161
+  ],
+  "autotile": "none"
+}

@@ -646,7 +646,7 @@ std::vector<ComponentDesc> build() {
             };
             cell.min = 1;
             f.push_back(cell);
-            f.push_back(label(QObject::tr("Tiles"), QObject::tr("%1  (panneau Tile Palette)").arg(tm.data->tiles.size())));
+            f.push_back(label(QObject::tr("Tilesets"), QObject::tr("%1  (panneau Tile Palette)").arg(tm.data->tilesets.size())));
             return f;
         };
         list.push_back(d);

@@ -28,7 +28,9 @@ class RenderSystem;
 // Vue scène de l'éditeur : la tilemap + les entités de la scène (EditorContext).
 //  - molette : zoom (centré sur la souris)     - clic droit / clic molette + glisser : déplacer la vue
 //  - outil Sélection : clic = sélectionner, glisser = déplacer l'entité (Ctrl = aligner sur la grille)
-//  - outils Pinceau / Gomme / Pipette : voir la Tile Palette
+//  - outils Pinceau / Gomme / Remplir / Pipette : voir la Tile Palette
+//      glisser = tracé continu (aucune case sautée)   Maj + clic = ligne droite depuis le dernier point
+//      Ctrl + molette, [ ] ou - + : taille du pinceau   Alt + clic : pipette
 //  - F : cadrer la carte   Suppr : supprimer l'entité   Échap : désélectionner
 //
 // La caméra de cette vue est celle de l'ÉDITEUR : elle ne fait pas partie de la scène.
@@ -78,8 +80,15 @@ private:
     // flèche rouge = X seulement, flèche verte = Y seulement, carré central = libre.
     enum class GizmoHandle { None, X, Y, Free };
     GizmoHandle gizmoHandleAt(sf::Vector2f world) const;
-    void paintAt(sf::Vector2i tile);
+    // Peinture (Pinceau / Gomme / Remplir / Pipette)
+    void beginStroke(sf::Vector2i cell);
+    void strokeTo(sf::Vector2i cell);                 // de la dernière case peinte jusqu'à `cell`
+    bool dab(sf::Vector2i cell);                      // un coup de pinceau ; true si la carte a changé
+    void floodFill(sf::Vector2i cell);
+    void pickAt(sf::Vector2i cell);
+    void changeBrushSize(int delta);
     void updateHover(const QPointF& pos);
+    QString describeCell(const TileMapData& map, TileCell cell) const;
 
     EditorContext& m_ctx;
     EditorCamera m_camera;
@@ -103,5 +112,10 @@ private:
 
     sf::Vector2i m_hoveredTile{ 0, 0 };
     bool m_hoverValid = false;
-    sf::Vector2i m_lastPainted{ INT32_MIN, INT32_MIN };
+    sf::Vector2i m_lastPainted{ INT32_MIN, INT32_MIN };   // dernière case du tracé en cours
+    sf::Vector2i m_strokeOrigin;                          // tampon : la grille de pose part d'ici
+    sf::Vector2i m_lastDab{ INT32_MIN, INT32_MIN };       // tampon : dernière case où il a été posé
+    sf::Vector2i m_strokeEnd;                             // fin du dernier tracé (Maj + clic : ligne)
+    bool m_hasStrokeEnd = false;
+    bool m_strokeChanged = false;
 };

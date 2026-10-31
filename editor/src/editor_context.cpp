@@ -13,6 +13,7 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
+#include <QSettings>
 
 #include <algorithm>
 #include <iostream>
@@ -28,6 +29,10 @@ EditorContext::EditorContext(QObject* parent) : QObject(parent) {
     // La tilemap active suit la sélection (et les tilemaps ajoutées / supprimées)
     connect(this, &EditorContext::selectionChanged, this, [this] { refreshActiveTilemap(); });
     connect(this, &EditorContext::sceneChanged, this, [this] { refreshActiveTilemap(); });
+    // Pinceau : dernière taille / forme utilisées
+    const QSettings settings;
+    m_brushSize = std::clamp(settings.value("tilePalette/brushSize", 1).toInt(), 1, kMaxBrushSize);
+    m_brushShape = settings.value("tilePalette/brushShape").toString() == "circle" ? BrushShape::Circle : BrushShape::Square;
 }
 
 QString EditorContext::addCategory(const QString& name) {
@@ -169,17 +174,25 @@ void EditorContext::setTool(EditorTool tool) {
     emit toolChanged(tool);
 }
 
-void EditorContext::setPaintTile(uint16_t id) {
-    if (id == m_paintTile) return;
-    m_paintTile = id;
-    emit paintTileChanged(id);
+void EditorContext::setBrush(const TileBrush& brush) {
+    if (brush == m_brush) return;
+    m_brush = brush;
+    emit brushChanged(m_brush);
 }
 
 void EditorContext::setBrushSize(int size) {
-    size = std::clamp(size, 1, 9);
+    size = std::clamp(size, 1, kMaxBrushSize);
     if (size == m_brushSize) return;
     m_brushSize = size;
+    QSettings().setValue("tilePalette/brushSize", size);
     emit brushSizeChanged(size);
+}
+
+void EditorContext::setBrushShape(BrushShape shape) {
+    if (shape == m_brushShape) return;
+    m_brushShape = shape;
+    QSettings().setValue("tilePalette/brushShape", shape == BrushShape::Circle ? "circle" : "square");
+    emit brushShapeChanged(shape);
 }
 
 // ---- Projet et scène sur le disque -------------------------------------------------------------
@@ -434,6 +447,20 @@ std::vector<Entity> EditorContext::dropFiles(const QStringList& paths, Entity ta
             const Entity e = addTilemapFromFile(path, &err);
             if (isValid(e)) { created.push_back(e); done << fi.completeBaseName(); }
             else problems << err;
+        } else if (ext == "tileset") {   // un tileset : ajouté à la tilemap active
+            TileMapData* map = activeMap();
+            auto ts = std::make_shared<Tileset>();
+            std::string err;
+            const QString rel = QDir(projectDir()).relativeFilePath(path);
+            ts->file = toUtf8(rel.startsWith("..") ? path : rel);
+            if (!map) problems << tr("Ajoutez d'abord une tilemap à la scène (Hierarchy > +)");
+            else if (!loadTileset(*ts, toUtf8(path), &err)) problems << fromUtf8(err);
+            else {
+                const int slot = map->addTileset(ts);
+                done << fi.completeBaseName();
+                notifyTilesChanged();
+                setBrush(TileBrush{ slot, map->tileset(slot)->isAutotile(), map->tileset(slot)->previewTile() });
+            }
         } else if (ext == "h" || ext == "hpp") {
             // Comportements (REGISTER_BEHAVIOR) et composants de jeu (REGISTER_COMPONENT) déclarés dans ce fichier
             const std::vector<std::string> names = BehaviorFactory::get().namesInFile(toUtf8(fi.fileName()));
@@ -454,7 +481,7 @@ std::vector<Entity> EditorContext::dropFiles(const QStringList& paths, Entity ta
                 }
             }
         } else {
-            problems << tr("« %1 » : ni un prefab, ni une tilemap (.map), ni un comportement (.h)").arg(fi.fileName());
+            problems << tr("« %1 » : ni un prefab, ni une tilemap (.map), ni un tileset (.tileset), ni un comportement (.h)").arg(fi.fileName());
         }
     }
     if (!problems.isEmpty()) emit statusMessage(problems.join("  —  "));
@@ -497,6 +524,17 @@ void EditorContext::notifyMapEdited() {
 void EditorContext::notifyTilesChanged() {
     if (TileMapData* map = activeMap()) { map->modified = true; ++map->version; }
     setDirty(true);
+    emit tilemapChanged();
+}
+
+void EditorContext::notifyTilesetSaved(const std::shared_ptr<Tileset>& tileset) {
+    if (!tileset) return;
+    m_scene.view<Tilemap>([&](Entity, Tilemap& tm) {
+        if (!tm.data) return;
+        for (auto& ts : tm.data->tilesets)
+            if (ts && ts != tileset && ts->file == tileset->file) { *ts = *tileset; ++tm.data->version; }
+    });
+    if (TileMapData* map = activeMap()) ++map->version;
     emit tilemapChanged();
 }
 

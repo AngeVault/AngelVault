@@ -1,0 +1,19 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Chest B",
+  "image": "assets/tilesets/fantasy_iso/chest_b.png",
+  "tileSize": [
+    110,
+    104
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 8,
+  "anchor": [
+    59,
+    74
+  ],
+  "autotile": "none"
+}

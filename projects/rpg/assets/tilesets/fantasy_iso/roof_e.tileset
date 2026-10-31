@@ -1,0 +1,19 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Roof E",
+  "image": "assets/tilesets/fantasy_iso/roof_e.png",
+  "tileSize": [
+    178,
+    159
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 40,
+  "anchor": [
+    89,
+    117
+  ],
+  "autotile": "none"
+}

@@ -1,0 +1,19 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Wall G",
+  "image": "assets/tilesets/fantasy_iso/wall_g.png",
+  "tileSize": [
+    132,
+    189
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 44,
+  "anchor": [
+    66,
+    158
+  ],
+  "autotile": "none"
+}

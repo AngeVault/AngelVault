@@ -24,22 +24,9 @@ sf::Vector2f vec2(const Json& j, sf::Vector2f fallback) {
     if (!j.is_array() || j.size() < 2 || !j[0].is_number() || !j[1].is_number()) return fallback;
     return { j[0].get<float>(), j[1].get<float>() };
 }
-std::vector<std::string> strings(const Json& j) {
-    std::vector<std::string> out;
-    if (j.is_string()) out.push_back(j.get<std::string>());
-    else if (j.is_array()) for (const Json& s : j) if (s.is_string()) out.push_back(s.get<std::string>());
-    return out;
-}
 } // namespace
 
 const char* toString(TileMapOrientation o) { return o == TileMapOrientation::Isometric ? "isometric" : "orthogonal"; }
-const char* toString(AutotileMode m) {
-    switch (m) {
-    case AutotileMode::Corners16: return "corners16";
-    case AutotileMode::Edges16:   return "edges16";
-    default:                      return "none";
-    }
-}
 
 // ---- Cases -------------------------------------------------------------------------------------
 
@@ -47,7 +34,7 @@ void TileMapData::resize(int width, int height) {
     width = std::max(0, width);
     height = std::max(0, height);
     if (width == m_width && height == m_height) return;
-    std::vector<uint16_t> cells(std::size_t(width) * height, 0);
+    std::vector<TileCell> cells(std::size_t(width) * height, 0);
     for (int y = 0; y < std::min(height, m_height); ++y)
         for (int x = 0; x < std::min(width, m_width); ++x)
             cells[std::size_t(y) * width + x] = m_cells[std::size_t(y) * m_width + x];
@@ -58,37 +45,68 @@ void TileMapData::resize(int width, int height) {
     modified = true;
 }
 
-bool TileMapData::set(int x, int y, uint16_t id) {
+bool TileMapData::set(int x, int y, TileCell cell) {
     if (!inBounds(x, y)) return false;
-    uint16_t& c = m_cells[std::size_t(y) * m_width + x];
-    if (c == id) return false;
-    c = id;
+    TileCell& c = m_cells[std::size_t(y) * m_width + x];
+    if (c == cell) return false;
+    c = cell;
     ++version;
     modified = true;
     return true;
 }
 
-void TileMapData::fill(uint16_t id) {
-    std::fill(m_cells.begin(), m_cells.end(), id);
+void TileMapData::fill(TileCell cell) {
+    std::fill(m_cells.begin(), m_cells.end(), cell);
     ++version;
     modified = true;
 }
 
-uint16_t TileMapData::tileId(const std::string& name) const {
-    for (std::size_t i = 0; i < tiles.size(); ++i)
-        if (tiles[i].name == name) return uint16_t(i + 1);
-    return 0;
+// ---- Tilesets ----------------------------------------------------------------------------------
+
+int TileMapData::tilesetSlot(const std::string& file) const {
+    for (std::size_t i = 0; i < tilesets.size(); ++i)
+        if (tilesets[i] && !file.empty() && tilesets[i]->file == file) return int(i);
+    return -1;
 }
 
-void TileMapData::removeTile(uint16_t id) {
-    if (id < 1 || id > tiles.size()) return;
-    const std::string name = tiles[id - 1].name;
-    tiles.erase(tiles.begin() + (id - 1));
-    for (uint16_t& c : m_cells) {
-        if (c == id) c = 0;
-        else if (c > id) --c;   // les ids suivants reculent d'un cran
+int TileMapData::addTileset(std::shared_ptr<Tileset> ts) {
+    if (!ts) return -1;
+    if (const int existing = tilesetSlot(ts->file); existing >= 0) return existing;
+    tilesets.push_back(std::move(ts));
+    ++version;
+    modified = true;
+    return int(tilesets.size()) - 1;
+}
+
+void TileMapData::removeTileset(int slot) {
+    if (slot < 0 || slot >= int(tilesets.size())) return;
+    tilesets.erase(tilesets.begin() + slot);
+    for (TileCell& c : m_cells) {
+        const int s = cellSlot(c);
+        if (s == slot) c = 0;
+        else if (s > slot) c = makeCell(s - 1, cellTile(c));   // les tilesets suivants reculent d'un cran
     }
-    for (TileDef& t : tiles) if (t.base == name) t.base.clear();
+    ++version;
+    modified = true;
+}
+
+void TileMapData::moveTileset(int from, int to) {
+    const int n = int(tilesets.size());
+    if (from < 0 || to < 0 || from >= n || to >= n || from == to) return;
+    auto ts = tilesets[std::size_t(from)];
+    tilesets.erase(tilesets.begin() + from);
+    tilesets.insert(tilesets.begin() + to, std::move(ts));
+    // nouveau n° de chaque ancien n°
+    std::vector<int> remap(static_cast<std::size_t>(n));
+    for (int s = 0; s < n; ++s) {
+        int r = s;
+        if (s == from) r = to;
+        else if (from < to && s > from && s <= to) r = s - 1;
+        else if (from > to && s >= to && s < from) r = s + 1;
+        remap[std::size_t(s)] = r;
+    }
+    for (TileCell& c : m_cells)
+        if (const int s = cellSlot(c); s >= 0 && s < n) c = makeCell(remap[std::size_t(s)], cellTile(c));
     ++version;
     modified = true;
 }
@@ -141,50 +159,51 @@ std::string TileMapData::resolve(const std::string& path) const {
 }
 
 // ---- JSON ----------------------------------------------------------------------------------------
+//
+// Cases : une ligne de texte par rangée. « 0 » = vide, « 2:15 » = tileset 2 (compté depuis 0), tile 15,
+// « 2:a » = tileset 2 en autotile, « 12*2:a » = 12 fois la même case.
+
+namespace {
+std::string cellToken(TileCell c) {
+    if (c == 0) return "0";
+    return std::to_string(cellSlot(c)) + ":" + (cellIsAuto(c) ? std::string("a") : std::to_string(cellTile(c)));
+}
+TileCell parseCell(const std::string& v, int slots) {
+    const auto colon = v.find(':');
+    if (colon == std::string::npos) return 0;   // « 0 » ou inconnu : vide
+    const int slot = std::stoi(v.substr(0, colon));
+    const std::string t = v.substr(colon + 1);
+    if (slot < 0 || slot >= slots) return 0;     // tileset inconnu : case vide
+    if (t == "a") return makeCell(slot, kAutoTile);
+    const int tile = std::stoi(t);
+    return (tile >= 0 && tile < kAutoTile) ? makeCell(slot, tile) : 0;
+}
+} // namespace
 
 std::string TileMapData::toJson() const {
     Json j;
     j["format"] = "angeVault.tilemap";
-    j["version"] = 1;
+    j["version"] = 2;
     j["orientation"] = toString(orientation);
     j["size"] = { m_width, m_height };
     j["tileSize"] = vec2(tileSize);
 
     Json list = Json::array();
-    for (const TileDef& t : tiles) {
-        Json d;
-        d["name"] = t.name;
-        d["autotile"] = toString(t.autotile);
-        d["images"] = t.images;
-        if (t.autotile == AutotileMode::Edges16) {
-            d["edge"] = t.edge;
-            d["corner"] = t.corner;
-            d["ring"] = t.ring;
-        }
-        if (t.autotile == AutotileMode::Corners16) {
-            d["cellPixels"] = t.cellPixels;
-            d["frameTime"] = t.frameTime;
-        }
-        if (!t.base.empty()) d["base"] = t.base;
-        if (t.anchor.x >= 0.f) d["anchor"] = vec2(t.anchor);
-        if (t.scale != 1.f) d["scale"] = t.scale;
-        if (t.solid) d["solid"] = true;
-        list.push_back(d);
-    }
-    j["tiles"] = list;
+    for (const auto& ts : tilesets) list.push_back(ts ? ts->file : std::string());
+    j["tilesets"] = list;
 
-    // Une ligne de texte par rangée : ids séparés par des espaces, « 12*3 » = 12 fois la tile 3
     Json rows = Json::array();
     for (int y = 0; y < m_height; ++y) {
         std::ostringstream row;
         int x = 0;
         while (x < m_width) {
-            const uint16_t id = m_cells[std::size_t(y) * m_width + x];
+            const TileCell c = m_cells[std::size_t(y) * m_width + x];
             int run = 1;
-            while (x + run < m_width && m_cells[std::size_t(y) * m_width + x + run] == id) ++run;
+            while (x + run < m_width && m_cells[std::size_t(y) * m_width + x + run] == c) ++run;
             if (x > 0) row << ' ';
-            if (run > 2) row << run << '*' << id;
-            else for (int k = 0; k < run; ++k) row << (k ? " " : "") << id;
+            const std::string token = cellToken(c);
+            if (run > 2) row << run << '*' << token;
+            else for (int k = 0; k < run; ++k) row << (k ? " " : "") << token;
             x += run;
         }
         rows.push_back(row.str());
@@ -193,11 +212,16 @@ std::string TileMapData::toJson() const {
     return j.dump(2) + "\n";
 }
 
-bool TileMapData::fromJson(const std::string& text, std::string* error) {
+bool TileMapData::fromJson(const std::string& text, std::string* error, std::vector<std::string>* warnings) {
     const Json j = Json::parse(text, nullptr, false);
     if (j.is_discarded() || !j.is_object()) { setError(error, "JSON invalide"); return false; }
     if (j.value("format", std::string()) != "angeVault.tilemap") { setError(error, "ce n'est pas une tilemap AngeVault"); return false; }
-    if (j.value("version", 1) > 1) { setError(error, "tilemap créée par une version plus récente du moteur"); return false; }
+    const int fileVersion = j.value("version", 1);
+    if (fileVersion > 2) { setError(error, "tilemap créée par une version plus récente du moteur"); return false; }
+    if (fileVersion < 2) {
+        setError(error, "ancien format (une image par tile) : convertissez-le avec tools/convert_tilemaps.py");
+        return false;
+    }
 
     TileMapData m;
     m.baseDir = baseDir;
@@ -209,32 +233,23 @@ bool TileMapData::fromJson(const std::string& text, std::string* error) {
         w = j["size"][0].get<int>();
         h = j["size"][1].get<int>();
     }
-    if (j.contains("tiles") && j["tiles"].is_array())
-        for (const Json& d : j["tiles"]) {
-            TileDef t;
-            t.name = d.value("name", t.name);
-            const std::string mode = d.value("autotile", std::string("none"));
-            t.autotile = mode == "corners16" ? AutotileMode::Corners16 : mode == "edges16" ? AutotileMode::Edges16 : AutotileMode::None;
-            t.images = strings(d.value("images", Json()));
-            const auto e = strings(d.value("edge", Json()));
-            const auto c = strings(d.value("corner", Json()));
-            for (std::size_t i = 0; i < 4; ++i) {
-                if (i < e.size()) t.edge[i] = e[i];
-                if (i < c.size()) t.corner[i] = c[i];
+    if (j.contains("tilesets") && j["tilesets"].is_array())
+        for (const Json& f : j["tilesets"]) {
+            auto ts = std::make_shared<Tileset>();
+            ts->file = f.is_string() ? f.get<std::string>() : std::string();
+            ts->name = fromPath(toPath(ts->file).stem());
+            std::string err;
+            if (!loadTileset(*ts, m.resolve(ts->file), &err)) {
+                ts->missing = true;   // gardé : la carte ne perd pas ses cases
+                if (warnings) warnings->push_back("Tileset : " + err);
             }
-            t.ring = strings(d.value("ring", Json()));
-            t.cellPixels = std::max(1, d.value("cellPixels", t.cellPixels));
-            t.frameTime = d.value("frameTime", t.frameTime);
-            t.base = d.value("base", std::string());
-            t.anchor = vec2(d.value("anchor", Json()), t.anchor);
-            t.scale = d.value("scale", t.scale);
-            t.solid = d.value("solid", false);
-            m.tiles.push_back(std::move(t));
+            m.tilesets.push_back(std::move(ts));
         }
 
     m.m_width = std::max(0, w);
     m.m_height = std::max(0, h);
     m.m_cells.assign(std::size_t(m.m_width) * m.m_height, 0);
+    const int slots = int(m.tilesets.size());
     if (j.contains("cells") && j["cells"].is_array()) {
         const Json& rows = j["cells"];
         for (int y = 0; y < m.m_height && y < int(rows.size()); ++y) {
@@ -244,14 +259,13 @@ bool TileMapData::fromJson(const std::string& text, std::string* error) {
             int x = 0;
             while (in >> token && x < m.m_width) {
                 int count = 1;
-                long id = 0;
+                TileCell c = 0;
                 const auto star = token.find('*');
                 try {
-                    if (star != std::string::npos) { count = std::stoi(token.substr(0, star)); id = std::stol(token.substr(star + 1)); }
-                    else id = std::stol(token);
-                } catch (...) { continue; }
-                if (id < 0 || id > long(m.tiles.size())) id = 0;   // tile inconnue : case vide
-                for (int k = 0; k < count && x < m.m_width; ++k) m.m_cells[std::size_t(y) * m.m_width + x++] = uint16_t(id);
+                    if (star != std::string::npos) { count = std::stoi(token.substr(0, star)); c = parseCell(token.substr(star + 1), slots); }
+                    else c = parseCell(token, slots);
+                } catch (...) { c = 0; }
+                for (int k = 0; k < count && x < m.m_width; ++k) m.m_cells[std::size_t(y) * m.m_width + x++] = c;
             }
         }
     }
@@ -260,17 +274,17 @@ bool TileMapData::fromJson(const std::string& text, std::string* error) {
     return true;
 }
 
-bool loadTileMap(TileMapData& map, const std::string& path, const std::string& baseDir, std::string* error) {
+bool loadTileMap(TileMapData& map, const std::string& path, const std::string& baseDir, std::string* error,
+                 std::vector<std::string>* warnings) {
     std::ifstream in(toPath(path), std::ios::binary);
     if (!in) { setError(error, "impossible d'ouvrir " + path); return false; }
     std::ostringstream ss;
     ss << in.rdbuf();
     map.baseDir = baseDir;
-    if (!map.fromJson(ss.str(), error)) { if (error) *error = path + " : " + *error; return false; }
+    if (!map.fromJson(ss.str(), error, warnings)) { if (error) *error = path + " : " + *error; return false; }
     map.modified = false;
     return true;
 }
-
 bool saveTileMap(TileMapData& map, const std::string& path, std::string* error) {
     const fs::path target = toPath(path);
     std::error_code ec;

@@ -1,0 +1,15 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Sol de donjon",
+  "image": "assets/tilesets/demo/sol_de_donjon.png",
+  "tileSize": [
+    16,
+    16
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 16,
+  "count": 16,
+  "autotile": "corners16"
+}

@@ -18,8 +18,10 @@ void loadTilemaps(Registry& registry, const std::string& projectDir, std::vector
         if (tm.data || tm.file.empty()) return;
         auto data = std::make_shared<TileMapData>();
         std::string error;
-        if (loadTileMap(*data, join(projectDir, tm.file), projectDir, &error)) tm.data = std::move(data);
+        std::vector<std::string> notes;
+        if (loadTileMap(*data, join(projectDir, tm.file), projectDir, &error, &notes)) tm.data = std::move(data);
         else if (warnings) warnings->push_back("Tilemap : " + error);
+        if (warnings) warnings->insert(warnings->end(), notes.begin(), notes.end());
     });
 }
 
