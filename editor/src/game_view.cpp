@@ -3,16 +3,32 @@
 #include "game_loop.h"
 #include "qt_sfml_input.h"
 #include "rpg_scene.h"
+#include "scene/scene_io.h"
+#include "scene/tilemaps.h"
 
 #include <QEvent>
 
 #include <algorithm>
+#include <iostream>
 
-GameView::GameView(QWidget* parent) : SfmlWidget(parent) {
+GameView::GameView(std::string sceneJson, QString inputPath, QString projectDir, MapCopies maps,
+                   std::map<std::string, bool> systems, QWidget* parent)
+    : SfmlWidget(parent), m_sceneJson(std::move(sceneJson)), m_inputPath(std::move(inputPath)),
+      m_projectDir(std::move(projectDir)), m_maps(std::move(maps)), m_systemSettings(std::move(systems)) {
     onInit = [this](sf::RenderWindow& target) {
         m_game = std::make_unique<Game>(target);   // Game dessine dans ce widget, sans fenêtre à lui
-        loadRpgScene(*m_game);                     // projet RPG (projects/rpg/rpg_scene.h)
+        registerRpgSystems(*m_game);               // les systèmes sont du code (projects/rpg/rpg_scene.h)
+        m_game->applySystemSettings(m_systemSettings);   // activés / désactivés (.angproj)
         reloadInput();
+        SceneMeta meta;                            // les entités viennent de la scène éditée
+        const SceneLoadResult scene = sceneFromString(m_game->registry(), meta, m_sceneJson);
+        std::vector<std::string> warnings = scene.warnings;
+        m_game->registry().view<Tilemap>([this](Entity, Tilemap& tm) {   // cartes de l'éditeur (copies)
+            if (auto it = m_maps.find(tm.file); it != m_maps.end()) tm.data = it->second;
+        });
+        loadTilemaps(m_game->registry(), m_projectDir.toUtf8().toStdString(), &warnings);   // les autres : depuis le disque
+        for (const std::string& w : warnings) std::cerr << "[Jeu] " << w << std::endl;
+        if (!scene.ok) std::cerr << "[Jeu] Scene illisible : " << scene.error << std::endl;
         m_clock.restart();
     };
     onFrame = [this](sf::RenderWindow& target) { frame(target); };
@@ -22,10 +38,8 @@ GameView::GameView(QWidget* parent) : SfmlWidget(parent) {
 
 void GameView::reloadInput() {
     if (!m_game) return;
-#ifdef AV_PROJECT_DIR
     // Le fichier du projet (modifié par Édition > Input Manager...), pas la copie faite dans bin/ à la compilation
-    loadRpgInput(m_game->input(), AV_PROJECT_DIR "/assets/input.cfg");
-#endif
+    loadRpgInput(m_game->input(), m_inputPath.toUtf8().toStdString());
 }
 
 bool GameView::event(QEvent* e) {

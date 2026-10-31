@@ -33,8 +33,7 @@ inline void loadSandboxEntities(Registry& registry) {
 	registry.addComponent<NameComponent>(player, "Player");
 
     // Attache le script PlayerBehavior
-    auto& scriptPlayer = registry.addComponent<Script>(player);
-    scriptPlayer.behavior = std::make_unique<PlayerBehavior>();
+    registry.addComponent<Script>(player).add<PlayerBehavior>();
 
     // sol
     Entity ground = registry.createEntity();
@@ -70,8 +69,7 @@ inline void loadSandboxEntities(Registry& registry) {
     auto& colCar = registry.addComponent<Collider2D>(car, Collider2D::makeBox(sf::Vector2f(16.f, 16.f)));
     colCar.restitution = 0.f;
     registry.addComponent<NameComponent>(car, "carrer qui tourne");
-    auto& carBehavior = registry.addComponent<Script>(car);
-    carBehavior.behavior = std::make_unique<Rotation>();
+    registry.addComponent<Script>(car).add<Rotation>();
 
 }
 

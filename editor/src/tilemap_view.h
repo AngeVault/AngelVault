@@ -9,7 +9,7 @@
 #include <SFML/System/Clock.hpp>
 #include <memory>
 
-class TileMapRenderSystem;
+class TilemapRenderSystem;
 
 // Caméra de l'ÉDITEUR (pan / zoom de la vue scène). Ce n'est pas une entité :
 // elle ne fait pas partie de la scène et n'est jamais sauvegardée avec elle.
@@ -46,6 +46,7 @@ public:
 
 signals:
     void hoveredTileChanged(int x, int y, const QString& type);
+    void statusText(const QString& text);
 
 protected:
     void wheelEvent(QWheelEvent* e) override;
@@ -54,13 +55,14 @@ protected:
     void mouseReleaseEvent(QMouseEvent* e) override;
     void keyPressEvent(QKeyEvent* e) override;
     void leaveEvent(QEvent* e) override;
+    void dragEnterEvent(QDragEnterEvent* e) override;   // prefab (.prefab) ou comportement (.h) du panneau Project
+    void dragMoveEvent(QDragMoveEvent* e) override;
+    void dropEvent(QDropEvent* e) override;
     void resizeEvent(QResizeEvent* e) override;
 
 private:
     void init(sf::RenderWindow& target);
     void frame(sf::RenderWindow& target);
-    void buildDemoMap();
-    void buildTileset();
     void drawGrid(sf::RenderTarget& target);
     void drawCameras(sf::RenderTarget& target);
     void drawSelection(sf::RenderTarget& target);
@@ -70,6 +72,7 @@ private:
 
     sf::Vector2f toWorld(const QPointF& widgetPos);
     Entity pickEntity(sf::Vector2f world);
+    float snapStep();
 
     // Gizmo de déplacement sur l'entité sélectionnée (outil Sélection) :
     // flèche rouge = X seulement, flèche verte = Y seulement, carré central = libre.
@@ -81,7 +84,7 @@ private:
     EditorContext& m_ctx;
     EditorCamera m_camera;
     LooseFileLoader m_textures{ "" };          // charge les PNG (id = chemin)
-    std::unique_ptr<TileMapRenderSystem> m_tileRenderer;
+    std::unique_ptr<TilemapRenderSystem> m_tilemapRenderer;   // dessine les entités Tilemap
     std::unique_ptr<RenderSystem> m_entityRenderer;
     sf::Clock m_clock;
 

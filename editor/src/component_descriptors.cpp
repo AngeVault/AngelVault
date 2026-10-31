@@ -7,8 +7,12 @@
 #include "components/rigid_body2d.h"
 #include "components/script_component.h"
 #include "components/transform2d.h"
+#include "ecs/behavior_factory.h"
+#include "ecs/game_components.h"
+#include "tilemap/tilemap.h"
 
 #include <QColor>
+#include <algorithm>
 #include <QPointF>
 #include <cmath>
 #include <typeinfo>
@@ -590,64 +594,115 @@ std::vector<ComponentDesc> build() {
         list.push_back(d);
     }
 
-    // ---------------------------------------------------------------- Script (comportement)
+    // ---------------------------------------------------------------- Tilemap
     {
-        /**
-         * Describes the Script component.
-         *
-         * This component acts as a dynamic wrapper around a behavior instance. The
-         * script behavior may expose properties via a PROPERTY(...) mechanism. Those
-         * runtime properties are read from raw pointers and converted into editor
-         * fields. This allows editor-driven editing without hardcoded knowledge of
-         * each behavior implementation.
-         */
-        ComponentDesc d{ "Script" };
-        d.has = [](Registry& r, Entity e) { return r.hasComponent<Script>(e); };
-        d.remove = [](Registry& r, Entity e) { r.removeComponent<Script>(e); };
+        // Carte facultative : retirer le composant = plus de tilemap (le fichier .map reste).
+        // Pour en créer une : Hierarchy > + > Tilemap.
+        ComponentDesc d{ "Tilemap" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<Tilemap>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<Tilemap>(e); };
         d.fields = [](Registry& r, Entity e) {
             std::vector<FieldDesc> f;
-            IBehavior* b = r.getComponent<Script>(e).behavior.get();
-            if (!b) { f.push_back(label(QObject::tr("Comportement"), QObject::tr("(aucun)"))); return f; }
-            f.push_back(label(QObject::tr("Comportement"), cleanTypeName(typeid(*b).name())));
+            Tilemap& tm = r.getComponent<Tilemap>(e);
+            f.push_back(label(QObject::tr("Fichier"), QString::fromStdString(tm.file)));
+            FieldDesc visible{ QObject::tr("Activée"), FieldKind::Bool };
+            visible.get = [&r, e] { return QVariant(r.getComponent<Tilemap>(e).visible); };
+            visible.set = [&r, e](const QVariant& v) { r.getComponent<Tilemap>(e).visible = v.toBool(); };
+            f.push_back(visible);
+            if (!tm.data) { f.push_back(label(QObject::tr("Carte"), QObject::tr("(fichier introuvable)"))); return f; }
 
-            // Properties exposed by the behavior instance
-            for (size_t i = 0; i < b->m_properties.size(); ++i) {
-                const PropertyInfo& p = b->m_properties[i];
-                FieldDesc fd{ QString::fromStdString(p.name) };
-                void* ptr = p.ptr;
-                switch (p.type) {
-                case PropertyInfo::Type::Float:
-                    fd.kind = FieldKind::Float;
-                    fd.get = [ptr] { return QVariant(double(*static_cast<float*>(ptr))); };
-                    fd.set = [ptr](const QVariant& v) { *static_cast<float*>(ptr) = float(v.toDouble()); };
-                    break;
-                case PropertyInfo::Type::Int:
-                    fd.kind = FieldKind::Int;
-                    fd.get = [ptr] { return QVariant(*static_cast<int*>(ptr)); };
-                    fd.set = [ptr](const QVariant& v) { *static_cast<int*>(ptr) = v.toInt(); };
-                    break;
-                case PropertyInfo::Type::Bool:
-                    fd.kind = FieldKind::Bool;
-                    fd.get = [ptr] { return QVariant(*static_cast<bool*>(ptr)); };
-                    fd.set = [ptr](const QVariant& v) { *static_cast<bool*>(ptr) = v.toBool(); };
-                    break;
-                case PropertyInfo::Type::Vec2f:
-                    fd.kind = FieldKind::Vec2;
-                    fd.get = [ptr] { return v2(*static_cast<sf::Vector2f*>(ptr)); };
-                    fd.set = [ptr](const QVariant& v) { *static_cast<sf::Vector2f*>(ptr) = toV2(v); };
-                    break;
-                case PropertyInfo::Type::String:
-                    fd.kind = FieldKind::String;
-                    fd.get = [ptr] { return QVariant(QString::fromStdString(*static_cast<std::string*>(ptr))); };
-                    fd.set = [ptr](const QVariant& v) { *static_cast<std::string*>(ptr) = v.toString().toStdString(); };
-                    break;
-                }
-                f.push_back(fd);
-            }
+            auto data = [&r, e]() -> TileMapData& { return *r.getComponent<Tilemap>(e).data; };
+            FieldDesc orient{ QObject::tr("Orientation"), FieldKind::Choice };
+            orient.choices = { QObject::tr("Orthogonale"), QObject::tr("Isométrique") };
+            orient.get = [data] { return QVariant(int(data().orientation)); };
+            orient.set = [data](const QVariant& v) {
+                TileMapData& m = data();
+                const auto o = TileMapOrientation(v.toInt());
+                if (o == m.orientation) return;
+                m.orientation = o;
+                // tailles de case habituelles : 32 x 32 en orthogonal, losange 2:1 en isométrique
+                if (o == TileMapOrientation::Isometric && m.tileSize.x == m.tileSize.y) m.tileSize.y = m.tileSize.x * 0.5f;
+                if (o == TileMapOrientation::Orthogonal && m.tileSize.x == 2.f * m.tileSize.y) m.tileSize.y = m.tileSize.x;
+                ++m.version; m.modified = true;
+            };
+            orient.rebuildOnChange = true;
+            f.push_back(orient);
+
+            FieldDesc size{ QObject::tr("Taille (cases)"), FieldKind::Vec2 };
+            size.get = [data] { return QVariant(QPointF(data().width(), data().height())); };
+            size.set = [data](const QVariant& v) {
+                const QPointF p = v.toPointF();
+                data().resize(std::clamp(int(std::lround(p.x())), 1, 4096), std::clamp(int(std::lround(p.y())), 1, 4096));
+            };
+            size.decimals = 0; size.min = 1; size.max = 4096;
+            f.push_back(size);
+
+            FieldDesc cell{ QObject::tr("Taille de case"), FieldKind::Vec2 };
+            cell.get = [data] { return v2(data().tileSize); };
+            cell.set = [data](const QVariant& v) {
+                const sf::Vector2f s = toV2(v);
+                data().tileSize = { std::max(1.f, s.x), std::max(1.f, s.y) };
+                ++data().version; data().modified = true;
+            };
+            cell.min = 1;
+            f.push_back(cell);
+            f.push_back(label(QObject::tr("Tiles"), QObject::tr("%1  (panneau Tile Palette)").arg(tm.data->tiles.size())));
             return f;
         };
         list.push_back(d);
     }
+
+    // ---------------------------------------------------------------- Composants de jeu (projet)
+    // Déclarés avec REGISTER_COMPONENT dans projects/rpg/components/ : champs lus par réflexion.
+    // Les valeurs sont relues à chaque accès (le composant peut changer de place en mémoire).
+    for (const GameComponentInfo& info : GameComponentRegistry::get().all()) {
+        ComponentDesc d{ QString::fromStdString(info.name) };
+        d.has = info.has;
+        d.add = info.add;
+        d.remove = info.remove;
+        d.fields = [info](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            const ReflectedComponent rc = info.reflect(r, e);
+            for (std::size_t i = 0; i < rc.fields.size(); ++i) {
+                FieldDesc fd{ QString::fromStdString(rc.fields[i].name) };
+                auto prop = [info, &r, e, i]() { return info.reflect(r, e).fields[i]; };
+                switch (rc.fields[i].type) {
+                case PropertyInfo::Type::Float:
+                    fd.kind = FieldKind::Float;
+                    fd.get = [prop] { return QVariant(double(prop().as<float>())); };
+                    fd.set = [prop](const QVariant& v) { prop().as<float>() = float(v.toDouble()); };
+                    break;
+                case PropertyInfo::Type::Int:
+                    fd.kind = FieldKind::Int;
+                    fd.get = [prop] { return QVariant(prop().as<int>()); };
+                    fd.set = [prop](const QVariant& v) { prop().as<int>() = v.toInt(); };
+                    break;
+                case PropertyInfo::Type::Bool:
+                    fd.kind = FieldKind::Bool;
+                    fd.get = [prop] { return QVariant(prop().as<bool>()); };
+                    fd.set = [prop](const QVariant& v) { prop().as<bool>() = v.toBool(); };
+                    break;
+                case PropertyInfo::Type::Vec2f:
+                    fd.kind = FieldKind::Vec2;
+                    fd.get = [prop] { return v2(prop().as<sf::Vector2f>()); };
+                    fd.set = [prop](const QVariant& v) { prop().as<sf::Vector2f>() = toV2(v); };
+                    break;
+                case PropertyInfo::Type::String:
+                    fd.kind = FieldKind::String;
+                    fd.get = [prop] { return QVariant(QString::fromStdString(prop().as<std::string>())); };
+                    fd.set = [prop](const QVariant& v) { prop().as<std::string>() = v.toString().toStdString(); };
+                    break;
+                }
+                f.push_back(fd);
+            }
+            if (f.empty()) f.push_back(label(QObject::tr("(aucun champ)"), QObject::tr("ajoutez FIELD(...) à REGISTER_COMPONENT")));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // Script : pas de descripteur ici. Chaque comportement a sa propre section dans l'Inspector
+    // (voir behaviorFields() plus bas et InspectorPanel::rebuild).
 
     return list;
 }
@@ -664,4 +719,48 @@ std::vector<ComponentDesc> build() {
 const std::vector<ComponentDesc>& componentDescriptors() {
     static const std::vector<ComponentDesc> list = build();
     return list;
+}
+
+/**
+ * Fields of one behavior: its PROPERTY values (float, int, bool, vec2, string).
+ * Used by the Inspector, which shows one section per behavior of the Script component.
+ */
+std::vector<FieldDesc> behaviorFields(IBehavior* b) {
+    std::vector<FieldDesc> f;
+    if (!b) return f;
+    // Properties exposed by the behavior instance
+    for (size_t i = 0; i < b->m_properties.size(); ++i) {
+        const PropertyInfo& p = b->m_properties[i];
+        FieldDesc fd{ QString::fromStdString(p.name) };
+        void* ptr = p.ptr;
+        switch (p.type) {
+        case PropertyInfo::Type::Float:
+            fd.kind = FieldKind::Float;
+            fd.get = [ptr] { return QVariant(double(*static_cast<float*>(ptr))); };
+            fd.set = [ptr](const QVariant& v) { *static_cast<float*>(ptr) = float(v.toDouble()); };
+            break;
+        case PropertyInfo::Type::Int:
+            fd.kind = FieldKind::Int;
+            fd.get = [ptr] { return QVariant(*static_cast<int*>(ptr)); };
+            fd.set = [ptr](const QVariant& v) { *static_cast<int*>(ptr) = v.toInt(); };
+            break;
+        case PropertyInfo::Type::Bool:
+            fd.kind = FieldKind::Bool;
+            fd.get = [ptr] { return QVariant(*static_cast<bool*>(ptr)); };
+            fd.set = [ptr](const QVariant& v) { *static_cast<bool*>(ptr) = v.toBool(); };
+            break;
+        case PropertyInfo::Type::Vec2f:
+            fd.kind = FieldKind::Vec2;
+            fd.get = [ptr] { return v2(*static_cast<sf::Vector2f*>(ptr)); };
+            fd.set = [ptr](const QVariant& v) { *static_cast<sf::Vector2f*>(ptr) = toV2(v); };
+            break;
+        case PropertyInfo::Type::String:
+            fd.kind = FieldKind::String;
+            fd.get = [ptr] { return QVariant(QString::fromStdString(*static_cast<std::string*>(ptr))); };
+            fd.set = [ptr](const QVariant& v) { *static_cast<std::string*>(ptr) = v.toString().toStdString(); };
+            break;
+        }
+        f.push_back(fd);
+    }
+    return f;
 }

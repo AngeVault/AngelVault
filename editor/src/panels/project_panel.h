@@ -19,12 +19,18 @@ public:
     explicit ProjectPanel(const QString& rootDir, QWidget* parent = nullptr);
 
     void setCurrentDir(const QString& dir);
+    void setRootDir(const QString& dir);   // autre projet ouvert
+
+signals:
+    void sceneOpenRequested(const QString& path);   // double-clic sur un fichier .scene
+    void entitiesDropped(const QByteArray& entities, const QString& dir);   // depuis la Hierarchy : créer des prefabs
 
 private:
     void refresh();
     void openPath(const QString& path);
     void showContextMenu(const QString& path, const QPoint& globalPos);
     QIcon iconFor(const QString& path, bool isDir);
+    void createCode(int kind);   // clic droit > Créer (C++) : 0 behavior, 1 composant, 2 système
 
     QString m_root;
     QString m_current;

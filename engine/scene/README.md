@@ -1,6 +1,14 @@
-# scene (module prévu, pas encore créé)
+# scene
 
-Sérialisation JSON des scènes (entités, composants, tilemap), identifiants stables, prefabs, registre de comportements (nom -> fabrique) pour sauvegarder Script. Même fichier pour l'éditeur et le jeu.
+Sauvegarde / chargement en JSON : scènes (`.scene` : entités + composants) et projet (`.angproj`).
+Utilisé par l'éditeur (Ctrl+S, Ouvrir, F5) et par le jeu (`rpg.exe` lit le projet et sa scène).
 
-**Dépend de :** Core, Tilemap, nlohmann_json
-**Pour le créer :** `av_module(Scene DEPS ...)` dans un `CMakeLists.txt` de ce dossier, puis `add_subdirectory(scene)` dans `engine/CMakeLists.txt`.
+- `scene/scene_io.h` : `saveScene` / `loadScene`, `sceneToString` / `sceneFromString` (mode Jouer de l'éditeur)
+- `scene/component_serializer.h` : registre « nom de composant -> JSON » ; ajoutez-y vos composants
+- `scene/project.h` : fichier `.angproj`, chemins relatifs au projet, `Project::create`
+- Liens entre entités : `PersistentId` (core/components/persistent_id.h)
+- Scripts : `REGISTER_BEHAVIOR(MaClasse)` (core/ecs/behavior_factory.h)
+
+Détails et format des fichiers : `docs/projet_et_sauvegarde.md`. Test : `tests/test_scene.cpp`.
+
+**Dépend de :** Core, Physics2D, Render2D, nlohmann_json

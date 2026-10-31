@@ -5,6 +5,8 @@
         <file>style/neon_light.qss</file>
         <file>style/sakura_light.qss</file>
         <file>style/sakura_dark.qss</file>
+        <file>style/sakura_cat.qss</file>
+        <file>backgrounds/sakura_cat.jpg</file>
         <file>icons/close.png</file>
         <file>icons/minimize.png</file>
         <file>icons/maximize.png</file>

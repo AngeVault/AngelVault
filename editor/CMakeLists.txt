@@ -11,6 +11,10 @@ add_executable(AngeVaultEditor WIN32
     src/game_view.h
     src/game_view.cpp
     src/input_settings_dialog.h
+    src/tile_def_dialog.h
+    src/tile_def_dialog.cpp
+    src/systems_dialog.h
+    src/systems_dialog.cpp
     src/input_settings_dialog.cpp
     src/qt_sfml_input.h
     src/qt_sfml_input.cpp
@@ -56,7 +60,7 @@ target_include_directories(AngeVaultEditor PRIVATE src)
 target_compile_definitions(AngeVaultEditor PRIVATE AV_PROJECT_DIR="${CMAKE_SOURCE_DIR}/projects/rpg")
 
 # Projet ouvert dans l'éditeur : le RPG (projects/rpg/rpg_scene.h), joué avec Exécuter > Jouer
-target_include_directories(AngeVaultEditor PRIVATE ${CMAKE_SOURCE_DIR}/projects/rpg)
+target_link_libraries(AngeVaultEditor PRIVATE rpg_project)   # rpg_scene.h + le code de jeu (rpg_game_code.h)
 
 # Textures -> bin/assets, à côté de l'exécutable : les tilesets (rangés dans projects/sandbox/assets)
 # puis les assets du RPG

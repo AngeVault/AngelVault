@@ -11,6 +11,8 @@
 #include <QHeaderView>
 #include <QLineEdit>
 #include <QMenu>
+#include <QMessageBox>
+#include <QMimeData>
 #include <QStyle>
 #include <QToolButton>
 #include <QTreeWidget>
@@ -28,20 +30,41 @@ quint64 pack(Entity e) { return (quint64(e.index) << 32) | e.generation; }
 // il signale "ces entités vont dans cette catégorie" et la liste est reconstruite.
 class HierarchyTree : public QTreeWidget {
 public:
-    std::function<void(QTreeWidgetItem* target)> onDropped;
+    std::function<void(QTreeWidgetItem* target)> onDropped;                          // lignes de la Hierarchy
+    std::function<void(const QStringList& files, QTreeWidgetItem* target)> onFilesDropped;   // .prefab / .h
+    std::function<QByteArray(const QList<QTreeWidgetItem*>&)> entitiesMime;          // pour Hierarchy -> Project
 
 protected:
+    static QStringList files(const QMimeData* mime) {
+        QStringList out;
+        if (mime && mime->hasUrls())
+            for (const QUrl& url : mime->urls()) if (url.isLocalFile()) out << url.toLocalFile();
+        return out;
+    }
+    QMimeData* mimeData(const QList<QTreeWidgetItem*>& items) const override {
+        QMimeData* mime = QTreeWidget::mimeData(items);
+        if (mime && entitiesMime) mime->setData(EditorContext::kEntityMimeType, entitiesMime(items));
+        return mime;
+    }
     void dragEnterEvent(QDragEnterEvent* e) override {
         if (e->source() == this) { QTreeWidget::dragEnterEvent(e); e->accept(); }
+        else if (!files(e->mimeData()).isEmpty()) e->acceptProposedAction();   // fichier du panneau Project
         else e->ignore();
     }
     void dragMoveEvent(QDragMoveEvent* e) override {
         QTreeWidget::dragMoveEvent(e);   // défilement auto + indicateur
-        if (e->source() == this) e->accept();
+        if (e->source() == this || !files(e->mimeData()).isEmpty()) e->accept();
     }
     void dropEvent(QDropEvent* e) override {
-        if (e->source() != this) { e->ignore(); return; }
-        if (onDropped) onDropped(itemAt(e->position().toPoint()));
+        QTreeWidgetItem* target = itemAt(e->position().toPoint());
+        if (e->source() != this) {
+            const QStringList dropped = files(e->mimeData());
+            if (dropped.isEmpty() || !onFilesDropped) { e->ignore(); return; }
+            e->acceptProposedAction();
+            onFilesDropped(dropped, target);
+            return;
+        }
+        if (onDropped) onDropped(target);
         e->setDropAction(Qt::CopyAction);   // "copie" : Qt ne supprime pas les lignes d'origine
         e->accept();
     }
@@ -64,6 +87,16 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
     auto* addMenu = new QMenu(add);
     connect(addMenu->addAction(tr("Entité vide")), &QAction::triggered, this, &HierarchyPanel::createEntityHere);
     connect(addMenu->addAction(tr("Catégorie")), &QAction::triggered, this, [this] { m_ctx.addCategory(); });
+    addMenu->addSeparator();
+    // Tilemap : facultative, une entité avec un composant Tilemap (fichier maps/*.map)
+    auto newTilemap = [this](TileMapOrientation o) {
+        QString err;
+        if (!m_ctx.isValid(m_ctx.createTilemap(o, 32, 32, &err))) QMessageBox::warning(this, tr("Tilemap"), err);
+    };
+    connect(addMenu->addAction(tr("Tilemap orthogonale")), &QAction::triggered, this,
+            [newTilemap] { newTilemap(TileMapOrientation::Orthogonal); });
+    connect(addMenu->addAction(tr("Tilemap isométrique")), &QAction::triggered, this,
+            [newTilemap] { newTilemap(TileMapOrientation::Isometric); });
     add->setMenu(addMenu);
     m_search = new QLineEdit;
     m_search->setPlaceholderText(tr("Rechercher..."));
@@ -106,6 +139,22 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
             m_ctx.setCategory(e, category);
         }
         if (!category.isEmpty()) m_collapsed.remove(category);   // on montre où elles sont allées
+    };
+
+    // Fichiers glissés depuis le panneau Project :
+    //   comportement (.h) sur une entité -> ajouté ; prefab (.prefab) -> instancié (dans la catégorie visée)
+    tree->onFilesDropped = [this](const QStringList& files, QTreeWidgetItem* target) {
+        const Entity onEntity = (target && !isCategory(target)) ? entityOf(target) : NULL_ENTITY;
+        const std::vector<Entity> created = m_ctx.dropFiles(files, onEntity);
+        const QString category = targetCategory(target);
+        if (!category.isEmpty())
+            for (Entity e : created) m_ctx.setCategory(e, category);
+    };
+    // Glisser des entités vers le panneau Project = créer un prefab
+    tree->entitiesMime = [this](const QList<QTreeWidgetItem*>& items) {
+        std::vector<Entity> list;
+        for (QTreeWidgetItem* item : items) if (!isCategory(item)) list.push_back(entityOf(item));
+        return EditorContext::entitiesToMime(list);
     };
 
     // Suppr quand la liste a le focus
@@ -333,6 +382,12 @@ void HierarchyPanel::showContextMenu(const QPoint& pos) {
                 if (other != e) addFollow(m_ctx.displayName(other), other);
         }
 
+        connect(menu.addAction(tr("Créer un prefab")), &QAction::triggered, this, [this, e] {
+            QString err;
+            if (!m_ctx.createPrefab(e, m_ctx.defaultPrefabPath(e), &err))
+                QMessageBox::warning(this, tr("Prefab"), err);
+        });
+        menu.addSeparator();
         connect(menu.addAction(tr("Supprimer")), &QAction::triggered, this, &HierarchyPanel::deleteCurrent);
     }
 

@@ -1,0 +1,144 @@
+{
+  "format": "angeVault.scene",
+  "version": 1,
+  "name": "iso_demo",
+  "map": null,
+  "entities": [
+    {
+      "id": 12808752909115651700,
+      "components": {
+        "Name": {
+          "name": "Player"
+        },
+        "Transform2D": {
+          "position": [
+            -411.7074279785156,
+            647.0641479492188
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Sprite",
+          "texture": "player",
+          "rect": [
+            0,
+            0,
+            32,
+            64
+          ],
+          "tint": "#FFFFFFFF"
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": false,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            16.0,
+            32.0
+          ]
+        },
+        "Script": {
+          "behaviors": [
+            {
+              "name": "PlayerBehavior",
+              "properties": {
+                "speed": 250.0
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 3279131841579639006,
+      "components": {
+        "Name": {
+          "name": "CameraEntity"
+        },
+        "Transform2D": {
+          "position": [
+            -411.7074279785156,
+            647.0641479492188
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Camera2d": {
+          "zoom": 1.0,
+          "minZoom": 0.25,
+          "maxZoom": 4.0,
+          "panSpeedKeyboard": 1000.0,
+          "panSpeedGamepad": 100.0,
+          "zoomStep": 0.5,
+          "zoomLerpSpeed": 12.0,
+          "targetZoom": 1.0,
+          "worldMin": [
+            -3000.0,
+            -3000.0
+          ],
+          "worldMax": [
+            3000.0,
+            3000.0
+          ],
+          "targetLock": 12808752909115651700
+        }
+      }
+    },
+    {
+      "id": 8365126126627568726,
+      "components": {
+        "Name": {
+          "name": "Sol isométrique"
+        },
+        "Transform2D": {
+          "position": [
+            -474.36785888671875,
+            -27.19598388671875
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/iso_demo.map",
+          "visible": true
+        }
+      }
+    }
+  ],
+  "editor": {
+    "categories": [
+      "entity"
+    ],
+    "entityCategory": {
+      "12808752909115651700": "entity"
+    }
+  }
+}

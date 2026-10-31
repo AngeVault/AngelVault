@@ -24,6 +24,7 @@ ThemeManager::ThemeManager(QWidget* dialogParent) : QObject(dialogParent), m_par
         { tr("Néon clair"), ":/resources/style/neon_light.qss" },
         { tr("Sakura clair"), ":/resources/style/sakura_light.qss" },
         { tr("Sakura sombre"), ":/resources/style/sakura_dark.qss" },
+        { tr("Sakura chat (image)"), ":/resources/style/sakura_cat.qss" },
     };
 }
 

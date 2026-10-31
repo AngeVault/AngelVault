@@ -299,25 +299,47 @@ QScrollBar::add-line, QScrollBar::sub-line,
 QScrollBar::add-page, QScrollBar::sub-page { background: none; border: none; width: 0px; height: 0px; }
 
 /* Fond de la vue scène / jeu (autour de la carte) */
-SfmlWidget { qproperty-clearColor: #1b1c1f; }
+SfmlWidget { qproperty-clearColor: #1b1c1f; qproperty-backgroundImage: "none"; }   /* pas d'image de fond */
 
 /* =====================================================================
    Fenêtre Input Manager (Édition > Input Manager...)
    ===================================================================== */
-QDialog#inputSettingsDialog { background-color: #1f1f1f; }
-QDialog#inputSettingsDialog QTableWidget {
+QDialog#inputSettingsDialog,
+QDialog#systemsDialog { background-color: #1f1f1f; }
+QDialog#inputSettingsDialog QTableWidget,
+QDialog#systemsDialog QTableWidget {
     background: #1a1a1a;
     border: 1px solid #323232;
     border-radius: 6px;
     gridline-color: transparent;
 }
-QDialog#inputSettingsDialog QHeaderView::section {
+QDialog#inputSettingsDialog QHeaderView::section,
+QDialog#systemsDialog QHeaderView::section {
     background: #1f1f1f;
     color: #8c8c8c;
     border: none;
     border-bottom: 1px solid #323232;
     padding: 4px 6px;
 }
-QDialog#inputSettingsDialog QTableWidget QToolButton { background: transparent; border: none; }
-QDialog#inputSettingsDialog QLabel#hintLabel { color: #8c8c8c; }
-QDialog#inputSettingsDialog QPushButton[capturing="true"] { border: 1px solid #8c8c8c; font-style: italic; }
+QDialog#inputSettingsDialog QTableWidget QToolButton,
+QDialog#systemsDialog QTableWidget QToolButton { background: transparent; border: none; }
+QDialog#inputSettingsDialog QLabel#hintLabel,
+QDialog#systemsDialog QLabel#hintLabel { color: #8c8c8c; }
+QDialog#inputSettingsDialog QPushButton[capturing="true"],
+QDialog#systemsDialog QPushButton[capturing="true"] { border: 1px solid #8c8c8c; font-style: italic; }
+
+/* Fenêtre « Tile » (Tile Palette > + Tile / Modifier) */
+QDialog#tileDefDialog { background-color: #1f1f1f; }
+QDialog#tileDefDialog QLabel#hintLabel { color: #8c8c8c; }
+QDialog#tileDefDialog QGroupBox {
+    border: 1px solid #323232;
+    border-radius: 6px;
+    margin-top: 14px;
+    padding: 8px 6px 6px 6px;
+}
+QDialog#tileDefDialog QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 8px;
+    padding: 0 4px;
+    color: #8c8c8c;
+}
