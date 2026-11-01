@@ -12,7 +12,7 @@ QMainWindow#MainWindow {
 
 QWidget {
     color: #ebe4fb;
-    selection-background-color: #e87bb8;
+    selection-background-color: #a8457f;
     selection-color: #ffffff;
 }
 QLabel { color: #ebe4fb; background: transparent; }
@@ -60,7 +60,7 @@ QMenu {
     padding: 5px;
 }
 QMenu::item { padding: 6px 30px 6px 12px; border-radius: 6px; background: transparent; }
-QMenu::item:selected { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #c95f9f, stop:1 #6f63c4); color: #ffffff; }
+QMenu::item:selected { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #a8457f, stop:1 #6f63c4); color: #ffffff; }
 QMenu::item:disabled { color: #6f6894; }
 QMenu::separator { height: 1px; background: rgba(169, 154, 230, 0.25); margin: 5px 8px; }
 QMenu::indicator { width: 14px; height: 14px; margin-left: 4px; }
@@ -128,7 +128,7 @@ QTreeView, QListView, QListWidget, QTreeWidget {
 }
 QTreeView::item, QListView::item { padding: 3px 4px; border-radius: 5px; }
 QTreeView::item:hover, QListView::item:hover { background: rgba(169, 154, 230, 0.18); }
-QTreeView::item:selected, QListView::item:selected { background: #c95f9f; color: #ffffff; }
+QTreeView::item:selected, QListView::item:selected { background: #a8457f; color: #ffffff; }
 QTreeView { show-decoration-selected: 0; }
 QTreeView::branch, QTreeView::branch:selected { background: transparent; }
 QTreeView::branch:has-children:!has-siblings:closed,
@@ -143,7 +143,7 @@ QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTextEdit, QPlainTextEdit {
     border: 1px solid rgba(169, 154, 230, 0.30);
     border-radius: 6px;
     padding: 3px 6px;
-    selection-background-color: #e87bb8;
+    selection-background-color: #a8457f;
     selection-color: #ffffff;
 }
 /* Pas de flèches sur les champs numériques (molette / clavier). Largeur ET hauteur à 0 :
@@ -162,7 +162,7 @@ QComboBox QAbstractItemView {
     background: #211c3d;
     color: #ebe4fb;
     border: 1px solid rgba(169, 154, 230, 0.40);
-    selection-background-color: #c95f9f;
+    selection-background-color: #a8457f;
     selection-color: #ffffff;
 }
 
@@ -188,7 +188,7 @@ QToolButton#consoleInfo, QToolButton#consoleWarning, QToolButton#consoleError {
     min-height: 18px;
 }
 QToolButton#panelToolButton:hover, QToolButton#paletteTool:hover { border-color: #e87bb8; }
-QToolButton#paletteTool:checked { background: #c95f9f; border-color: #e87bb8; color: #ffffff; }
+QToolButton#paletteTool:checked { background: #a8457f; border-color: #e87bb8; color: #ffffff; }
 QToolButton#consoleInfo:!checked, QToolButton#consoleWarning:!checked, QToolButton#consoleError:!checked {
     color: #8f86b5;
     background: transparent;
