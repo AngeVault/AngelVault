@@ -68,7 +68,7 @@
           "rect": [
             0,
             0,
-            27,
+            32,
             64
           ],
           "tint": "#FFFFFFFF"
@@ -116,8 +116,8 @@
         },
         "Transform2D": {
           "position": [
-            255.6480712890625,
-            410.1224670410156
+            703.8336791992188,
+            539.115234375
           ],
           "rotation": 0.0,
           "scale": [
@@ -145,8 +145,8 @@
           "friction": 0.4000000059604645,
           "shape": "Box",
           "halfSize": [
-            16.0,
-            16.0
+            8.93743896484375,
+            2.4940185546875
           ]
         }
       }
@@ -203,12 +203,12 @@
       "id": 18107087873688893773,
       "components": {
         "Name": {
-          "name": "Nouvelle entité"
+          "name": "arbre1"
         },
         "Transform2D": {
           "position": [
             -1.3573884963989258,
-            209.82342529296875
+            196.71348571777344
           ],
           "rotation": 0.0,
           "scale": [
@@ -216,6 +216,15 @@
             1.0
           ],
           "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
         },
         "Collider2D": {
           "offset": [
@@ -228,7 +237,50 @@
           "shape": "Box",
           "halfSize": [
             10.0,
-            8.0
+            4.0
+          ]
+        }
+      }
+    },
+    {
+      "id": 12397982373394162714,
+      "components": {
+        "Name": {
+          "name": "panaut"
+        },
+        "Transform2D": {
+          "position": [
+            -0.3189964294433594,
+            528.0307006835938
+          ],
+          "rotation": -26.999996185302734,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": false,
+          "useGravity": true,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            26.0,
+            2.0
           ]
         }
       }
@@ -246,7 +298,8 @@
       "18418294981170371368": "test",
       "16747246975918472367": "map",
       "15432053153391235874": "map",
-      "18107087873688893773": "colision"
+      "18107087873688893773": "colision",
+      "12397982373394162714": "colision"
     }
   }
 }

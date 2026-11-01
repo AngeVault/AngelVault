@@ -582,6 +582,9 @@ std::vector<ComponentDesc> build() {
                                   QObject::tr("%1 (outil Taille pour l'agrandir)").arg(std::get<C::Polygon>(r.getComponent<C>(e).shape).points.size())));
                 break;
             }
+            if (!r.hasComponent<RigidBody2D>(e))
+                f.push_back(label(QObject::tr("Physique"),
+                                  QObject::tr("Sans RigidBody2D : contact détecté, mais ne bloque pas")));
             f.push_back(vecRef<C>(r, e, QObject::tr("Décalage"), [](C& c) -> sf::Vector2f& { return c.offset; }));
             f.push_back(boolRef<C>(r, e, QObject::tr("Déclencheur"), [](C& c) -> bool& { return c.isTrigger; }));
             f.push_back(floatRef<C>(r, e, QObject::tr("Rebond"), [](C& c) -> float& { return c.restitution; }, 0, 1, 0.05));

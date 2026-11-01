@@ -2,11 +2,12 @@
 // Formes des entités dans l'éditeur : boîtes englobantes, contours des collisions et redimensionnement
 // (outil Taille de la vue scène). Coordonnées « locales » :
 //  - Geometry   : repère de l'entité (Transform2D complet : position, rotation, échelle) ;
-//  - Collider2D : repère position + rotation (comme RenderCollisionSystem / la physique), sans échelle ;
-//                 la boîte inclut le décalage (offset) du collider.
+//  - Collider2D : repère position + rotation, sans échelle, comme la physique (utils/collider_shape.h) ;
+//                 la boîte inclut le décalage (offset) du collider, qui tourne avec l'entité.
 #include "components/collider2d.h"
 #include "components/geometry.h"
 #include "components/transform2d.h"
+#include "utils/collider_shape.h"
 
 #include <SFML/Graphics/Transform.hpp>
 
@@ -42,15 +43,11 @@ inline LocalBox geometryBox(const Geometry& g) {
 
 // ---- Collider2D ----------------------------------------------------------------------------------
 
-// Repère du collider dans le monde (la rotation ne s'applique qu'au rectangle, comme RenderCollisionSystem)
-inline sf::Transform colliderToWorld(const Transform2D& t, const Collider2D& c) {
+// Repère du collider dans le monde : rotation autour de la position de l'entité (comme la physique)
+inline sf::Transform colliderToWorld(const Transform2D& t, const Collider2D&) {
     sf::Transform m;
     m.translate(t.getPosition());
-    if (c.type() == Collider2D::ShapeType::Box) {
-        m.translate(c.offset);
-        m.rotate(t.getRotation());
-        m.translate(-c.offset);
-    }
+    m.rotate(t.getRotation());
     return m;
 }
 
@@ -66,44 +63,8 @@ inline LocalBox colliderBox(const Collider2D& c) {
     }, c.shape);
 }
 
-// Contour du collider (repère local du collider, décalage compris)
-inline std::vector<sf::Vector2f> colliderOutline(const Collider2D& c) {
-    using C = Collider2D;
-    std::vector<sf::Vector2f> pts;
-    constexpr float kPi = 3.14159265f;
-    auto ellipse = [&](sf::Vector2f r) {
-        for (int i = 0; i < 48; ++i) {
-            const float a = 2.f * kPi * float(i) / 48.f;
-            pts.push_back(c.offset + sf::Vector2f{ std::cos(a) * r.x, std::sin(a) * r.y });
-        }
-    };
-    std::visit([&](const auto& s) {
-        using T = std::decay_t<decltype(s)>;
-        if constexpr (std::is_same_v<T, C::Box>) {
-            const sf::Vector2f h = s.halfSize;
-            pts = { c.offset + sf::Vector2f{ -h.x, -h.y }, c.offset + sf::Vector2f{ h.x, -h.y },
-                    c.offset + sf::Vector2f{ h.x, h.y },   c.offset + sf::Vector2f{ -h.x, h.y } };
-        } else if constexpr (std::is_same_v<T, C::Circle>) {
-            ellipse({ s.radius, s.radius });
-        } else if constexpr (std::is_same_v<T, C::Ellipse>) {
-            ellipse(s.radii);
-        } else if constexpr (std::is_same_v<T, C::Capsule>) {
-            // verticale : deux demi-cercles reliés (hauteur totale = height)
-            const float body = std::max(0.f, s.height * 0.5f - s.radius);
-            for (int i = 0; i <= 16; ++i) {   // haut
-                const float a = kPi + kPi * float(i) / 16.f;
-                pts.push_back(c.offset + sf::Vector2f{ std::cos(a) * s.radius, -body + std::sin(a) * s.radius });
-            }
-            for (int i = 0; i <= 16; ++i) {   // bas
-                const float a = kPi * float(i) / 16.f;
-                pts.push_back(c.offset + sf::Vector2f{ std::cos(a) * s.radius, body + std::sin(a) * s.radius });
-            }
-        } else {
-            for (sf::Vector2f p : s.points) pts.push_back(c.offset + p);
-        }
-    }, c.shape);
-    return pts;
-}
+// Contour du collider (repère local du collider, décalage compris) : le même que la physique
+inline std::vector<sf::Vector2f> colliderOutline(const Collider2D& c) { return collider_shape::localOutline(c); }
 
 // ---- Redimensionnement ---------------------------------------------------------------------------
 // s : facteurs d'échelle (> 0) ; anchor : point fixe, dans le repère local de la forme ;
