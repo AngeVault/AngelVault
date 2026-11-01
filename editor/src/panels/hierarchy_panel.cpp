@@ -14,6 +14,7 @@
 #include <QMessageBox>
 #include <QMimeData>
 #include <QStyle>
+#include <QStyledItemDelegate>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -25,6 +26,40 @@ constexpr int kKindRole = Qt::UserRole + 1;     // 0 = entité, 1 = catégorie
 constexpr int kEntityRole = Qt::UserRole + 2;
 constexpr int kCategoryRole = Qt::UserRole + 3; // nom d'origine de la catégorie (pour le renommage)
 quint64 pack(Entity e) { return (quint64(e.index) << 32) | e.generation; }
+
+// Champ de renommage (double-clic / F2) : le style général des champs (marges, bordure) ne tient pas
+// dans la hauteur d'une ligne de l'arbre et cachait le texte. Ici : champ compact, plus haut que la
+// ligne si besoin, sur toute la largeur disponible, texte sélectionné.
+class RenameDelegate : public QStyledItemDelegate {
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override {
+        auto* edit = new QLineEdit(parent);
+        edit->setObjectName("hierarchyRename");
+        edit->setFrame(true);
+        // Seules les marges sont imposées : les couleurs restent celles du thème (règle QLineEdit du .qss)
+        edit->setStyleSheet("QLineEdit#hierarchyRename { padding: 1px 5px; margin: 0px; border-radius: 4px; }");
+        return edit;
+    }
+
+    void setEditorData(QWidget* editor, const QModelIndex& index) const override {
+        auto* edit = static_cast<QLineEdit*>(editor);
+        edit->setText(index.data(Qt::EditRole).toString());
+        edit->selectAll();
+    }
+
+    void updateEditorGeometry(QWidget* editor, const QStyleOptionViewItem& option, const QModelIndex&) const override {
+        QRect r = option.rect;
+        // jusqu'au bord droit de la zone visible (les noms longs restent lisibles)
+        if (auto* view = qobject_cast<QAbstractItemView*>(editor->parentWidget()->parentWidget()))
+            r.setRight(std::max(r.right(), view->viewport()->width() - 2));
+        const int h = std::max(r.height(), editor->sizeHint().height());
+        r.setTop(r.center().y() - h / 2);
+        r.setHeight(h);
+        editor->setGeometry(r);
+    }
+};
 
 // Arbre qui gère lui-même le glisser-déposer : il ne déplace pas les lignes,
 // il signale "ces entités vont dans cette catégorie" et la liste est reconstruite.
@@ -113,6 +148,7 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
     m_tree->setIndentation(14);
     m_tree->setSelectionMode(QAbstractItemView::ExtendedSelection);   // plusieurs entités à ranger d'un coup
     m_tree->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
+    m_tree->setItemDelegate(new RenameDelegate(m_tree));   // champ de renommage lisible
     m_tree->setContextMenuPolicy(Qt::CustomContextMenu);
     m_tree->setDragEnabled(true);
     m_tree->setAcceptDrops(true);
