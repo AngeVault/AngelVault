@@ -200,8 +200,22 @@ int main(int argc, char** argv) {
                      &QAction::triggered, &window, &QWidget::close);
 
     QMenu* edit = window.addMenu("&Édition");
-    addAction(edit, "Annuler", QKeySequence::Undo);
-    addAction(edit, "Rétablir", QKeySequence::Redo);
+    QAction* undoAction = addAction(edit, "Annuler", QKeySequence::Undo);
+    QAction* redoAction = addAction(edit, "Rétablir", QKeySequence::Redo);
+    {   // Ctrl+Y et Ctrl+Maj+Z partout (sans doublon : Windows a déjà Ctrl+Y)
+        QList<QKeySequence> keys = QKeySequence::keyBindings(QKeySequence::Redo);
+        for (const QKeySequence& k : { QKeySequence(Qt::CTRL | Qt::Key_Y), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Z) })
+            if (!keys.contains(k)) keys << k;
+        redoAction->setShortcuts(keys);
+    }
+    QObject::connect(undoAction, &QAction::triggered, &ctx, &EditorContext::undo);
+    QObject::connect(redoAction, &QAction::triggered, &ctx, &EditorContext::redo);
+    auto syncUndo = [&ctx, undoAction, redoAction] {
+        undoAction->setEnabled(ctx.canUndo());
+        redoAction->setEnabled(ctx.canRedo());
+    };
+    QObject::connect(&ctx, &EditorContext::undoStateChanged, undoAction, syncUndo);
+    syncUndo();
     edit->addSeparator();
     addAction(edit, "Préférences...", QKeySequence(Qt::CTRL | Qt::Key_Comma));
     QAction* inputSettings = addAction(edit, "Input Manager...");   // actions d'entrée du projet (assets/input.cfg)
@@ -211,6 +225,9 @@ int main(int argc, char** argv) {
     QAction* grid = addAction(view, "Grille", QKeySequence(Qt::CTRL | Qt::Key_G));
     grid->setCheckable(true);
     grid->setChecked(true);
+    QAction* colliders = addAction(view, "Collisions", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C));
+    colliders->setCheckable(true);
+    colliders->setChecked(QSettings().value("view/showColliders", true).toBool());
     QAction* fit = addAction(view, "Recadrer la carte", QKeySequence(Qt::CTRL | Qt::Key_0));
     QAction* fullScreen = addAction(view, "Plein écran", QKeySequence(Qt::Key_F11));
     QObject::connect(fullScreen, &QAction::triggered, &window, [&window] {
@@ -233,6 +250,11 @@ int main(int argc, char** argv) {
     window.setCentralWidget(viewports);
 
     QObject::connect(grid, &QAction::toggled, tilemapView, &TilemapView::setGridVisible);
+    tilemapView->setCollidersVisible(colliders->isChecked());
+    QObject::connect(colliders, &QAction::toggled, tilemapView, [tilemapView](bool on) {
+        tilemapView->setCollidersVisible(on);
+        QSettings().setValue("view/showColliders", on);
+    });
     QObject::connect(fit, &QAction::triggered, tilemapView, &TilemapView::fitToMap);
 
     auto* tileInfo = new QLabel;

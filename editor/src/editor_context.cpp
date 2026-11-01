@@ -14,6 +14,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QSettings>
+#include <QTimer>
 
 #include <algorithm>
 #include <iostream>
@@ -26,6 +27,13 @@ EditorContext::EditorContext(QObject* parent) : QObject(parent) {
     // Toute modification de la scène la rend « modifiée » (sauf pendant un chargement)
     connect(this, &EditorContext::sceneChanged, this, [this] { if (!m_loading) setDirty(true); });
     connect(this, &EditorContext::entityModified, this, [this] { if (!m_loading) setDirty(true); });
+    // Historique (Ctrl+Z) : toute modification devient une étape
+    m_commitTimer = new QTimer(this);
+    m_commitTimer->setSingleShot(true);
+    connect(m_commitTimer, &QTimer::timeout, this, &EditorContext::commitChanges);
+    connect(this, &EditorContext::sceneChanged, this, &EditorContext::markChanged);
+    connect(this, &EditorContext::entityModified, this, &EditorContext::markChanged);
+    connect(this, &EditorContext::componentsChanged, this, &EditorContext::markChanged);
     // La tilemap active suit la sélection (et les tilemaps ajoutées / supprimées)
     connect(this, &EditorContext::selectionChanged, this, [this] { refreshActiveTilemap(); });
     connect(this, &EditorContext::sceneChanged, this, [this] { refreshActiveTilemap(); });
@@ -98,6 +106,7 @@ Entity EditorContext::createEntity(const QString& name) {
 
 void EditorContext::destroyEntity(Entity e) {
     if (!isValid(e)) return;
+    markChanged();   // avant de désélectionner : l'étape d'avant garde l'entité sélectionnée
     const bool wasSelected = e == m_selected;
     m_entityCategory.remove(entityKey(e));
     m_scene.destroyEntity(e);
@@ -120,6 +129,9 @@ void EditorContext::select(Entity e) {
     if (!isValid(e)) e = NULL_ENTITY;
     if (e == m_selected) return;
     m_selected = e;
+    // L'étape courante retient la sélection (Ctrl+Z après une suppression resélectionne l'entité)
+    if (!m_restoring && !m_pending)
+        m_current.selected = (isValid(e) && m_scene.hasComponent<PersistentId>(e)) ? m_scene.getComponent<PersistentId>(e).value : 0;
     emit selectionChanged(e);
 }
 
@@ -186,6 +198,12 @@ void EditorContext::setBrushSize(int size) {
     m_brushSize = size;
     QSettings().setValue("tilePalette/brushSize", size);
     emit brushSizeChanged(size);
+}
+
+void EditorContext::setResizeTarget(ResizeTarget target) {
+    if (target == m_resizeTarget) return;
+    m_resizeTarget = target;
+    emit resizeTargetChanged(target);
 }
 
 void EditorContext::setBrushShape(BrushShape shape) {
@@ -301,6 +319,7 @@ bool EditorContext::openScene(const QString& path, QString* error) {
     emit sceneChanged();
     m_loading = false;
     setDirty(false);
+    resetHistory();
     emit documentChanged();
     std::cout << "[Scene] " << toUtf8(QDir::toNativeSeparators(m_scenePath)) << " : "
               << result.entities.size() << " entites" << std::endl;
@@ -338,6 +357,7 @@ void EditorContext::newScene() {
     emit sceneChanged();
     m_loading = false;
     setDirty(false);
+    resetHistory();
     emit documentChanged();
 }
 
@@ -351,6 +371,139 @@ void EditorContext::importEntities(const std::function<void(Registry&)>& fill) {
     loadTilemaps(m_scene, toUtf8(projectDir()));
     snapAllFollowers();
     emit sceneChanged();
+    resetHistory();   // scène de départ : rien à annuler
+}
+
+// ---- Annuler / Rétablir --------------------------------------------------------------------------
+
+namespace {
+constexpr std::size_t kMaxUndo = 100;   // étapes gardées
+constexpr int kCommitDelayMs = 400;     // modifications rapprochées = une seule étape
+}
+
+EditorContext::Snapshot EditorContext::captureSnapshot() {
+    Snapshot s;
+    s.scene = sceneToString(m_scene, sceneMeta());   // donne aussi un PersistentId aux entités qui n'en ont pas
+    m_scene.view<Tilemap>([&](Entity e, Tilemap& tm) {
+        if (!tm.data || !m_scene.hasComponent<PersistentId>(e)) return;
+        // Copie seulement si la carte a changé depuis l'instantané courant (sinon on partage l'ancienne)
+        const uint64_t id = m_scene.getComponent<PersistentId>(e).value;
+        for (const auto& [prevId, prev] : m_current.maps)
+            if (prevId == id && prev->version == tm.data->version) { s.maps.emplace_back(id, prev); return; }
+        s.maps.emplace_back(id, std::make_shared<const TileMapData>(*tm.data));
+    });
+    if (isValid(m_selected) && m_scene.hasComponent<PersistentId>(m_selected))
+        s.selected = m_scene.getComponent<PersistentId>(m_selected).value;
+    return s;
+}
+
+bool EditorContext::sameSnapshot(const Snapshot& a, const Snapshot& b) const {
+    if (a.scene != b.scene || a.maps.size() != b.maps.size()) return false;
+    for (std::size_t i = 0; i < a.maps.size(); ++i)
+        if (a.maps[i].first != b.maps[i].first || a.maps[i].second != b.maps[i].second) return false;
+    return true;
+}
+
+void EditorContext::restoreSnapshot(const Snapshot& s) {
+    m_restoring = true;
+    m_loading = true;
+    m_commitTimer->stop();
+    // La sélection actuelle est gardée si l'entité existe encore après le retour en arrière
+    const uint64_t keepSelected = (isValid(m_selected) && m_scene.hasComponent<PersistentId>(m_selected))
+                                      ? m_scene.getComponent<PersistentId>(m_selected).value : 0;
+    resetScene();
+    SceneMeta meta;
+    const SceneLoadResult result = sceneFromString(m_scene, meta, s.scene);
+    for (const std::string& w : result.warnings) std::cerr << "[Annuler] " << w << std::endl;
+    applyEditorData(meta.editor);
+    // Les cases des tilemaps viennent de l'instantané (elles ne sont pas dans le JSON de la scène)
+    m_scene.view<Tilemap>([&](Entity e, Tilemap& tm) {
+        if (!m_scene.hasComponent<PersistentId>(e)) return;
+        const uint64_t id = m_scene.getComponent<PersistentId>(e).value;
+        for (const auto& [mapId, data] : s.maps)
+            if (mapId == id) { tm.data = std::make_shared<TileMapData>(*data); break; }
+    });
+    loadTilemaps(m_scene, toUtf8(projectDir()));   // tilemap sans instantané : depuis son fichier
+    // Les cartes restaurées gardent leur numéro de version : l'instantané courant les reconnaît
+    m_activeTilemap = NULL_ENTITY;
+    emit sceneChanged();
+    m_loading = false;
+    auto findEntity = [this](uint64_t id) {
+        if (id)
+            for (Entity e : entities())
+                if (m_scene.hasComponent<PersistentId>(e) && m_scene.getComponent<PersistentId>(e).value == id) return e;
+        return NULL_ENTITY;
+    };
+    Entity selected = findEntity(keepSelected);
+    if (!isValid(selected)) selected = findEntity(s.selected);
+    select(selected);
+    refreshActiveTilemap();
+    emit tilemapChanged();
+    setDirty(true);
+    m_pending = false;
+    m_restoring = false;
+}
+
+void EditorContext::markChanged() {
+    if (m_restoring || m_loading) return;
+    const bool wasPending = m_pending;
+    m_pending = true;
+    if (m_interaction == 0) m_commitTimer->start(kCommitDelayMs);
+    if (!wasPending) emit undoStateChanged();
+}
+
+void EditorContext::commitChanges() {
+    m_commitTimer->stop();
+    if (!m_pending || m_restoring) return;
+    m_pending = false;
+    Snapshot now = captureSnapshot();
+    if (sameSnapshot(now, m_current)) { emit undoStateChanged(); return; }
+    m_undo.push_back(std::move(m_current));
+    if (m_undo.size() > kMaxUndo) m_undo.erase(m_undo.begin());
+    m_current = std::move(now);
+    m_redo.clear();
+    emit undoStateChanged();
+}
+
+void EditorContext::resetHistory() {
+    m_commitTimer->stop();
+    m_undo.clear();
+    m_redo.clear();
+    m_pending = false;
+    m_current = captureSnapshot();
+    emit undoStateChanged();
+}
+
+void EditorContext::beginInteraction() {
+    ++m_interaction;
+    m_commitTimer->stop();
+}
+
+void EditorContext::endInteraction() {
+    m_interaction = std::max(0, m_interaction - 1);
+    if (m_interaction == 0 && m_pending) commitChanges();
+}
+
+void EditorContext::undo() {
+    commitChanges();   // ce qui vient d'être fait devient d'abord une étape
+    if (m_undo.empty()) { emit statusMessage(tr("Rien à annuler")); return; }
+    m_redo.push_back(std::move(m_current));
+    m_current = std::move(m_undo.back());
+    m_undo.pop_back();
+    restoreSnapshot(m_current);
+    emit statusMessage(tr("Annulé (%1 étape(s) restante(s))").arg(m_undo.size()));
+    emit undoStateChanged();
+}
+
+void EditorContext::redo() {
+    commitChanges();
+    if (m_redo.empty()) { emit statusMessage(tr("Rien à rétablir")); return; }
+    m_undo.push_back(std::move(m_current));
+    m_current = std::move(m_redo.back());
+    m_redo.pop_back();
+    restoreSnapshot(m_current);
+    emit statusMessage(tr("Rétabli"));
+    emit undoStateChanged();
 }
 
 // ---- Comportements et prefabs --------------------------------------------------------------------
@@ -515,11 +668,13 @@ void EditorContext::refreshActiveTilemap() {
 
 void EditorContext::notifyMapEdited() {
     if (!m_loading) setDirty(true);
+    markChanged();
 }
 
 void EditorContext::notifyTilesChanged() {
     if (TileMapData* map = activeMap()) { map->modified = true; ++map->version; }
     setDirty(true);
+    markChanged();
     emit tilemapChanged();
 }
 

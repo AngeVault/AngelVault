@@ -3,6 +3,9 @@
 #include "editor_context.h"
 
 #include "utils/loose_file_loader.h"
+#include "components/collider2d.h"
+#include "components/geometry.h"
+#include "shape_edit.h"
 
 #include <QPoint>
 #include <SFML/Graphics/View.hpp>
@@ -28,6 +31,9 @@ class RenderSystem;
 // Vue scène de l'éditeur : la tilemap + les entités de la scène (EditorContext).
 //  - molette : zoom (centré sur la souris)     - clic droit / clic molette + glisser : déplacer la vue
 //  - outil Sélection : clic = sélectionner, glisser = déplacer l'entité (Ctrl = aligner sur la grille)
+//  - outil Taille (R) : poignées sur l'entité sélectionnée pour agrandir sa forme (Geometry) et / ou sa
+//    collision (Collider2D) ; Maj = garder les proportions, Ctrl = arrondir à la demi-case
+//  - Affichage > Collisions : contours des Collider2D (vert ; déclencheurs en jaune)
 //  - outils Pinceau / Gomme / Remplir / Pipette : voir la Tile Palette
 //      glisser = tracé continu (aucune case sautée)   Maj + clic = ligne droite depuis le dernier point
 //      Ctrl + molette, [ ] ou - + : taille du pinceau   Alt + clic : pipette
@@ -44,6 +50,8 @@ public:
 
     void setGridVisible(bool visible) { m_showGrid = visible; }
     bool isGridVisible() const { return m_showGrid; }
+    void setCollidersVisible(bool visible) { m_showColliders = visible; }
+    bool areCollidersVisible() const { return m_showColliders; }
     void fitToMap();
 
 signals:
@@ -70,6 +78,32 @@ private:
     void drawSelection(sf::RenderTarget& target);
     void drawGizmo(sf::RenderTarget& target);
     void drawBrush(sf::RenderTarget& target);
+    void drawColliders(sf::RenderTarget& target);
+    void drawResizeGizmo(sf::RenderTarget& target);
+
+    // ---- Outil Taille ----
+    // Boîte de référence des poignées (la forme, sinon la collision) et repère local -> monde
+    struct ResizeFrame {
+        bool valid = false;
+        bool collider = false;            // la référence est la collision (sinon la Geometry)
+        shape_edit::LocalBox box;
+        sf::Transform toWorld;
+    };
+    ResizeFrame resizeFrame(Entity e) const;
+    int resizeHandleAt(sf::Vector2f world) const;   // 0..7, -1 = aucune
+    void beginResize(int handle);
+    void dragResize(sf::Vector2f world, Qt::KeyboardModifiers mods);
+    struct ResizeDrag {
+        int handle = -1;
+        Entity entity = NULL_ENTITY;
+        ResizeFrame frame;
+        bool hasGeometry = false, hasCollider = false;
+        Geometry geometry;                // au début du glisser
+        Collider2D collider;
+        sf::Vector2f scale{ 1.f, 1.f };   // Transform2D (sprites)
+    };
+    ResizeDrag m_resize;
+    int m_hoverResize = -1;
     void updateCursor();
 
     sf::Vector2f toWorld(const QPointF& widgetPos);
@@ -98,6 +132,8 @@ private:
     sf::Clock m_clock;
 
     bool m_showGrid = true;
+    bool m_showColliders = true;
+    bool m_interacting = false;   // clic gauche en cours (beginInteraction appelé)
     bool m_needsFit = true;
     bool m_userCamera = false;   // la caméra a été bougée à la main : plus de recadrage auto
     bool m_panning = false;

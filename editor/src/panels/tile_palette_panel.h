@@ -15,7 +15,7 @@ class QToolButton;
 class TilesetView;
 
 // Outils de la vue scène + tilesets de la tilemap active (Hierarchy : entité avec un composant Tilemap).
-//  V : sélection   B : pinceau   E : gomme   G : remplir   I : pipette
+//  V : sélection   R : taille (forme / collision)   B : pinceau   E : gomme   G : remplir   I : pipette
 //  Taille du pinceau : boutons rapides, curseur, Ctrl + molette dans la vue, [ ] ou - +
 //
 // Les tilesets sont des feuilles PNG découpées en grille (fichiers .tileset) :
@@ -59,6 +59,8 @@ private:
     EditorContext& m_ctx;
     QButtonGroup* m_tools = nullptr;
     QList<QAction*> m_toolActions;
+
+    QWidget* m_resizeBox = nullptr;   // outil Taille : forme + collision / forme / collision
 
     // Pinceau
     QWidget* m_brushBox = nullptr;

@@ -132,8 +132,10 @@ void TilemapView::frame(sf::RenderWindow& target) {
     m_tilemapRenderer->onUpdate(m_ctx.scene(), dt);   // toutes les entités Tilemap (aucune = pas de carte)
     if (m_showGrid) drawGrid(target);
     m_entityRenderer->onUpdate(m_ctx.scene(), dt);
+    drawColliders(target);
     drawCameras(target);
     drawSelection(target);
+    drawResizeGizmo(target);
     drawGizmo(target);
     drawBrush(target);
 }
@@ -300,7 +302,7 @@ void TilemapView::drawBrush(sf::RenderTarget& target) {
     if (!m_hoverValid || !underMouse()) return;
     const TileMapData* map = m_ctx.activeMap();
     const EditorTool tool = m_ctx.tool();
-    if (!map || tool == EditorTool::Select) return;
+    if (!map || tool == EditorTool::Select || tool == EditorTool::Resize) return;
 
     const sf::Vector2f o = m_ctx.activeMapOffset();
     const float px = 1.f / m_camera.zoom;
@@ -371,7 +373,7 @@ void TilemapView::drawBrush(sf::RenderTarget& target) {
 
 void TilemapView::updateCursor() {
     if (m_panning) return;
-    if (m_ctx.tool() == EditorTool::Select) unsetCursor();
+    if (m_ctx.tool() == EditorTool::Select || m_ctx.tool() == EditorTool::Resize) unsetCursor();
     else setCursor(Qt::CrossCursor);
 }
 
@@ -401,6 +403,171 @@ Entity TilemapView::pickEntity(sf::Vector2f world) {
         if (layer >= bestLayer) { best = e; bestLayer = layer; }   // à égalité : la plus récente (dessinée au-dessus)
     }
     return best;
+}
+
+// ---- Collisions et outil Taille -----------------------------------------------------------------
+
+namespace {
+// Poignées : coins et milieux des bords, dans le sens des aiguilles d'une montre depuis le haut-gauche
+const sf::Vector2i kResizeDirs[8] = { { -1, -1 }, { 0, -1 }, { 1, -1 }, { 1, 0 }, { 1, 1 }, { 0, 1 }, { -1, 1 }, { -1, 0 } };
+constexpr float kResizeHandle = 5.f;   // demi-côté d'une poignée (px écran)
+const sf::Color kColliderColor(80, 220, 120);
+const sf::Color kTriggerColor(240, 200, 60);
+
+void drawPolyline(sf::RenderTarget& target, const std::vector<sf::Vector2f>& pts, const sf::Transform& m,
+                  sf::Color color, bool fill) {
+    if (pts.size() < 2) return;
+    if (fill) {
+        sf::VertexArray fan(sf::PrimitiveType::TriangleFan);
+        sf::Vector2f c;
+        for (sf::Vector2f p : pts) c += p;
+        c /= float(pts.size());
+        const sf::Color f(color.r, color.g, color.b, 28);
+        fan.append({ m.transformPoint(c), f });
+        for (sf::Vector2f p : pts) fan.append({ m.transformPoint(p), f });
+        fan.append({ m.transformPoint(pts.front()), f });
+        target.draw(fan);
+    }
+    sf::VertexArray line(sf::PrimitiveType::LineStrip);
+    for (sf::Vector2f p : pts) line.append({ m.transformPoint(p), color });
+    line.append({ m.transformPoint(pts.front()), color });
+    target.draw(line);
+}
+} // namespace
+
+void TilemapView::drawColliders(sf::RenderTarget& target) {
+    Registry& reg = m_ctx.scene();
+    const bool resizing = m_ctx.tool() == EditorTool::Resize;
+    if (!m_showColliders && !resizing) return;
+    for (Entity e : m_ctx.entities()) {
+        if (!reg.hasComponent<Collider2D>(e) || !reg.hasComponent<Transform2D>(e)) continue;
+        if (!m_showColliders && e != m_ctx.selected()) continue;   // Collisions masquées : seulement celle qu'on redimensionne
+        const Collider2D& c = reg.getComponent<Collider2D>(e);
+        const sf::Color color = c.isTrigger ? kTriggerColor : kColliderColor;
+        drawPolyline(target, shape_edit::colliderOutline(c), shape_edit::colliderToWorld(reg.getComponent<Transform2D>(e), c),
+                     color, c.type() != Collider2D::ShapeType::Polygon);
+    }
+}
+
+TilemapView::ResizeFrame TilemapView::resizeFrame(Entity e) const {
+    ResizeFrame f;
+    Registry& reg = m_ctx.scene();
+    if (!m_ctx.isValid(e) || !reg.hasComponent<Transform2D>(e)) return f;
+    const Transform2D& t = reg.getComponent<Transform2D>(e);
+    const ResizeTarget target = m_ctx.resizeTarget();
+    if (target != ResizeTarget::Collider && reg.hasComponent<Geometry>(e)) {
+        f.valid = true;
+        f.box = shape_edit::geometryBox(reg.getComponent<Geometry>(e));
+        f.toWorld = t.getLocalMatrix();
+    } else if (target != ResizeTarget::Geometry && reg.hasComponent<Collider2D>(e)) {
+        const Collider2D& c = reg.getComponent<Collider2D>(e);
+        f.valid = true;
+        f.collider = true;
+        f.box = shape_edit::colliderBox(c);
+        f.toWorld = shape_edit::colliderToWorld(t, c);
+    }
+    return f;
+}
+
+int TilemapView::resizeHandleAt(sf::Vector2f world) const {
+    if (m_ctx.tool() != EditorTool::Resize) return -1;
+    const ResizeFrame f = resizeFrame(m_ctx.selected());
+    if (!f.valid) return -1;
+    const float grab = (kResizeHandle + 3.f) / m_camera.zoom;
+    for (int i = 0; i < 8; ++i) {
+        const sf::Vector2f d(kResizeDirs[i]);
+        const sf::Vector2f p = f.toWorld.transformPoint(f.box.center + sf::Vector2f{ d.x * f.box.half.x, d.y * f.box.half.y });
+        if (std::abs(world.x - p.x) <= grab && std::abs(world.y - p.y) <= grab) return i;
+    }
+    return -1;
+}
+
+void TilemapView::beginResize(int handle) {
+    Registry& reg = m_ctx.scene();
+    const Entity e = m_ctx.selected();
+    m_resize = ResizeDrag{};
+    m_resize.frame = resizeFrame(e);
+    if (!m_resize.frame.valid) return;
+    m_resize.handle = handle;
+    m_resize.entity = e;
+    const ResizeTarget target = m_ctx.resizeTarget();
+    // La forme n'est redimensionnée que si elle sert de référence (sinon c'est « Collision » seule)
+    m_resize.hasGeometry = target != ResizeTarget::Collider && !m_resize.frame.collider && reg.hasComponent<Geometry>(e);
+    m_resize.hasCollider = target != ResizeTarget::Geometry && reg.hasComponent<Collider2D>(e);
+    if (m_resize.hasGeometry) m_resize.geometry = reg.getComponent<Geometry>(e);
+    if (m_resize.hasCollider) m_resize.collider = reg.getComponent<Collider2D>(e);
+    m_resize.scale = reg.getComponent<Transform2D>(e).getScale();
+}
+
+void TilemapView::dragResize(sf::Vector2f world, Qt::KeyboardModifiers mods) {
+    Registry& reg = m_ctx.scene();
+    const Entity e = m_resize.entity;
+    if (!m_ctx.isValid(e) || !reg.hasComponent<Transform2D>(e)) { m_resize.handle = -1; return; }
+    const ResizeFrame& f = m_resize.frame;
+    const sf::Vector2i dir = kResizeDirs[m_resize.handle];
+    const sf::Vector2f d(dir);
+    const sf::Vector2f half = { std::max(f.box.half.x, 0.5f), std::max(f.box.half.y, 0.5f) };
+
+    // Point fixe : le bord opposé pour une collision seule (comme Unity), sinon le centre de la forme
+    const bool colliderOnly = f.collider && m_ctx.resizeTarget() == ResizeTarget::Collider;
+    const sf::Vector2f anchor = colliderOnly ? f.box.center - sf::Vector2f{ d.x * half.x, d.y * half.y } : f.box.center;
+    const sf::Vector2f handle0 = f.box.center + sf::Vector2f{ d.x * half.x, d.y * half.y };
+    const sf::Vector2f m = f.toWorld.getInverse().transformPoint(world);
+
+    sf::Vector2f s{ 1.f, 1.f };
+    if (dir.x != 0 && std::abs(handle0.x - anchor.x) > 1e-3f) s.x = (m.x - anchor.x) / (handle0.x - anchor.x);
+    if (dir.y != 0 && std::abs(handle0.y - anchor.y) > 1e-3f) s.y = (m.y - anchor.y) / (handle0.y - anchor.y);
+    if (mods & Qt::ShiftModifier) {   // Maj : garder les proportions
+        const float u = dir.x != 0 && dir.y != 0 ? std::max(s.x, s.y) : (dir.x != 0 ? s.x : s.y);
+        s = { u, u };
+    }
+    if (mods & Qt::ControlModifier) {   // Ctrl : taille arrondie à la demi-case
+        const float step = snapStep();
+        auto snap = [&](float h, float k) { return std::max(step, std::round(h * k * 2.f / step) * step) / (2.f * h); };
+        if (dir.x != 0 || (mods & Qt::ShiftModifier)) s.x = snap(half.x, s.x);
+        if (dir.y != 0 || (mods & Qt::ShiftModifier)) s.y = snap(half.y, s.y);
+    }
+    // Jamais retournée ni plus petite qu'un pixel
+    s.x = std::max(s.x, 1.f / half.x);
+    s.y = std::max(s.y, 1.f / half.y);
+
+    Transform2D& t = reg.getComponent<Transform2D>(e);
+    if (m_resize.hasGeometry && reg.hasComponent<Geometry>(e))
+        shape_edit::scaleGeometry(reg.getComponent<Geometry>(e), m_resize.geometry, t, m_resize.scale, s, anchor, dir);
+    if (m_resize.hasCollider && reg.hasComponent<Collider2D>(e)) {
+        Collider2D& c = reg.getComponent<Collider2D>(e);
+        // point fixe dans le repère de la collision
+        const sf::Vector2f a = f.collider ? anchor
+            : shape_edit::colliderToWorld(t, m_resize.collider).getInverse().transformPoint(f.toWorld.transformPoint(anchor));
+        shape_edit::scaleCollider(c, m_resize.collider, s, a, dir);
+    }
+    m_ctx.notifyEntityModified(e, this);
+    const sf::Vector2f size{ half.x * s.x * 2.f, half.y * s.y * 2.f };
+    emit statusText(tr("Taille : %1 x %2").arg(double(size.x), 0, 'f', 1).arg(double(size.y), 0, 'f', 1));
+}
+
+void TilemapView::drawResizeGizmo(sf::RenderTarget& target) {
+    if (m_ctx.tool() != EditorTool::Resize) return;
+    const ResizeFrame f = m_resize.handle >= 0 ? resizeFrame(m_resize.entity) : resizeFrame(m_ctx.selected());
+    if (!f.valid) return;
+    const float px = 1.f / m_camera.zoom;
+    const ResizeTarget mode = m_ctx.resizeTarget();
+    const sf::Color color = mode == ResizeTarget::Both ? sf::Color(240, 240, 240) : f.collider ? kColliderColor : kSelection;
+
+    const sf::Vector2f c = f.box.center, h = f.box.half;
+    drawPolyline(target, { c + sf::Vector2f{ -h.x, -h.y }, c + sf::Vector2f{ h.x, -h.y }, c + sf::Vector2f{ h.x, h.y }, c + sf::Vector2f{ -h.x, h.y } },
+                 f.toWorld, color, false);
+    const int hot = m_resize.handle >= 0 ? m_resize.handle : m_hoverResize;
+    for (int i = 0; i < 8; ++i) {
+        const sf::Vector2f d(kResizeDirs[i]);
+        sf::RectangleShape handle({ 2.f * kResizeHandle * px, 2.f * kResizeHandle * px });
+        handle.setOrigin({ kResizeHandle * px, kResizeHandle * px });
+        handle.setPosition(f.toWorld.transformPoint(c + sf::Vector2f{ d.x * h.x, d.y * h.y }));
+        handle.setFillColor(i == hot ? sf::Color(255, 215, 60) : sf::Color(30, 30, 34));
+        handle.setOutlineThickness(1.5f * px);
+        handle.setOutlineColor(i == hot ? sf::Color(255, 215, 60) : color);
+        target.draw(handle);
+    }
 }
 
 // ---- Peinture ------------------------------------------------------------------------------------
@@ -565,6 +732,8 @@ void TilemapView::mousePressEvent(QMouseEvent* e) {
         m_lastMouse = e->position();
         setCursor(Qt::ClosedHandCursor);
     } else if (e->button() == Qt::LeftButton) {
+        m_ctx.beginInteraction();   // tout le geste (glisser, tracé...) = une seule étape d'annulation
+        m_interacting = true;
         const sf::Vector2f world = toWorld(e->position());
         if (m_ctx.tool() == EditorTool::Select) {
             // Le gizmo passe avant le sprite : on peut le saisir même s'il dépasse sur une autre entité
@@ -579,6 +748,11 @@ void TilemapView::mousePressEvent(QMouseEvent* e) {
                 m_dragStart = m_ctx.scene().getComponent<Transform2D>(hit).getPosition();
                 m_dragOffset = m_dragStart - world;
             }
+        } else if (m_ctx.tool() == EditorTool::Resize) {
+            // Une poignée de la sélection, sinon on sélectionne ce qui est sous la souris
+            const int handle = resizeHandleAt(world);
+            if (handle >= 0) beginResize(handle);
+            else if (const Entity hit = pickEntity(world); hit != m_ctx.selected()) m_ctx.select(hit);
         } else {
             updateHover(e->position());
             const EditorTool tool = m_ctx.tool();
@@ -616,6 +790,22 @@ void TilemapView::mouseMoveEvent(QMouseEvent* e) {
     }
     updateHover(e->position());
 
+    if (m_resize.handle >= 0 && (e->buttons() & Qt::LeftButton)) {   // outil Taille : poignée tenue
+        dragResize(toWorld(e->position()), e->modifiers());
+        SfmlWidget::mouseMoveEvent(e);
+        return;
+    }
+    if (m_ctx.tool() == EditorTool::Resize) {   // poignée survolée : surbrillance + curseur
+        const int h = resizeHandleAt(toWorld(e->position()));
+        if (h != m_hoverResize) {
+            m_hoverResize = h;
+            static const Qt::CursorShape kCursors[8] = { Qt::SizeFDiagCursor, Qt::SizeVerCursor, Qt::SizeBDiagCursor, Qt::SizeHorCursor,
+                                                         Qt::SizeFDiagCursor, Qt::SizeVerCursor, Qt::SizeBDiagCursor, Qt::SizeHorCursor };
+            if (h < 0) updateCursor();
+            else setCursor(kCursors[h]);
+        }
+    }
+
     if (!m_ctx.isValid(m_dragEntity)) {   // surbrillance de la poignée survolée
         const GizmoHandle h = gizmoHandleAt(toWorld(e->position()));
         if (h != m_hoverHandle) {
@@ -651,11 +841,13 @@ void TilemapView::mouseReleaseEvent(QMouseEvent* e) {
     if (e->button() == Qt::LeftButton) {
         m_dragEntity = NULL_ENTITY;
         m_dragHandle = GizmoHandle::None;
+        m_resize.handle = -1;
         m_hoverHandle = GizmoHandle::None;   // recalculée au prochain mouvement
         updateCursor();
         if (m_painting) { m_strokeEnd = m_lastPainted; m_hasStrokeEnd = true; }
         m_painting = false;
         m_lastPainted = { INT32_MIN, INT32_MIN };
+        if (m_interacting) { m_interacting = false; m_ctx.endInteraction(); }
     }
     SfmlWidget::mouseReleaseEvent(e);
 }

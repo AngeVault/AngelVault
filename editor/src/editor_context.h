@@ -9,12 +9,16 @@
 #include <QString>
 #include <QStringList>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
 // Outils de la vue scène (choisis dans la Tile Palette)
-enum class EditorTool { Select, Paint, Erase, Fill, Pick };
+enum class EditorTool { Select, Paint, Erase, Fill, Pick, Resize };
+
+// Outil Taille : ce que les poignées agrandissent sur l'entité sélectionnée
+enum class ResizeTarget { Both, Geometry, Collider };
 
 // Forme du pinceau (Pinceau / Gomme)
 enum class BrushShape { Square, Circle };
@@ -100,6 +104,18 @@ public:
     // Remplit une scène neuve avec des entités créées en code (ex. loadRpgEntities de rpg_scene.h)
     void importEntities(const std::function<void(Registry&)>& fill);
 
+    // --- Annuler / Rétablir (Ctrl+Z / Ctrl+Y) ---
+    // Après chaque modification (entités, composants, Hierarchy, tiles peintes), l'état de la scène est
+    // mémorisé : un « instantané » (scène en JSON + cases des tilemaps + sélection). Les modifications
+    // rapprochées (frappe dans l'Inspector) sont regroupées ; un geste à la souris dans la vue
+    // (beginInteraction / endInteraction) compte pour une seule étape.
+    void undo();
+    void redo();
+    bool canUndo() const { return !m_undo.empty() || m_pending; }
+    bool canRedo() const { return !m_redo.empty(); }
+    void beginInteraction();
+    void endInteraction();
+
     // Modifications non enregistrées (étoile dans le titre, question en quittant)
     bool isDirty() const { return m_dirty; }
     void setDirty(bool dirty);
@@ -140,6 +156,8 @@ public:
     static constexpr int kMaxBrushSize = 32;
     int brushSize() const { return m_brushSize; }       // côté du pinceau, en cases (1 .. kMaxBrushSize)
     void setBrushSize(int size);
+    ResizeTarget resizeTarget() const { return m_resizeTarget; }
+    void setResizeTarget(ResizeTarget target);
     BrushShape brushShape() const { return m_brushShape; }
     void setBrushShape(BrushShape shape);
 
@@ -154,9 +172,11 @@ signals:
     void tilemapChanged();                        // autre tilemap active, ou ses tiles / réglages ont changé
     void brushSizeChanged(int size);
     void brushShapeChanged(BrushShape shape);
+    void resizeTargetChanged(ResizeTarget target);
     void dirtyChanged(bool dirty);
     void documentChanged();
-    void statusMessage(const QString& text);      // pour la barre d'état (glisser-déposer, prefabs...)                       // autre projet / scène ouverte, ou enregistrée sous un autre nom
+    void statusMessage(const QString& text);
+    void undoStateChanged();                      // canUndo() / canRedo() ont pu changer      // pour la barre d'état (glisser-déposer, prefabs...)                       // autre projet / scène ouverte, ou enregistrée sous un autre nom
 
 private:
     Registry m_scene;
@@ -170,6 +190,25 @@ private:
     bool m_loading = false;   // pendant un chargement : les signaux ne rendent pas la scène « modifiée »
 
     void resetScene();                          // vide la scène, les catégories et la sélection
+
+    // Historique
+    struct Snapshot {
+        std::string scene;                                                       // sceneToString (+ catégories)
+        std::vector<std::pair<uint64_t, std::shared_ptr<const TileMapData>>> maps;   // PersistentId -> cases
+        uint64_t selected = 0;                                                   // PersistentId (0 = rien)
+    };
+    Snapshot captureSnapshot();
+    void restoreSnapshot(const Snapshot& snapshot);
+    bool sameSnapshot(const Snapshot& a, const Snapshot& b) const;
+    void markChanged();       // une modification : l'étape sera enregistrée (tout de suite ou un peu après)
+    void commitChanges();     // enregistre l'étape en attente
+    void resetHistory();      // nouvelle scène : historique vide
+    std::vector<Snapshot> m_undo, m_redo;
+    Snapshot m_current;
+    bool m_pending = false;
+    bool m_restoring = false;
+    int m_interaction = 0;
+    class QTimer* m_commitTimer = nullptr;
     Json editorData();                          // catégories -> section "editor" du fichier
     void applyEditorData(const Json& editor);
     SceneMeta sceneMeta();
@@ -180,4 +219,5 @@ private:
     void refreshActiveTilemap();   // émet tilemapChanged si la tilemap active change
     int m_brushSize = 1;
     BrushShape m_brushShape = BrushShape::Square;
+    ResizeTarget m_resizeTarget = ResizeTarget::Both;
 };

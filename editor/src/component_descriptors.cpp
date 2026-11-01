@@ -279,6 +279,38 @@ QString cleanTypeName(const char* raw) {
 }
 
 /**
+ * Changes the shape of a Collider2D (Rectangle / Cercle / Ellipse / Capsule / Polygone),
+ * keeping roughly the same size (bounding half-extents) and the offset.
+ */
+void setColliderShape(Collider2D& c, int kind) {
+    using C = Collider2D;
+    if (kind == int(c.type())) return;
+    sf::Vector2f half{ 16.f, 16.f };
+    std::visit([&](const auto& s) {
+        using T = std::decay_t<decltype(s)>;
+        if constexpr (std::is_same_v<T, C::Box>) half = s.halfSize;
+        else if constexpr (std::is_same_v<T, C::Circle>) half = { s.radius, s.radius };
+        else if constexpr (std::is_same_v<T, C::Ellipse>) half = s.radii;
+        else if constexpr (std::is_same_v<T, C::Capsule>) half = { s.radius, s.height * 0.5f };
+        else if (!s.points.empty()) {
+            sf::Vector2f mn = s.points[0], mx = s.points[0];
+            for (sf::Vector2f p : s.points) { mn = { std::min(mn.x, p.x), std::min(mn.y, p.y) }; mx = { std::max(mx.x, p.x), std::max(mx.y, p.y) }; }
+            half = (mx - mn) * 0.5f;
+        }
+    }, c.shape);
+    half = { std::max(half.x, 1.f), std::max(half.y, 1.f) };
+    switch (C::ShapeType(kind)) {
+    case C::ShapeType::Box:     c.shape = C::Box{ half }; break;
+    case C::ShapeType::Circle:  c.shape = C::Circle{ std::max(half.x, half.y) }; break;
+    case C::ShapeType::Ellipse: c.shape = C::Ellipse{ half }; break;
+    case C::ShapeType::Capsule: c.shape = C::Capsule{ half.x, std::max(half.y * 2.f, half.x * 2.f) }; break;
+    case C::ShapeType::Polygon:
+        c.shape = C::Polygon{ { { -half.x, -half.y }, { half.x, -half.y }, { half.x, half.y }, { -half.x, half.y } } };
+        break;
+    }
+}
+
+/**
  * Changes the shape held by a Geometry (Rectangle / Cercle / Polygone / Sprite).
  *
  * The new shape keeps what makes sense from the old one: its size
@@ -523,27 +555,31 @@ std::vector<ComponentDesc> build() {
         d.fields = [](Registry& r, Entity e) {
             using C = Collider2D;
             std::vector<FieldDesc> f;
+            // Forme : liste déroulante (même ordre que Collider2D::ShapeType). Changer garde la taille.
+            FieldDesc shape{ QObject::tr("Forme"), FieldKind::Choice };
+            shape.choices = { QObject::tr("Rectangle"), QObject::tr("Cercle"), QObject::tr("Ellipse"),
+                              QObject::tr("Capsule"), QObject::tr("Polygone") };
+            shape.get = [&r, e] { return QVariant(int(r.getComponent<C>(e).type())); };
+            shape.set = [&r, e](const QVariant& v) { setColliderShape(r.getComponent<C>(e), v.toInt()); };
+            shape.rebuildOnChange = true;
+            f.push_back(shape);
             switch (r.getComponent<C>(e).type()) {
             case C::ShapeType::Box:
-                f.push_back(label(QObject::tr("Forme"), QObject::tr("Rectangle")));
                 f.push_back(vecRef<C>(r, e, QObject::tr("Demi-taille"), [](C& c) -> sf::Vector2f& { return std::get<C::Box>(c.shape).halfSize; }));
                 break;
             case C::ShapeType::Circle:
-                f.push_back(label(QObject::tr("Forme"), QObject::tr("Cercle")));
                 f.push_back(floatRef<C>(r, e, QObject::tr("Rayon"), [](C& c) -> float& { return std::get<C::Circle>(c.shape).radius; }, 0));
                 break;
             case C::ShapeType::Ellipse:
-                f.push_back(label(QObject::tr("Forme"), QObject::tr("Ellipse")));
                 f.push_back(vecRef<C>(r, e, QObject::tr("Rayons"), [](C& c) -> sf::Vector2f& { return std::get<C::Ellipse>(c.shape).radii; }));
                 break;
             case C::ShapeType::Capsule:
-                f.push_back(label(QObject::tr("Forme"), QObject::tr("Capsule")));
                 f.push_back(floatRef<C>(r, e, QObject::tr("Rayon"), [](C& c) -> float& { return std::get<C::Capsule>(c.shape).radius; }, 0));
                 f.push_back(floatRef<C>(r, e, QObject::tr("Hauteur"), [](C& c) -> float& { return std::get<C::Capsule>(c.shape).height; }, 0));
                 break;
             case C::ShapeType::Polygon:
-                f.push_back(label(QObject::tr("Forme"),
-                                  QObject::tr("Polygone (%1 points)").arg(std::get<C::Polygon>(r.getComponent<C>(e).shape).points.size())));
+                f.push_back(label(QObject::tr("Points"),
+                                  QObject::tr("%1 (outil Taille pour l'agrandir)").arg(std::get<C::Polygon>(r.getComponent<C>(e).shape).points.size())));
                 break;
             }
             f.push_back(vecRef<C>(r, e, QObject::tr("Décalage"), [](C& c) -> sf::Vector2f& { return c.offset; }));
