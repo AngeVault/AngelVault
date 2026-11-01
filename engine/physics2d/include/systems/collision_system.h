@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <cfloat>
 #include <type_traits>
+#include <unordered_map>
 
 
 // Règles de collision :
@@ -36,6 +37,11 @@ public:
 
     CollisionSystem() { priority = 1; } // après Physics (0), avant Render (10)
 
+    // Plus grand déplacement d'une image traité comme un mouvement (au-delà : téléportation, pas de balayage)
+    float maxSweep = 2000.f;
+    // Nombre max de sous-étapes par image (objets très rapides contre des murs très fins)
+    int maxSubSteps = 16;
+
     void onUpdate(Registry& registry, float dt) override {
         // Collecte toutes les entités collidables
         m_entries.clear();
@@ -46,6 +52,44 @@ public:
                 m_entries.push_back({ e, &c, &t, rb });
             });
 
+        // ---- Sous-étapes (anti « effet tunnel ») ------------------------------------------------
+        // Un objet rapide peut sauter par-dessus un mur fin en une seule image. On rejoue donc son
+        // déplacement de l'image en petits pas (pas plus grand que la moitié de la forme la plus fine),
+        // avec détection + réponse à chaque pas.
+        float thinnest = FLT_MAX;
+        for (const auto& en : m_entries) thinnest = std::min(thinnest, minHalfExtent(*en.col));
+        const float step = std::max(1.f, thinnest);
+        float longest = 0.f;
+        m_moves.assign(m_entries.size(), sf::Vector2f{});
+        for (size_t i = 0; i < m_entries.size(); ++i) {
+            const auto& en = m_entries[i];
+            if (!en.rb || en.rb->isStatic) continue;
+            const auto it = m_lastPositions.find(entityKey(en.e));
+            if (it == m_lastPositions.end()) continue;
+            const sf::Vector2f move = en.tr->getPosition() - it->second;
+            const float len = std::hypot(move.x, move.y);
+            if (len > maxSweep) continue;   // téléportation (script, éditeur) : pas de balayage
+            m_moves[i] = move;
+            longest = std::max(longest, len);
+        }
+        const int steps = std::clamp(int(std::ceil(longest / step)), 1, std::max(1, maxSubSteps));
+        if (steps > 1)
+            for (size_t i = 0; i < m_entries.size(); ++i) m_entries[i].tr->move(-m_moves[i]);   // retour au début de l'image
+
+        m_reported.clear();
+        for (int s = 0; s < steps; ++s) {
+            if (steps > 1)
+                for (size_t i = 0; i < m_entries.size(); ++i) m_entries[i].tr->move(m_moves[i] / float(steps));
+            collidePass();
+        }
+
+        m_lastPositions.clear();
+        for (const auto& en : m_entries) m_lastPositions[entityKey(en.e)] = en.tr->getPosition();
+    }
+
+private:
+    // Une passe : grille spatiale, détection et réponse pour toutes les paires
+    void collidePass() {
         // Grille spatiale : seuls les colliders dont les boîtes englobantes
         // partagent une cellule arrivent jusqu'au test précis.
         constexpr float cellSize = 128.f;
@@ -99,7 +143,12 @@ public:
                         info.entityB = B.e;
                         info.isTrigger = A.col->isTrigger || B.col->isTrigger || !bothBodies;
 
-                        if (onCollision) onCollision(info);
+                        // Une seule notification par paire et par image (même avec plusieurs sous-étapes)
+                        const uint64_t pair = pairKey(A.e, B.e);
+                        if (onCollision && std::find(m_reported.begin(), m_reported.end(), pair) == m_reported.end()) {
+                            m_reported.push_back(pair);
+                            onCollision(info);
+                        }
 
                         if (!info.isTrigger)
                             resolve(info, A.rb, B.rb, *A.tr, *B.tr, *A.col, *B.col);
@@ -110,7 +159,6 @@ public:
         }
     }
 
-private:
     struct ColEntry {
         Entity e;
         Collider2D* col;
@@ -122,6 +170,33 @@ private:
     std::vector<ColEntry> m_entries;
     std::vector<GridSpan> m_spans;
     std::vector<CellEntry> m_cellEntries;
+    std::vector<sf::Vector2f> m_moves;                          // déplacement de l'image (sous-étapes)
+    std::unordered_map<uint64_t, sf::Vector2f> m_lastPositions; // position à la fin de l'image précédente
+    std::vector<uint64_t> m_reported;                           // paires déjà notifiées cette image
+
+    static uint64_t entityKey(Entity e) { return (uint64_t(e.index) << 32) | e.generation; }
+    static uint64_t pairKey(Entity a, Entity b) {
+        const uint64_t x = (uint64_t(a.index) << 32) | b.index, y = (uint64_t(b.index) << 32) | a.index;
+        return std::min(x, y);
+    }
+
+    // Demi-épaisseur la plus petite de la forme (sert à choisir la taille des sous-étapes)
+    static float minHalfExtent(const Collider2D& c) {
+        using C = Collider2D;
+        return std::visit([](const auto& s) -> float {
+            using T = std::decay_t<decltype(s)>;
+            if constexpr (std::is_same_v<T, C::Box>) return std::min(s.halfSize.x, s.halfSize.y);
+            else if constexpr (std::is_same_v<T, C::Circle>) return s.radius;
+            else if constexpr (std::is_same_v<T, C::Ellipse>) return std::min(s.radii.x, s.radii.y);
+            else if constexpr (std::is_same_v<T, C::Capsule>) return s.radius;
+            else {
+                if (s.points.empty()) return FLT_MAX;
+                sf::Vector2f mn = s.points[0], mx = s.points[0];
+                for (sf::Vector2f p : s.points) { mn = { std::min(mn.x, p.x), std::min(mn.y, p.y) }; mx = { std::max(mx.x, p.x), std::max(mx.y, p.y) }; }
+                return 0.5f * std::min(mx.x - mn.x, mx.y - mn.y);
+            }
+        }, c.shape);
+    }
 
     static uint64_t cellKey(int x, int y) {
         return (static_cast<uint64_t>(static_cast<uint32_t>(x)) << 32)
@@ -379,6 +454,9 @@ private:
         if (circleA) addCircleAxis(posA, ptsB, posB);
         if (circleB) addCircleAxis(posB, ptsA, posA);
 
+        // Profondeur DIRIGÉE : distance pour sortir B d'un côté ou de l'autre de A sur cet axe.
+        // (Le simple chevauchement des projections est plafonné à l'épaisseur de la forme la plus fine :
+        //  contre un mur fin, la poussée était trop faible et on s'enfonçait image après image.)
         float minDepth = FLT_MAX;
         sf::Vector2f bestNormal{ 1.f, 0.f };
         for (sf::Vector2f axis : axes) {
@@ -387,15 +465,15 @@ private:
             axis /= len;
             const auto [minA, maxA] = projectShape(ptsA, circleA, posA, radiusA, axis);
             const auto [minB, maxB] = projectShape(ptsB, circleB, posB, radiusB, axis);
-            const float depth = std::min(maxA, maxB) - std::max(minA, minB);
-            if (depth <= 0.f) return false;   // axe séparateur trouvé
-            if (depth < minDepth) { minDepth = depth; bestNormal = axis; }
+            const float pushPlus = maxA - minB;    // B poussé vers +axis
+            const float pushMinus = maxB - minA;   // B poussé vers -axis
+            if (pushPlus <= 0.f || pushMinus <= 0.f) return false;   // axe séparateur trouvé
+            const float depth = std::min(pushPlus, pushMinus);
+            if (depth < minDepth) { minDepth = depth; bestNormal = pushPlus <= pushMinus ? axis : -axis; }
         }
         if (minDepth == FLT_MAX) return false;
 
-        // La normale pointe de A vers B
-        const sf::Vector2f dir = posB - posA;
-        if (dir.x * bestNormal.x + dir.y * bestNormal.y < 0.f) bestNormal = -bestNormal;
+        // La normale pointe de A vers B (sens dans lequel B doit sortir)
         info.normal = bestNormal;
         info.depth = minDepth;
 

@@ -253,7 +253,7 @@
             -0.3189964294433594,
             528.0307006835938
           ],
-          "rotation": -26.999996185302734,
+          "rotation": -26.9999942779541,
           "scale": [
             1.0,
             1.0
@@ -264,8 +264,8 @@
           "mass": 1.0,
           "linearDrag": 0.05000000074505806,
           "friction": 0.4000000059604645,
-          "isStatic": false,
-          "useGravity": true,
+          "isStatic": true,
+          "useGravity": false,
           "inertia": 0.0,
           "fixedRotation": false
         },
