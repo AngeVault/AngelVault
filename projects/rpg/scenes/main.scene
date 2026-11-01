@@ -57,7 +57,7 @@
           "rotation": 0.0,
           "scale": [
             1.0,
-            1.0
+            1.1536251306533813
           ],
           "depth": 0.0
         },
@@ -85,7 +85,7 @@
         "Collider2D": {
           "offset": [
             0.0,
-            0.0
+            22.0
           ],
           "isTrigger": false,
           "restitution": 0.20000000298023224,
@@ -93,7 +93,7 @@
           "shape": "Box",
           "halfSize": [
             16.0,
-            32.0
+            15.0
           ]
         },
         "Script": {
@@ -116,8 +116,8 @@
         },
         "Transform2D": {
           "position": [
-            703.8336791992188,
-            539.115234375
+            703.4586791992188,
+            569.6966552734375
           ],
           "rotation": 0.0,
           "scale": [
@@ -145,8 +145,8 @@
           "friction": 0.4000000059604645,
           "shape": "Box",
           "halfSize": [
-            8.93743896484375,
-            2.4940185546875
+            11.3448486328125,
+            8.86029052734375
           ]
         }
       }
@@ -208,7 +208,7 @@
         "Transform2D": {
           "position": [
             -1.3573884963989258,
-            196.71348571777344
+            219.3151092529297
           ],
           "rotation": 0.0,
           "scale": [
@@ -237,7 +237,7 @@
           "shape": "Box",
           "halfSize": [
             10.0,
-            4.0
+            5.6558685302734375
           ]
         }
       }
@@ -250,10 +250,10 @@
         },
         "Transform2D": {
           "position": [
-            -0.3189964294433594,
-            528.0307006835938
+            0.025803565979003906,
+            535.6162719726563
           ],
-          "rotation": -26.9999942779541,
+          "rotation": -26.99999237060547,
           "scale": [
             1.0,
             1.0
@@ -280,7 +280,179 @@
           "shape": "Box",
           "halfSize": [
             26.0,
-            2.0
+            7.4517822265625
+          ]
+        }
+      }
+    },
+    {
+      "id": 15643577204517526455,
+      "components": {
+        "Name": {
+          "name": "mur gauche"
+        },
+        "Transform2D": {
+          "position": [
+            -854.83251953125,
+            428.8375549316406
+          ],
+          "rotation": -26.499998092651367,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            1316.7005615234375,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "id": 8432238510110025053,
+      "components": {
+        "Name": {
+          "name": "mur haut"
+        },
+        "Transform2D": {
+          "position": [
+            1013.4470825195313,
+            500.4137878417969
+          ],
+          "rotation": 26.499998092651367,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            1177.268798828125,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "id": 7647194933246917022,
+      "components": {
+        "Name": {
+          "name": "Nouvelle entité"
+        },
+        "Transform2D": {
+          "position": [
+            -1006.9256591796875,
+            1521.399169921875
+          ],
+          "rotation": 26.499998092651367,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            1158.716796875,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "id": 15999493952223515466,
+      "components": {
+        "Name": {
+          "name": "Nouvelle entité"
+        },
+        "Transform2D": {
+          "position": [
+            1064.574462890625,
+            1497.6640625
+          ],
+          "rotation": -26.499998092651367,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            1237.125,
+            16.0
           ]
         }
       }
@@ -299,7 +471,11 @@
       "16747246975918472367": "map",
       "15432053153391235874": "map",
       "18107087873688893773": "colision",
-      "12397982373394162714": "colision"
+      "12397982373394162714": "colision",
+      "15643577204517526455": "colision",
+      "8432238510110025053": "colision",
+      "7647194933246917022": "colision",
+      "15999493952223515466": "colision"
     }
   }
 }
