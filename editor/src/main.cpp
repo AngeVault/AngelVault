@@ -5,6 +5,7 @@
 #include "game_systems.h"
 #include "systems_dialog.h"
 #include "input_settings_dialog.h"
+#include "scene_toolbar.h"
 #include "panels/console_panel.h"
 #include "panels/hierarchy_panel.h"
 #include "panels/inspector_panel.h"
@@ -38,6 +39,7 @@
 #include <QStackedWidget>
 #include <QTimer>
 #include <QUrl>
+#include <QVBoxLayout>
 
 #include <functional>
 #include <iostream>
@@ -244,10 +246,21 @@ int main(int argc, char** argv) {
 
     // --- Vue centrale : tilemap + entités ---
     // La vue de jeu s'empile par-dessus pendant que l'on joue.
+    // Au-dessus : la barre des outils d'entités (Sélection, Taille), cachée pendant que l'on joue.
+    auto* central = new QWidget;
+    auto* centralLayout = new QVBoxLayout(central);
+    centralLayout->setContentsMargins(0, 0, 0, 0);
+    centralLayout->setSpacing(0);
+    auto* sceneToolbar = new SceneToolbar(ctx);
+    window.addActions(sceneToolbar->toolActions());   // R partout dans la fenêtre
+    centralLayout->addWidget(sceneToolbar);
     auto* viewports = new QStackedWidget;
     auto* tilemapView = new TilemapView(ctx);
     viewports->addWidget(tilemapView);
-    window.setCentralWidget(viewports);
+    centralLayout->addWidget(viewports, 1);
+    window.setCentralWidget(central);
+    QObject::connect(viewports, &QStackedWidget::currentChanged, sceneToolbar,
+                     [viewports, tilemapView, sceneToolbar] { sceneToolbar->setVisible(viewports->currentWidget() == tilemapView); });
 
     QObject::connect(grid, &QAction::toggled, tilemapView, &TilemapView::setGridVisible);
     tilemapView->setCollidersVisible(colliders->isChecked());

@@ -88,8 +88,6 @@ TilePalettePanel::TilePalettePanel(EditorContext& context, QWidget* parent) : QW
     struct ToolDef { EditorTool tool; QString text; QString tip; QKeySequence key; };
     const ToolDef defs[] = {
         { EditorTool::Select, tr("Sélection"), tr("Sélectionner et déplacer des entités (V)"),               QKeySequence(Qt::Key_V) },
-        { EditorTool::Resize, tr("Taille"),    tr("Agrandir la forme et / ou la collision de l'entité sélectionnée (R)\n"
-                                                  "Maj : garder les proportions   Ctrl : arrondir à la demi-case"), QKeySequence(Qt::Key_R) },
         { EditorTool::Paint,  tr("Pinceau"),   tr("Peindre (B)\nMaj + clic : ligne droite   Alt + clic : pipette"), QKeySequence(Qt::Key_B) },
         { EditorTool::Erase,  tr("Gomme"),     tr("Effacer (E)"),                                             QKeySequence(Qt::Key_E) },
         { EditorTool::Fill,   tr("Remplir"),   tr("Remplir une zone de cases identiques (G)"),               QKeySequence(Qt::Key_G) },
@@ -115,38 +113,6 @@ TilePalettePanel::TilePalettePanel(EditorContext& context, QWidget* parent) : QW
     }
     layout->addLayout(toolsRow);
     connect(m_tools, &QButtonGroup::idClicked, this, [this](int id) { m_ctx.setTool(EditorTool(id)); });
-
-    // ---------------- Outil Taille : ce que l'on agrandit ----------------
-    m_resizeBox = new QWidget;
-    auto* rr = new QHBoxLayout(m_resizeBox);
-    rr->setContentsMargins(0, 0, 0, 0);
-    rr->setSpacing(3);
-    auto* resizeTitle = new QLabel(tr("Agrandir"));
-    resizeTitle->setObjectName("paletteSectionTitle");
-    rr->addWidget(resizeTitle);
-    auto* targets = new QButtonGroup(this);
-    struct TargetDef { ResizeTarget target; QString text; QString tip; };
-    const TargetDef targetDefs[] = {
-        { ResizeTarget::Both,     tr("Forme + collision"), tr("La forme (Geometry) et la collision (Collider2D) grandissent ensemble") },
-        { ResizeTarget::Geometry, tr("Forme"),             tr("Seulement la forme affichée (Geometry ; un sprite change d'échelle)") },
-        { ResizeTarget::Collider, tr("Collision"),         tr("Seulement la collision (Collider2D) ; le bord opposé ne bouge pas") },
-    };
-    for (const TargetDef& t : targetDefs) {
-        auto* b = new QToolButton;
-        b->setObjectName("paletteTool");
-        b->setText(t.text);
-        b->setToolTip(t.tip);
-        b->setCheckable(true);
-        b->setChecked(m_ctx.resizeTarget() == t.target);
-        b->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-        targets->addButton(b, int(t.target));
-        rr->addWidget(b);
-    }
-    layout->addWidget(m_resizeBox);
-    connect(targets, &QButtonGroup::idClicked, this, [this](int id) { m_ctx.setResizeTarget(ResizeTarget(id)); });
-    connect(&m_ctx, &EditorContext::resizeTargetChanged, this, [targets](ResizeTarget t) {
-        if (QAbstractButton* b = targets->button(int(t))) b->setChecked(true);
-    });
 
     // ---------------- Pinceau ----------------
     m_brushBox = new QWidget;
@@ -478,8 +444,11 @@ void TilePalettePanel::syncBrush(const TileBrush& b) {
 }
 
 void TilePalettePanel::syncTool(EditorTool tool) {
-    if (QAbstractButton* b = m_tools->button(int(tool))) b->setChecked(true);
-    m_resizeBox->setVisible(tool == EditorTool::Resize);
+    if (QAbstractButton* b = m_tools->button(int(tool))) { b->setChecked(true); return; }
+    // Outil de la barre de la scène (Taille) : aucun outil de la palette coché
+    m_tools->setExclusive(false);
+    for (QAbstractButton* other : m_tools->buttons()) other->setChecked(false);
+    m_tools->setExclusive(true);
 }
 
 void TilePalettePanel::syncBrushSize(int size) {
