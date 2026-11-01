@@ -12,8 +12,8 @@
         },
         "Transform2D": {
           "position": [
-            1037.33056640625,
-            647.0990600585938
+            -129.92230224609375,
+            258.1012268066406
           ],
           "rotation": 0.0,
           "scale": [
@@ -32,8 +32,8 @@
           "zoomLerpSpeed": 12.0,
           "targetZoom": 1.0,
           "worldMin": [
-            0.0,
-            0.0
+            -1000.0,
+            -1000.0
           ],
           "worldMax": [
             3000.0,
@@ -51,8 +51,8 @@
         },
         "Transform2D": {
           "position": [
-            1037.33056640625,
-            647.0990600585938
+            -129.92230224609375,
+            258.1012268066406
           ],
           "rotation": 0.0,
           "scale": [
@@ -68,7 +68,7 @@
           "rect": [
             0,
             0,
-            32,
+            27,
             64
           ],
           "tint": "#FFFFFFFF"
@@ -97,10 +97,14 @@
           ]
         },
         "Script": {
-          "behavior": "PlayerBehavior",
-          "properties": {
-            "speed": 250.0
-          }
+          "behaviors": [
+            {
+              "name": "PlayerBehavior",
+              "properties": {
+                "speed": 250.0
+              }
+            }
+          ]
         }
       }
     },
@@ -112,8 +116,8 @@
         },
         "Transform2D": {
           "position": [
-            1084.9969482421875,
-            652.4725952148438
+            255.6480712890625,
+            410.1224670410156
           ],
           "rotation": 0.0,
           "scale": [
@@ -121,19 +125,6 @@
             1.0
           ],
           "depth": 0.0
-        },
-        "Geometry": {
-          "layer": 1,
-          "shape": "Box",
-          "halfSize": [
-            16.0,
-            16.0
-          ],
-          "style": {
-            "fill": "#FFFFFFFF",
-            "outline": "#00000000",
-            "outlineThickness": 0.0
-          }
         },
         "RigidBody2D": {
           "mass": 1.0,
@@ -159,16 +150,67 @@
           ]
         }
       }
+    },
+    {
+      "id": 16747246975918472367,
+      "components": {
+        "Name": {
+          "name": "tilemap_iso_7"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso_7.map",
+          "visible": true
+        }
+      }
+    },
+    {
+      "id": 15432053153391235874,
+      "components": {
+        "Name": {
+          "name": "tilemap_iso_8"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso_8.map",
+          "visible": true
+        }
+      }
     }
   ],
   "editor": {
     "categories": [
       "Personnages",
-      "test"
+      "test",
+      "map"
     ],
     "entityCategory": {
       "18092514487157541069": "Personnages",
-      "18418294981170371368": "test"
+      "18418294981170371368": "test",
+      "16747246975918472367": "map",
+      "15432053153391235874": "map"
     }
   }
 }

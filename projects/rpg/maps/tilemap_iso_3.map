@@ -1,0 +1,52 @@
+{
+  "format": "angeVault.tilemap",
+  "version": 2,
+  "orientation": "isometric",
+  "size": [
+    32,
+    32
+  ],
+  "tileSize": [
+    128.0,
+    64.0
+  ],
+  "tilesets": [
+    "assets/tilesets/fantasy_iso/wallflora_a.tileset",
+    "assets/tilesets/fantasy_iso/flora_b.tileset",
+    "assets/tilesets/fantasy_iso/ground_i.tileset"
+  ],
+  "cells": [
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "11*0 4*1:1 17*0",
+    "10*0 5*1:1 1:6 16*0",
+    "10*0 6*1:1 16*0",
+    "10*0 1:13 5*1:1 16*0",
+    "10*0 5*1:1 1:7 16*0",
+    "11*0 1:1 1:7 19*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0",
+    "32*0"
+  ]
+}

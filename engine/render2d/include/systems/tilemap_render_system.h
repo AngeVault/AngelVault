@@ -11,11 +11,16 @@
 //  - Isométrique : cases dessinées de l'arrière vers l'avant (les blocs se recouvrent correctement).
 //
 // La liste des tilesets de la carte donne l'empilement : un autotile plus bas déborde sur ceux d'avant.
+//
+// Tilesets « tri en Y » (Tileset::ySort : arbres, murs...) : leurs tiles partent dans la YSortQueue de la
+// cible et sont dessinées par le RenderSystem, mélangées aux entités selon leur Y (le perso passe devant
+// ou derrière). Sans RenderSystem sur cette cible, elles sont dessinées tout de suite.
 #include "components/transform2d.h"
 #include "ecs/registry.h"
 #include "ecs/system.h"
 #include "tilemap/tilemap.h"
 #include "utils/resource_loader.h"
+#include "utils/ysort_queue.h"
 
 #include <SFML/Graphics.hpp>
 
@@ -31,6 +36,7 @@ public:
     void draw(sf::RenderTarget& target, const TileMapData& map, sf::Vector2f offset, float time) {
         if (map.width() <= 0 || map.height() <= 0 || map.tilesets.empty()) return;
         begin(target, map, offset);
+        m_queue = &YSortQueue::of(target);
         m_time = time;
 
         // Partie visible, en coordonnées locales de la carte (avec une marge : les images dépassent des cases)
@@ -69,6 +75,7 @@ public:
         const Tileset* ts = map.tileset(slot);
         if (!ts || ts->missing) return;
         begin(target, map, offset);
+        m_queue = nullptr;   // aperçu : dessiné tout de suite, par-dessus
         m_tint = color;
         if (tile == kAutoTile) {
             if (ts->autotile == AutotileMode::Edges16)
@@ -120,6 +127,13 @@ private:
             sprite.setOrigin(anchor);
             sprite.setPosition(center + m_offset);
             sprite.setScale({ ts.scale, ts.scale });
+        }
+        if (ts.ySort && m_queue && m_queue->hasConsumer()) {
+            // point de tri : centre de la case (iso) ou bas de la case (orthogonal)
+            float sortY = center.y + m_offset.y + ts.sortOffset;
+            if (m_map->orientation == TileMapOrientation::Orthogonal) sortY += m_map->tileSize.y * 0.5f;
+            m_queue->items.push_back({ sortY, sprite });
+            return;
         }
         m_target->draw(sprite);
     }
@@ -255,6 +269,7 @@ private:
     sf::FloatRect m_visible;
     sf::Color m_tint = sf::Color::White;
     float m_time = 0.f;
+    YSortQueue* m_queue = nullptr;
 };
 
 // Système ECS : dessine toutes les entités qui ont un composant Tilemap (sous les entités : priorité 5)
@@ -266,6 +281,7 @@ public:
 
     void onUpdate(Registry& registry, float dt) override {
         m_time += dt;
+        YSortQueue::of(m_target).items.clear();   // ce que le RenderSystem n'a pas dessiné (désactivé) est oublié
         registry.view<Tilemap>([&](Entity e, Tilemap& tm) {
             if (!tm.visible || !tm.data) return;
             const sf::Vector2f offset = registry.hasComponent<Transform2D>(e)

@@ -116,8 +116,8 @@
         },
         "Transform2D": {
           "position": [
-            -474.36785888671875,
-            -27.19598388671875
+            0.0,
+            0.0
           ],
           "rotation": 0.0,
           "scale": [
@@ -128,6 +128,30 @@
         },
         "Tilemap": {
           "file": "maps/iso_demo.map",
+          "visible": true
+        }
+      }
+    },
+    {
+      "id": 6058421939409909243,
+      "components": {
+        "Name": {
+          "name": "tilemap_iso_3"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso_3.map",
           "visible": true
         }
       }

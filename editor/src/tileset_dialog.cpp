@@ -173,6 +173,28 @@ TilesetDialog::TilesetDialog(const QString& projectDir, const Tileset& tileset, 
     m_solid = new QCheckBox(tr("Bloque le passage"));
     m_solid->setChecked(tileset.solid);
     pf->addRow(tr("Solide"), m_solid);
+
+    // Tri en Y : arbres, murs... le personnage passe devant ou derrière
+    m_ySort = new QCheckBox(tr("Le personnage passe devant / derrière (arbres, murs...)"));
+    m_ySort->setChecked(tileset.ySort);
+    m_ySort->setToolTip(tr("Les tiles sont triées avec les entités selon leur hauteur à l'écran (tri en Y),\n"
+                           "au lieu d'être dessinées sous elles comme le sol."));
+    pf->addRow(tr("Tri en Y"), m_ySort);
+    auto* sortRow = new QWidget;
+    auto* srh = new QHBoxLayout(sortRow);
+    srh->setContentsMargins(0, 0, 0, 0);
+    m_sortOffset = new QDoubleSpinBox;
+    m_sortOffset->setRange(-4096, 4096);
+    m_sortOffset->setDecimals(1);
+    m_sortOffset->setSuffix(" px");
+    m_sortOffset->setValue(tileset.sortOffset);
+    m_sortOffset->setToolTip(tr("Décale le point de tri (centre de la case en iso, bas de la case en orthogonal).\n"
+                                "Positif : le personnage passe derrière plus longtemps."));
+    srh->addWidget(new QLabel(tr("Décalage")));
+    srh->addWidget(m_sortOffset, 1);
+    pf->addRow(QString(), sortRow);
+    connect(m_ySort, &QCheckBox::toggled, sortRow, [sortRow](bool on) { sortRow->setEnabled(on); });
+    sortRow->setEnabled(m_ySort->isChecked());
     left->addWidget(placeBox);
     connect(m_autoAnchor, &QCheckBox::toggled, anchorRow, [anchorRow](bool on) { anchorRow->setEnabled(!on); });
     anchorRow->setEnabled(!m_autoAnchor->isChecked());
@@ -375,6 +397,8 @@ Tileset TilesetDialog::result() const {
                                          : sf::Vector2f{ float(m_anchorX->value()), float(m_anchorY->value()) };
     t.scale = float(m_scale->value());
     t.solid = m_solid->isChecked();
+    t.ySort = m_ySort->isChecked();
+    t.sortOffset = float(m_sortOffset->value());
     t.file = utf8(m_file);
     t.missing = false;
     if (t.autotile != AutotileMode::Edges16) {   // rôles inutiles : pas enregistrés

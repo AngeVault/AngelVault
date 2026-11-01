@@ -332,6 +332,7 @@ void TilePalettePanel::buildTilesets() {
                 if (ts.missing) label += tr("  (introuvable)");
                 else if (ts.autotile == AutotileMode::Edges16) label += tr("  · autotile 4 bords");
                 else if (ts.autotile == AutotileMode::Corners16) label += tr("  · autotile 16 coins");
+                if (ts.ySort) label += tr("  · tri en Y");
                 m_tilesets->addItem(tilesetIcon(*map, ts), label, int(i));
                 m_tilesets->setItemData(int(i), qs(ts.file), Qt::ToolTipRole);
             }

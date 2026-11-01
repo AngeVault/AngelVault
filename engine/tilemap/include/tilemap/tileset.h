@@ -46,6 +46,13 @@ struct Tileset {
     float scale = 1.f;
     bool solid = false;                     // bloque le passage (physique / IA, plus tard)
 
+    // Tri en Y (arbres, murs, rochers...) : les tiles ne sont pas dessinées avec le sol mais triées avec
+    // les personnages selon leur « point de tri ». Un personnage dont les pieds sont plus haut que ce
+    // point passe DERRIÈRE la tile, plus bas il passe DEVANT.
+    //   point de tri = centre de la case (isométrique) ou bas de la case (orthogonal) + sortOffset
+    bool ySort = false;
+    float sortOffset = 0.f;                 // décalage vertical du point de tri, en unités monde
+
     // ---- Autotile -------------------------------------------------------------------------------
     AutotileMode autotile = AutotileMode::None;
     // Edges16 : index des tiles de la feuille (-1 = aucune)

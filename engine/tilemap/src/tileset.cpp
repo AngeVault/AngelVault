@@ -98,6 +98,10 @@ std::string Tileset::toJson() const {
     if (anchor.x >= 0.f) j["anchor"] = { anchor.x, anchor.y };
     if (scale != 1.f) j["scale"] = scale;
     if (solid) j["solid"] = true;
+    if (ySort) {
+        j["ySort"] = true;
+        if (sortOffset != 0.f) j["sortOffset"] = sortOffset;
+    }
     j["autotile"] = toString(autotile);
     if (autotile == AutotileMode::Edges16) {
         j["full"] = full;
@@ -130,6 +134,8 @@ bool Tileset::fromJson(const std::string& text, std::string* error) {
         t.anchor = { a[0].get<float>(), a[1].get<float>() };
     t.scale = j.value("scale", 1.f);
     t.solid = j.value("solid", false);
+    t.ySort = j.value("ySort", false);
+    t.sortOffset = j.value("sortOffset", 0.f);
     t.autotile = autotileFromString(j.value("autotile", std::string("none")));
     t.full = ints(j.value("full", Json()));
     t.edge = four(j.value("edge", Json()));

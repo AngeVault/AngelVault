@@ -312,10 +312,6 @@ bool EditorContext::saveScene(QString* error) {
     if (m_scenePath.isEmpty()) { if (error) *error = tr("La scène n'a pas encore de fichier."); return false; }
     std::string err;
     if (!::saveScene(m_scene, sceneMeta(), toUtf8(m_scenePath), &err)) { if (error) *error = fromUtf8(err); return false; }
-    if (!saveTilemaps(m_scene, toUtf8(projectDir()), false, &err)) {   // .map modifiés
-        if (error) *error = fromUtf8(err);
-        return false;
-    }
     if (hasProject()) {   // scène connue du projet (liste de l'éditeur, scène de départ si c'est la première)
         const std::string rel = m_project.relative(toUtf8(m_scenePath));
         const std::size_t before = m_project.scenes.size();
@@ -545,9 +541,7 @@ Entity EditorContext::createTilemap(TileMapOrientation orientation, int width, i
     QString rel = QString("maps/%1.map").arg(base);
     for (int i = 2; QFileInfo::exists(projectDir() + "/" + rel); ++i) rel = QString("maps/%1_%2.map").arg(base).arg(i);
 
-    auto data = makeTileMap(orientation, width, height, toUtf8(projectDir()));
-    std::string err;
-    if (!saveTileMap(*data, toUtf8(projectDir() + "/" + rel), &err)) { if (error) *error = fromUtf8(err); return NULL_ENTITY; }
+    auto data = makeTileMap(orientation, width, height, toUtf8(projectDir()));   // en mémoire : pas d'enregistrement ici
 
     Entity e = m_scene.createEntity();
     m_scene.addComponent<NameComponent>(e, toUtf8(QFileInfo(rel).completeBaseName()));

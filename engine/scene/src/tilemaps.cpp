@@ -25,16 +25,6 @@ void loadTilemaps(Registry& registry, const std::string& projectDir, std::vector
     });
 }
 
-bool saveTilemaps(Registry& registry, const std::string& projectDir, bool all, std::string* error) {
-    bool ok = true;
-    registry.view<Tilemap>([&](Entity, Tilemap& tm) {
-        if (!tm.data || tm.file.empty() || (!all && !tm.data->modified)) return;
-        std::string err;
-        if (!saveTileMap(*tm.data, join(projectDir, tm.file), &err)) { ok = false; if (error) *error = err; }
-    });
-    return ok;
-}
-
 std::shared_ptr<TileMapData> makeTileMap(TileMapOrientation orientation, int width, int height, const std::string& projectDir) {
     auto map = std::make_shared<TileMapData>();
     map->orientation = orientation;

@@ -4,7 +4,8 @@
   "name": "RPG",
   "startScene": "scenes/main.scene",
   "scenes": [
-    "scenes/main.scene"
+    "scenes/main.scene",
+    "scenes/iso_demo.scene"
   ],
   "paths": {
     "assets": "assets",
@@ -17,5 +18,9 @@
       1080
     ],
     "vsync": true
+  },
+  "systems": {
+    "ForceDebugSystem": false,
+    "RenderCollisionSystem": false
   }
 }

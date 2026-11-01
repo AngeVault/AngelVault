@@ -65,6 +65,8 @@ private:
     QDoubleSpinBox* m_anchorY = nullptr;
     QDoubleSpinBox* m_scale = nullptr;
     QCheckBox* m_solid = nullptr;
+    QCheckBox* m_ySort = nullptr;
+    QDoubleSpinBox* m_sortOffset = nullptr;
     QLabel* m_fileLabel = nullptr;
     QLabel* m_viewHint = nullptr;
     TilesetView* m_view = nullptr;

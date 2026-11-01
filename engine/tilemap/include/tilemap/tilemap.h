@@ -86,7 +86,6 @@ public:
 
     // ---- Fichier .map (JSON) ----------------------------------------------------------------------
     // fromJson charge aussi les .tileset (introuvable : gardé « missing », message dans `warnings`)
-    std::string toJson() const;
     bool fromJson(const std::string& text, std::string* error = nullptr, std::vector<std::string>* warnings = nullptr);
 
 private:
@@ -96,7 +95,6 @@ private:
 
 bool loadTileMap(TileMapData& map, const std::string& path, const std::string& baseDir, std::string* error = nullptr,
                  std::vector<std::string>* warnings = nullptr);
-bool saveTileMap(TileMapData& map, const std::string& path, std::string* error = nullptr);
 
 // Composant : une tilemap dans la scène. Ajouter / retirer ce composant = activer / supprimer la tilemap.
 struct Tilemap {

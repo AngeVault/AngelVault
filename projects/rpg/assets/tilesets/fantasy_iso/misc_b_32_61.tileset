@@ -15,5 +15,6 @@
     108,
     156
   ],
-  "autotile": "none"
+  "autotile": "none",
+  "ySort": true
 }
