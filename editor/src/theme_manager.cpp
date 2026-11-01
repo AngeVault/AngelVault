@@ -26,6 +26,7 @@ ThemeManager::ThemeManager(QWidget* dialogParent) : QObject(dialogParent), m_par
         { tr("Sakura sombre"), ":/resources/style/sakura_dark.qss" },
         { tr("Sakura chat (image)"), ":/resources/style/sakura_cat.qss" },
         { tr("Kindred fleur spirituelle (image)"), ":/resources/style/kindred_blossom.qss" },
+        { tr("Très sombre"), ":/resources/style/very_dark.qss" },
     };
 }
 
