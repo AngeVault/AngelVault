@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include "save_map.h"
+
 namespace {
 const sf::Color kSelection(255, 170, 40);
 const sf::Color kCameraColor(120, 200, 255);

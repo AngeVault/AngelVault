@@ -20,7 +20,7 @@ class EditorContext : public QObject {
 public:
     explicit EditorContext(QObject* parent = nullptr);
 
-    friend void save_editor_context(EditorContext &ctx);
+    friend void load_map(EditorContext& ctx);
 
     Registry& scene() { return m_scene; }
     // --- Map and layers ---

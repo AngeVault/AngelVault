@@ -32,7 +32,8 @@ add_executable(AngeVaultEditor WIN32
     src/panels/console_panel.cpp
     src/panels/tile_palette_panel.h
     src/panels/tile_palette_panel.cpp
-    assets/resources.qrc          # icônes + QSS (accessibles via ":/resources/...")
+    assets/resources.qrc
+    src/save_map.cpp     # icônes + QSS (accessibles via ":/resources/...")
 )
 
 # Icônes des fichiers du panneau Project : toutes les images de assets/icons/files/

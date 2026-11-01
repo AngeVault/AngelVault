@@ -1,14 +1,15 @@
 #include "editor_context.h"
-#include "map_save.h"
 
 #include "components/camera2d.h"
 #include "components/name.h"
 #include "components/transform2d.h"
+#include "save_map.h"
 
 #include <QCoreApplication>
 #include <QDir>
 
 #include <algorithm>
+
 
 namespace {
 quint64 entityKey(Entity e) { return (quint64(e.index) << 32) | e.generation; }
@@ -170,7 +171,8 @@ void EditorContext::setPaintType(TileType type) {
     if (type == m_paintType) return;
     m_paintType = type;
     emit paintTypeChanged(type);
-    save_editor_context(*this);
+    save_map(*this);
+    load_map(*this);
 }
 
 void EditorContext::setBrushSize(int size) {
