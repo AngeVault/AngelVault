@@ -1,5 +1,4 @@
 #pragma once
-#include "Layer.h"
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <string>
@@ -69,7 +68,7 @@ public:
     std::vector<TileType> layerOrder;
 
     // Eau tout en haut : son écume se pose par-dessus le sable, l'herbe et les chemins.
-    TileMap(Layer* layer):m_layer(layer) {
+    TileMap() {
         setLayerOrder({ TileType::Sand, TileType::Water,TileType::Grass, TileType::DirtPath,
                        TileType::BrickPath, TileType::DonjonFloor });
     }
@@ -108,7 +107,6 @@ public:
 private:
     sf::Vector2i pendingShift{ 0, 0 };
     std::array<uint8_t, 256> layerRank{};   // 0 = pas un terrain dual-grid
-    Layer* m_layer; // observed
 
     bool inBounds(int x, int y) const {
         return x >= 0 && y >= 0 && x < (int)width && y < (int)height;

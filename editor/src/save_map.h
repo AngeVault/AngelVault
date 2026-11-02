@@ -4,3 +4,4 @@
 
 void save_map(EditorContext& ctx);
 void load_map(EditorContext& ctx);
+nlohmann::json tilesToJson(TileMap& map);

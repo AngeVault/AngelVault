@@ -24,7 +24,7 @@ public:
 
     Registry& scene() { return m_scene; }
     // --- Map and layers ---
-    TileMap& map() { return m_map[m_layer.getLayerIndex(m_selectedLayer->getName())]; }
+    TileMap& map() { return m_map; }
     void createLayer(const std::string& name, LayersType type);
 
     // --- Entités ---
@@ -83,9 +83,7 @@ signals:
 
 private:
     Registry m_scene;
-    LayerManager m_layer;
-    Layer* m_selectedLayer;
-    std::vector<TileMap> m_map;
+    TileMap m_map;
     Entity m_selected = NULL_ENTITY;
     QStringList m_categories;
     QHash<quint64, QString> m_entityCategory;   // clé : index + génération de l'entité
