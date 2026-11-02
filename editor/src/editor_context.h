@@ -25,7 +25,6 @@ public:
     Registry& scene() { return m_scene; }
     // --- Map and layers ---
     TileMap& map() { return m_map; }
-    void createLayer(const std::string& name, LayersType type);
 
     // --- Entités ---
     std::vector<Entity> entities() const;

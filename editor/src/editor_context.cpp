@@ -16,10 +16,6 @@ quint64 entityKey(Entity e) { return (quint64(e.index) << 32) | e.generation; }
 }
 
 EditorContext::EditorContext(QObject* parent) : QObject(parent) {
-    m_layer = LayerManager();
-    m_layer.addLayer("map", LayersType::FLOOR);
-    m_selectedLayer = &m_layer.getLayer(0);
-    m_map.push_back(TileMap(&m_layer.getLayer(0)));
 }
 
 QString EditorContext::addCategory(const QString& name) {
@@ -59,12 +55,6 @@ void EditorContext::setCategory(Entity e, const QString& category) {
     emit sceneChanged();
 }
 
-void EditorContext::createLayer(const std::string& name, const LayersType type) {
-    m_layer = LayerManager();
-    m_layer.addLayer("name", type);
-    m_selectedLayer = &m_layer.getLayer(m_layer.getSize());
-    m_map.push_back(TileMap(&m_layer.getLayer(m_layer.getSize())));
-}
 
 std::vector<Entity> EditorContext::entities() const {
     std::vector<Entity> list;
