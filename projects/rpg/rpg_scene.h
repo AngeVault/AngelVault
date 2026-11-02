@@ -13,7 +13,7 @@
 #include "components/geometry.h"
 #include "systems/camera_system.h"
 #include "components/camera2d.h"
-#include "behaviors/player_behaviors.h"
+#include "rpg_game_code.h"   // tous les .h de components/, behaviors/, systems/ (généré par CMake)
 #include "input/input_manager.h"
 
 // Entités de la scène. Séparé des systèmes pour que l'éditeur puisse charger
@@ -32,12 +32,13 @@ inline void loadRpgEntities(Registry& registry) {
     registry.addComponent<Collider2D>(player, Collider2D::makeBox({ 16.f, 32.f }));
     registry.addComponent<NameComponent>(player, "Player");
 
-    // La caméra suit le joueur
-    registry.getComponent<Camera2d>(cameraEntity).setTarget(player);
+    // La caméra suit le joueur definit et lock le zoom
+    //registry.getComponent<Camera2d>(cameraEntity).setTarget(player);
+    //camera.setZoomLoked(true);
+    //camera.setTargetZoom(0.25f);  
 
     // Attache le script PlayerBehavior
-    auto& scriptPlayer = registry.addComponent<Script>(player);
-    scriptPlayer.behavior = std::make_unique<PlayerBehavior>();
+    registry.addComponent<Script>(player).add<PlayerBehavior>();
 }
 
 // Actions d'entrée par défaut du RPG, utilisées quand assets/input.cfg n'existe pas encore.
@@ -73,12 +74,18 @@ inline void loadRpgInput(InputManager& input, const std::string& path = "assets/
     if (!input.loadFromFile(path)) defaultRpgInput(input);
 }
 
-// Scène complète pour jouer : systèmes de jeu + entités
-inline void loadRpgScene(Game& game) {
-    loadRpgInput(game.input());
+// Systèmes de jeu du RPG (du code : ils ne sont pas dans les fichiers .scene)
+inline void registerRpgSystems(Game& game) {
     game.systems().addSystem<PhysicsSystem>();
     game.systems().addSystem<CollisionSystem>();
     game.systems().addSystem<ScriptSystem>();
     game.systems().addSystem<CameraSystem>(game.window());
+}
+
+// Ancienne scène écrite en C++ : systèmes + entités de loadRpgEntities().
+// Sert encore quand le projet n'a pas de fichier .scene (voir main.cpp).
+inline void loadRpgScene(Game& game) {
+    loadRpgInput(game.input());
+    registerRpgSystems(game);
     loadRpgEntities(game.registry());
 }

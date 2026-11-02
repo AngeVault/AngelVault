@@ -2,13 +2,23 @@
 
 #include "components/camera2d.h"
 #include "components/name.h"
+#include "components/persistent_id.h"
+#include "components/script_component.h"
+#include "ecs/behavior_factory.h"
+#include "ecs/game_components.h"
+#include "scene/prefab.h"
+#include "scene/tilemaps.h"
 #include "components/transform2d.h"
 #include "save_map.h"
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QFileInfo>
+#include <QSettings>
+#include <QTimer>
 
 #include <algorithm>
+#include <iostream>
 
 
 namespace {
@@ -16,6 +26,23 @@ quint64 entityKey(Entity e) { return (quint64(e.index) << 32) | e.generation; }
 }
 
 EditorContext::EditorContext(QObject* parent) : QObject(parent) {
+    // Toute modification de la scène la rend « modifiée » (sauf pendant un chargement)
+    connect(this, &EditorContext::sceneChanged, this, [this] { if (!m_loading) setDirty(true); });
+    connect(this, &EditorContext::entityModified, this, [this] { if (!m_loading) setDirty(true); });
+    // Historique (Ctrl+Z) : toute modification devient une étape
+    m_commitTimer = new QTimer(this);
+    m_commitTimer->setSingleShot(true);
+    connect(m_commitTimer, &QTimer::timeout, this, &EditorContext::commitChanges);
+    connect(this, &EditorContext::sceneChanged, this, &EditorContext::markChanged);
+    connect(this, &EditorContext::entityModified, this, &EditorContext::markChanged);
+    connect(this, &EditorContext::componentsChanged, this, &EditorContext::markChanged);
+    // La tilemap active suit la sélection (et les tilemaps ajoutées / supprimées)
+    connect(this, &EditorContext::selectionChanged, this, [this] { refreshActiveTilemap(); });
+    connect(this, &EditorContext::sceneChanged, this, [this] { refreshActiveTilemap(); });
+    // Pinceau : dernière taille / forme utilisées
+    const QSettings settings;
+    m_brushSize = std::clamp(settings.value("tilePalette/brushSize", 1).toInt(), 1, kMaxBrushSize);
+    m_brushShape = settings.value("tilePalette/brushShape").toString() == "circle" ? BrushShape::Circle : BrushShape::Square;
 }
 
 QString EditorContext::addCategory(const QString& name) {
@@ -74,6 +101,7 @@ Entity EditorContext::createEntity(const QString& name) {
     Entity e = m_scene.createEntity();
     m_scene.addComponent<NameComponent>(e, name.toStdString());
     m_scene.addComponent<Transform2D>(e);
+    m_scene.addComponent<PersistentId>(e).value = generatePersistentId();   // identité pour la sauvegarde
     emit sceneChanged();
     select(e);
     return e;
@@ -81,6 +109,7 @@ Entity EditorContext::createEntity(const QString& name) {
 
 void EditorContext::destroyEntity(Entity e) {
     if (!isValid(e)) return;
+    markChanged();   // avant de désélectionner : l'étape d'avant garde l'entité sélectionnée
     const bool wasSelected = e == m_selected;
     m_entityCategory.remove(entityKey(e));
     m_scene.destroyEntity(e);
@@ -103,6 +132,9 @@ void EditorContext::select(Entity e) {
     if (!isValid(e)) e = NULL_ENTITY;
     if (e == m_selected) return;
     m_selected = e;
+    // L'étape courante retient la sélection (Ctrl+Z après une suppression resélectionne l'entité)
+    if (!m_restoring && !m_pending)
+        m_current.selected = (isValid(e) && m_scene.hasComponent<PersistentId>(e)) ? m_scene.getComponent<PersistentId>(e).value : 0;
     emit selectionChanged(e);
 }
 
@@ -164,44 +196,558 @@ void EditorContext::setPaintType(TileType type) {
     save_map(*this);
     load_map(*this);
 }
+void EditorContext::setBrush(const TileBrush& brush) {
+    if (brush == m_brush) return;
+    m_brush = brush;
+    emit brushChanged(m_brush);
+}
 
 void EditorContext::setBrushSize(int size) {
-    size = std::clamp(size, 1, 9);
+    size = std::clamp(size, 1, kMaxBrushSize);
     if (size == m_brushSize) return;
     m_brushSize = size;
+    QSettings().setValue("tilePalette/brushSize", size);
     emit brushSizeChanged(size);
 }
 
-QString tileTypeName(TileType t) {
-    switch (t) {
-    case TileType::Sand:        return QObject::tr("Sable");
-    case TileType::Water:       return QObject::tr("Eau");
-    case TileType::Grass:       return QObject::tr("Herbe");
-    case TileType::BrickPath:   return QObject::tr("Pavés");
-    case TileType::DirtPath:    return QObject::tr("Chemin de terre");
-    case TileType::DonjonFloor: return QObject::tr("Sol de donjon");
-    case TileType::Wall:        return QObject::tr("Mur");
-    case TileType::Path:        return QObject::tr("Chemin");
-    default:                    return QObject::tr("Vide");
+void EditorContext::setResizeTarget(ResizeTarget target) {
+    if (target == m_resizeTarget) return;
+    m_resizeTarget = target;
+    emit resizeTargetChanged(target);
+}
+
+void EditorContext::setBrushShape(BrushShape shape) {
+    if (shape == m_brushShape) return;
+    m_brushShape = shape;
+    QSettings().setValue("tilePalette/brushShape", shape == BrushShape::Circle ? "circle" : "square");
+    emit brushShapeChanged(shape);
+}
+
+// ---- Projet et scène sur le disque -------------------------------------------------------------
+
+namespace {
+std::string toUtf8(const QString& s) { return s.toUtf8().toStdString(); }
+QString fromUtf8(const std::string& s) { return QString::fromUtf8(s.data(), qsizetype(s.size())); }
+}
+
+QString EditorContext::projectDir() const {
+    return hasProject() ? fromUtf8(m_project.directory()) : QString();
+}
+
+QString EditorContext::sceneName() const {
+    return m_scenePath.isEmpty() ? tr("Sans titre") : QFileInfo(m_scenePath).fileName();
+}
+
+void EditorContext::setDirty(bool dirty) {
+    if (m_dirty == dirty) return;
+    m_dirty = dirty;
+    emit dirtyChanged(dirty);
+}
+
+void EditorContext::resetScene() {
+    m_selected = NULL_ENTITY;
+    emit selectionChanged(NULL_ENTITY);
+    clearRegistry(m_scene);
+    m_categories.clear();
+    m_entityCategory.clear();
+}
+
+Json EditorContext::editorData() {
+    Json categories = Json::array();
+    for (const QString& c : m_categories) categories.push_back(toUtf8(c));
+    Json entityCategory = Json::object();
+    for (Entity e : entities()) {
+        const QString category = categoryOf(e);
+        if (category.isEmpty() || !m_scene.hasComponent<PersistentId>(e)) continue;
+        entityCategory[std::to_string(m_scene.getComponent<PersistentId>(e).value)] = toUtf8(category);
+    }
+    return Json{ { "categories", categories }, { "entityCategory", entityCategory } };
+}
+
+void EditorContext::applyEditorData(const Json& editor) {
+    m_categories.clear();
+    m_entityCategory.clear();
+    if (editor.contains("categories") && editor["categories"].is_array())
+        for (const Json& c : editor["categories"])
+            if (c.is_string() && !m_categories.contains(fromUtf8(c.get<std::string>()))) m_categories.push_back(fromUtf8(c.get<std::string>()));
+    if (!editor.contains("entityCategory") || !editor["entityCategory"].is_object()) return;
+    const Json& map = editor["entityCategory"];
+    for (Entity e : entities()) {
+        if (!m_scene.hasComponent<PersistentId>(e)) continue;
+        const auto it = map.find(std::to_string(m_scene.getComponent<PersistentId>(e).value));
+        if (it == map.end() || !it->is_string()) continue;
+        const QString category = fromUtf8(it->get<std::string>());
+        if (m_categories.contains(category)) m_entityCategory.insert(entityKey(e), category);
     }
 }
 
-std::vector<TileType> paintableTileTypes() {
-    return { TileType::Grass, TileType::Sand, TileType::Water,
-             TileType::DirtPath, TileType::BrickPath, TileType::DonjonFloor };
+SceneMeta EditorContext::sceneMeta() {
+    SceneMeta meta;
+    meta.name = toUtf8(QFileInfo(m_scenePath).completeBaseName());
+    meta.editor = editorData();
+    return meta;
 }
 
-QStringList tilesetFiles(TileType type) {
-    const QString dir = QCoreApplication::applicationDirPath() + "/assets/tilesets/";
-    auto file = [&dir](const char* name) { return QDir::toNativeSeparators(dir + name); };
-    switch (type) {
-    // herbe unie 3 fois sur 4, fleurs 1 fois sur 4 (répéter une feuille = plus fréquente)
-    case TileType::Grass:       return { file("grass.png"), file("grass.png"), file("grass.png"), file("grass_flowers.png") };
-    case TileType::Sand:        return { file("sand.png") };
-    case TileType::Water:       return { file("water.png") };
-    case TileType::DirtPath:    return { file("dirt_path.png") };
-    case TileType::BrickPath:   return { file("stone_path.png") };
-    case TileType::DonjonFloor: return { file("dungeon_floor.png") };
-    default:                    return {};
+bool EditorContext::openProject(const QString& path, QString* error) {
+    Project project;
+    std::string err;
+    if (!project.load(toUtf8(path), &err)) { if (error) *error = fromUtf8(err); return false; }
+    m_project = std::move(project);
+    const QString start = fromUtf8(m_project.resolve(m_project.startScene));
+    if (QFileInfo::exists(start)) {
+        if (!openScene(start, error)) newScene();   // fichier abîmé : on ne l'écrase pas (Enregistrer sous)
+    } else {
+        newScene();
+        m_scenePath = start;   // pas encore de fichier : le premier Ctrl+S le crée
     }
+    emit documentChanged();
+    return true;
+}
+
+bool EditorContext::openScene(const QString& path, QString* error) {
+    std::string text, err;
+    if (!readFile(toUtf8(path), text, &err)) { if (error) *error = fromUtf8(err); return false; }
+    const Json j = Json::parse(text, nullptr, false);
+    if (j.is_discarded() || !j.is_object() || j.value("format", std::string()) != "angeVault.scene") {
+        if (error) *error = tr("%1 n'est pas une scène AngeVault valide").arg(QDir::toNativeSeparators(path));
+        return false;
+    }
+
+    m_loading = true;
+    resetScene();
+    SceneMeta meta;
+    const SceneLoadResult result = sceneFromJson(m_scene, meta, j);
+    for (const std::string& w : result.warnings) std::cerr << "[Scene] " << w << std::endl;
+    applyEditorData(meta.editor);
+    snapAllFollowers();
+    {   // fichiers .map des entités Tilemap
+        std::vector<std::string> warnings;
+        loadTilemaps(m_scene, toUtf8(projectDir()), &warnings);
+        for (const std::string& w : warnings) std::cerr << "[Scene] " << w << std::endl;
+    }
+    m_scenePath = QFileInfo(path).absoluteFilePath();
+    emit sceneChanged();
+    m_loading = false;
+    setDirty(false);
+    resetHistory();
+    emit documentChanged();
+    std::cout << "[Scene] " << toUtf8(QDir::toNativeSeparators(m_scenePath)) << " : "
+              << result.entities.size() << " entites" << std::endl;
+    if (!result.ok && error) *error = fromUtf8(result.error);
+    return result.ok;
+}
+
+bool EditorContext::saveScene(QString* error) {
+    if (m_scenePath.isEmpty()) { if (error) *error = tr("La scène n'a pas encore de fichier."); return false; }
+    std::string err;
+    if (!::saveScene(m_scene, sceneMeta(), toUtf8(m_scenePath), &err)) { if (error) *error = fromUtf8(err); return false; }
+    if (hasProject()) {   // scène connue du projet (liste de l'éditeur, scène de départ si c'est la première)
+        const std::string rel = m_project.relative(toUtf8(m_scenePath));
+        const std::size_t before = m_project.scenes.size();
+        m_project.addScene(rel);
+        if (m_project.scenes.size() != before) m_project.save(&err);
+    }
+    setDirty(false);
+    std::cout << "[Scene] Enregistree : " << toUtf8(QDir::toNativeSeparators(m_scenePath)) << std::endl;
+    return true;
+}
+
+bool EditorContext::saveSceneAs(const QString& path, QString* error) {
+    const QString previous = m_scenePath;
+    m_scenePath = QFileInfo(path).absoluteFilePath();
+    if (!saveScene(error)) { m_scenePath = previous; return false; }
+    emit documentChanged();
+    return true;
+}
+
+void EditorContext::newScene() {
+    m_loading = true;
+    resetScene();
+    m_scenePath.clear();
+    emit sceneChanged();
+    m_loading = false;
+    setDirty(false);
+    resetHistory();
+    emit documentChanged();
+}
+
+std::string EditorContext::sceneSnapshot() {
+    return sceneToString(m_scene, sceneMeta());
+}
+
+void EditorContext::importEntities(const std::function<void(Registry&)>& fill) {
+    fill(m_scene);
+    ensurePersistentIds(m_scene);
+    loadTilemaps(m_scene, toUtf8(projectDir()));
+    snapAllFollowers();
+    emit sceneChanged();
+    resetHistory();   // scène de départ : rien à annuler
+}
+
+// ---- Annuler / Rétablir --------------------------------------------------------------------------
+
+namespace {
+constexpr std::size_t kMaxUndo = 100;   // étapes gardées
+constexpr int kCommitDelayMs = 400;     // modifications rapprochées = une seule étape
+}
+
+EditorContext::Snapshot EditorContext::captureSnapshot() {
+    Snapshot s;
+    s.scene = sceneToString(m_scene, sceneMeta());   // donne aussi un PersistentId aux entités qui n'en ont pas
+    m_scene.view<Tilemap>([&](Entity e, Tilemap& tm) {
+        if (!tm.data || !m_scene.hasComponent<PersistentId>(e)) return;
+        // Copie seulement si la carte a changé depuis l'instantané courant (sinon on partage l'ancienne)
+        const uint64_t id = m_scene.getComponent<PersistentId>(e).value;
+        for (const auto& [prevId, prev] : m_current.maps)
+            if (prevId == id && prev->version == tm.data->version) { s.maps.emplace_back(id, prev); return; }
+        s.maps.emplace_back(id, std::make_shared<const TileMapData>(*tm.data));
+    });
+    if (isValid(m_selected) && m_scene.hasComponent<PersistentId>(m_selected))
+        s.selected = m_scene.getComponent<PersistentId>(m_selected).value;
+    return s;
+}
+
+bool EditorContext::sameSnapshot(const Snapshot& a, const Snapshot& b) const {
+    if (a.scene != b.scene || a.maps.size() != b.maps.size()) return false;
+    for (std::size_t i = 0; i < a.maps.size(); ++i)
+        if (a.maps[i].first != b.maps[i].first || a.maps[i].second != b.maps[i].second) return false;
+    return true;
+}
+
+void EditorContext::restoreSnapshot(const Snapshot& s) {
+    m_restoring = true;
+    m_loading = true;
+    m_commitTimer->stop();
+    // La sélection actuelle est gardée si l'entité existe encore après le retour en arrière
+    const uint64_t keepSelected = (isValid(m_selected) && m_scene.hasComponent<PersistentId>(m_selected))
+                                      ? m_scene.getComponent<PersistentId>(m_selected).value : 0;
+    resetScene();
+    SceneMeta meta;
+    const SceneLoadResult result = sceneFromString(m_scene, meta, s.scene);
+    for (const std::string& w : result.warnings) std::cerr << "[Annuler] " << w << std::endl;
+    applyEditorData(meta.editor);
+    // Les cases des tilemaps viennent de l'instantané (elles ne sont pas dans le JSON de la scène)
+    m_scene.view<Tilemap>([&](Entity e, Tilemap& tm) {
+        if (!m_scene.hasComponent<PersistentId>(e)) return;
+        const uint64_t id = m_scene.getComponent<PersistentId>(e).value;
+        for (const auto& [mapId, data] : s.maps)
+            if (mapId == id) { tm.data = std::make_shared<TileMapData>(*data); break; }
+    });
+    loadTilemaps(m_scene, toUtf8(projectDir()));   // tilemap sans instantané : depuis son fichier
+    // Les cartes restaurées gardent leur numéro de version : l'instantané courant les reconnaît
+    m_activeTilemap = NULL_ENTITY;
+    emit sceneChanged();
+    m_loading = false;
+    auto findEntity = [this](uint64_t id) {
+        if (id)
+            for (Entity e : entities())
+                if (m_scene.hasComponent<PersistentId>(e) && m_scene.getComponent<PersistentId>(e).value == id) return e;
+        return NULL_ENTITY;
+    };
+    Entity selected = findEntity(keepSelected);
+    if (!isValid(selected)) selected = findEntity(s.selected);
+    select(selected);
+    refreshActiveTilemap();
+    emit tilemapChanged();
+    setDirty(true);
+    m_pending = false;
+    m_restoring = false;
+}
+
+void EditorContext::markChanged() {
+    if (m_restoring || m_loading) return;
+    const bool wasPending = m_pending;
+    m_pending = true;
+    if (m_interaction == 0) m_commitTimer->start(kCommitDelayMs);
+    if (!wasPending) emit undoStateChanged();
+}
+
+void EditorContext::commitChanges() {
+    m_commitTimer->stop();
+    if (!m_pending || m_restoring) return;
+    m_pending = false;
+    Snapshot now = captureSnapshot();
+    if (sameSnapshot(now, m_current)) { emit undoStateChanged(); return; }
+    m_undo.push_back(std::move(m_current));
+    if (m_undo.size() > kMaxUndo) m_undo.erase(m_undo.begin());
+    m_current = std::move(now);
+    m_redo.clear();
+    emit undoStateChanged();
+}
+
+void EditorContext::resetHistory() {
+    m_commitTimer->stop();
+    m_undo.clear();
+    m_redo.clear();
+    m_pending = false;
+    m_current = captureSnapshot();
+    emit undoStateChanged();
+}
+
+void EditorContext::beginInteraction() {
+    ++m_interaction;
+    m_commitTimer->stop();
+}
+
+void EditorContext::endInteraction() {
+    m_interaction = std::max(0, m_interaction - 1);
+    if (m_interaction == 0 && m_pending) commitChanges();
+}
+
+void EditorContext::undo() {
+    commitChanges();   // ce qui vient d'être fait devient d'abord une étape
+    if (m_undo.empty()) { emit statusMessage(tr("Rien à annuler")); return; }
+    m_redo.push_back(std::move(m_current));
+    m_current = std::move(m_undo.back());
+    m_undo.pop_back();
+    restoreSnapshot(m_current);
+    emit statusMessage(tr("Annulé (%1 étape(s) restante(s))").arg(m_undo.size()));
+    emit undoStateChanged();
+}
+
+void EditorContext::redo() {
+    commitChanges();
+    if (m_redo.empty()) { emit statusMessage(tr("Rien à rétablir")); return; }
+    m_undo.push_back(std::move(m_current));
+    m_current = std::move(m_redo.back());
+    m_redo.pop_back();
+    restoreSnapshot(m_current);
+    emit statusMessage(tr("Rétabli"));
+    emit undoStateChanged();
+}
+
+// ---- Comportements et prefabs --------------------------------------------------------------------
+
+bool EditorContext::addBehavior(Entity e, const std::string& name) {
+    if (!isValid(e)) return false;
+    std::unique_ptr<IBehavior> b = BehaviorFactory::get().create(name);
+    if (!b) return false;
+    Script& script = m_scene.hasComponent<Script>(e) ? m_scene.getComponent<Script>(e) : m_scene.addComponent<Script>(e);
+    script.add(std::move(b));
+    emit entityModified(e, nullptr);
+    emit componentsChanged(e);
+    return true;
+}
+
+void EditorContext::removeBehavior(Entity e, std::size_t index) {
+    if (!isValid(e) || !m_scene.hasComponent<Script>(e)) return;
+    Script& script = m_scene.getComponent<Script>(e);
+    script.remove(index);
+    if (script.empty()) m_scene.removeComponent<Script>(e);
+    emit entityModified(e, nullptr);
+    emit componentsChanged(e);
+}
+
+QByteArray EditorContext::entitiesToMime(const std::vector<Entity>& entities) {
+    QByteArray data;
+    for (Entity e : entities) data += QByteArray::number(e.index) + ':' + QByteArray::number(e.generation) + '\n';
+    return data;
+}
+
+std::vector<Entity> EditorContext::entitiesFromMime(const QByteArray& data) const {
+    std::vector<Entity> out;
+    for (const QByteArray& line : data.split('\n')) {
+        const QList<QByteArray> parts = line.split(':');
+        if (parts.size() != 2) continue;
+        const Entity e{ parts[0].toUInt(), parts[1].toUInt() };
+        if (isValid(e)) out.push_back(e);
+    }
+    return out;
+}
+
+QString EditorContext::defaultPrefabPath(Entity root, const QString& folder) {
+    QString base = displayName(root).trimmed();
+    for (QChar& ch : base) if (QString("\\/:*?\"<>|").contains(ch)) ch = '_';   // caractères interdits (Windows)
+    if (base.isEmpty()) base = "Prefab";
+    const QString dir = !folder.isEmpty() ? folder : (hasProject() ? projectDir() : QDir::homePath()) + "/prefabs";
+    QString path = dir + "/" + base + kPrefabExtension;
+    for (int i = 2; QFileInfo::exists(path); ++i) path = QString("%1/%2 %3%4").arg(dir, base).arg(i).arg(kPrefabExtension);
+    return path;
+}
+
+bool EditorContext::createPrefab(Entity root, const QString& path, QString* error) {
+    if (!isValid(root)) { if (error) *error = tr("Aucune entité."); return false; }
+    std::string err;
+    const std::vector<Entity> group = prefabGroup(m_scene, root);
+    const std::string name = toUtf8(QFileInfo(path).completeBaseName());
+    if (!savePrefab(m_scene, group, name, toUtf8(path), &err)) { if (error) *error = fromUtf8(err); return false; }
+    emit statusMessage(tr("Prefab créé : %1 (%2 entité(s))").arg(QDir::toNativeSeparators(path)).arg(group.size()));
+    std::cout << "[Prefab] Cree : " << toUtf8(QDir::toNativeSeparators(path)) << std::endl;
+    return true;
+}
+
+std::vector<Entity> EditorContext::instantiatePrefab(const QString& path, std::optional<sf::Vector2f> position, QString* error) {
+    std::string text, err;
+    if (!readFile(toUtf8(path), text, &err)) { if (error) *error = fromUtf8(err); return {}; }
+    const Json j = Json::parse(text, nullptr, false);   // relu à chaque fois : le prefab a pu changer
+    const SceneLoadResult r = ::instantiatePrefab(m_scene, j, position);
+    for (const std::string& w : r.warnings) std::cerr << "[Prefab] " << w << std::endl;
+    if (!r.ok) { if (error) *error = tr("%1 : %2").arg(QFileInfo(path).fileName(), fromUtf8(r.error)); return {}; }
+    loadTilemaps(m_scene, toUtf8(projectDir()));   // prefab avec une tilemap
+    snapAllFollowers();
+    emit sceneChanged();
+    if (!r.entities.empty()) select(r.entities.front());
+    return r.entities;
+}
+
+std::vector<Entity> EditorContext::dropFiles(const QStringList& paths, Entity target, std::optional<sf::Vector2f> position) {
+    std::vector<Entity> created;
+    QStringList done, problems;
+    for (const QString& path : paths) {
+        const QFileInfo fi(path);
+        const QString ext = fi.suffix().toLower();
+        if ("." + ext == QString(kPrefabExtension)) {
+            QString err;
+            const std::vector<Entity> made = instantiatePrefab(path, position, &err);
+            if (made.empty()) problems << err;
+            else { created.insert(created.end(), made.begin(), made.end()); done << fi.completeBaseName(); }
+        } else if (ext == "map") {   // une tilemap existante : nouvelle entité Tilemap
+            QString err;
+            const Entity e = addTilemapFromFile(path, &err);
+            if (isValid(e)) { created.push_back(e); done << fi.completeBaseName(); }
+            else problems << err;
+        } else if (ext == "tileset") {   // un tileset : ajouté à la tilemap active
+            TileMapData* map = activeMap();
+            auto ts = std::make_shared<Tileset>();
+            std::string err;
+            const QString rel = QDir(projectDir()).relativeFilePath(path);
+            ts->file = toUtf8(rel.startsWith("..") ? path : rel);
+            if (!map) problems << tr("Ajoutez d'abord une tilemap à la scène (Hierarchy > +)");
+            else if (!loadTileset(*ts, toUtf8(path), &err)) problems << fromUtf8(err);
+            else {
+                const int slot = map->addTileset(ts);
+                done << fi.completeBaseName();
+                notifyTilesChanged();
+                setBrush(TileBrush{ slot, map->tileset(slot)->isAutotile(), map->tileset(slot)->previewTile() });
+            }
+        } else if (ext == "h" || ext == "hpp") {
+            // Comportements (REGISTER_BEHAVIOR) et composants de jeu (REGISTER_COMPONENT) déclarés dans ce fichier
+            const std::vector<std::string> names = BehaviorFactory::get().namesInFile(toUtf8(fi.fileName()));
+            const auto components = GameComponentRegistry::get().inFile(toUtf8(fi.fileName()));
+            if (names.empty() && components.empty()) {
+                problems << tr("« %1 » : rien de compilé dedans (REGISTER_BEHAVIOR / REGISTER_COMPONENT manquant, "
+                               "ou recompilez l'éditeur)").arg(fi.fileName());
+            } else if (!isValid(target)) {
+                problems << tr("Déposez « %1 » sur une entité").arg(fi.fileName());
+            } else {
+                for (const std::string& n : names) if (addBehavior(target, n)) done << fromUtf8(n);
+                for (const GameComponentInfo* info : components) {
+                    if (info->has(m_scene, target)) continue;
+                    info->add(m_scene, target);
+                    done << fromUtf8(info->name);
+                    emit entityModified(target, nullptr);
+                    emit componentsChanged(target);
+                }
+            }
+        } else {
+            problems << tr("« %1 » : ni un prefab, ni une tilemap (.map), ni un tileset (.tileset), ni un comportement (.h)").arg(fi.fileName());
+        }
+    }
+    if (!problems.isEmpty()) emit statusMessage(problems.join("  —  "));
+    else if (!done.isEmpty()) emit statusMessage(tr("Ajouté : %1").arg(done.join(", ")));
+    return created;
+}
+
+// ---- Tilemaps ------------------------------------------------------------------------------------
+
+Entity EditorContext::activeTilemap() {
+    if (isValid(m_selected) && m_scene.hasComponent<Tilemap>(m_selected)) return m_selected;
+    if (isValid(m_activeTilemap) && m_scene.hasComponent<Tilemap>(m_activeTilemap)) return m_activeTilemap;
+    Entity first = NULL_ENTITY;
+    m_scene.view<Tilemap>([&](Entity e, Tilemap&) { if (first == NULL_ENTITY) first = e; });
+    return first;
+}
+
+TileMapData* EditorContext::activeMap() {
+    const Entity e = activeTilemap();
+    return isValid(e) ? m_scene.getComponent<Tilemap>(e).data.get() : nullptr;
+}
+
+sf::Vector2f EditorContext::activeMapOffset() {
+    const Entity e = activeTilemap();
+    return (isValid(e) && m_scene.hasComponent<Transform2D>(e)) ? m_scene.getComponent<Transform2D>(e).getPosition()
+                                                                : sf::Vector2f{};
+}
+
+void EditorContext::refreshActiveTilemap() {
+    const Entity e = activeTilemap();
+    if (e == m_activeTilemap) return;
+    m_activeTilemap = e;
+    emit tilemapChanged();
+}
+
+void EditorContext::notifyMapEdited() {
+    if (!m_loading) setDirty(true);
+    markChanged();
+}
+
+void EditorContext::notifyTilesChanged() {
+    if (TileMapData* map = activeMap()) { map->modified = true; ++map->version; }
+    setDirty(true);
+    markChanged();
+    emit tilemapChanged();
+}
+
+void EditorContext::notifyTilesetSaved(const std::shared_ptr<Tileset>& tileset) {
+    if (!tileset) return;
+    m_scene.view<Tilemap>([&](Entity, Tilemap& tm) {
+        if (!tm.data) return;
+        for (auto& ts : tm.data->tilesets)
+            if (ts && ts != tileset && ts->file == tileset->file) { *ts = *tileset; ++tm.data->version; }
+    });
+    if (TileMapData* map = activeMap()) ++map->version;
+    emit tilemapChanged();
+}
+
+Entity EditorContext::createTilemap(TileMapOrientation orientation, int width, int height, QString* error) {
+    if (!hasProject()) { if (error) *error = tr("Ouvrez d'abord un projet."); return NULL_ENTITY; }
+    const bool iso = orientation == TileMapOrientation::Isometric;
+    const QString base = iso ? "tilemap_iso" : "tilemap";
+    QString rel = QString("maps/%1.map").arg(base);
+    for (int i = 2; QFileInfo::exists(projectDir() + "/" + rel); ++i) rel = QString("maps/%1_%2.map").arg(base).arg(i);
+
+    auto data = makeTileMap(orientation, width, height, toUtf8(projectDir()));   // en mémoire : pas d'enregistrement ici
+
+    Entity e = m_scene.createEntity();
+    m_scene.addComponent<NameComponent>(e, toUtf8(QFileInfo(rel).completeBaseName()));
+    m_scene.addComponent<Transform2D>(e);
+    m_scene.addComponent<PersistentId>(e).value = generatePersistentId();
+    Tilemap& tm = m_scene.addComponent<Tilemap>(e);
+    tm.file = toUtf8(rel);
+    tm.data = std::move(data);
+    emit sceneChanged();
+    select(e);
+    emit statusMessage(tr("Tilemap créée : %1 — ajoutez ses tiles dans le panneau Tile Palette").arg(rel));
+    return e;
+}
+
+Entity EditorContext::addTilemapFromFile(const QString& mapPath, QString* error) {
+    auto data = std::make_shared<TileMapData>();
+    std::string err;
+    if (!loadTileMap(*data, toUtf8(mapPath), toUtf8(projectDir()), &err)) { if (error) *error = fromUtf8(err); return NULL_ENTITY; }
+    Entity e = m_scene.createEntity();
+    m_scene.addComponent<NameComponent>(e, toUtf8(QFileInfo(mapPath).completeBaseName()));
+    m_scene.addComponent<Transform2D>(e);
+    m_scene.addComponent<PersistentId>(e).value = generatePersistentId();
+    Tilemap& tm = m_scene.addComponent<Tilemap>(e);
+    tm.file = hasProject() ? m_project.relative(toUtf8(QFileInfo(mapPath).absoluteFilePath())) : toUtf8(mapPath);
+    tm.data = std::move(data);
+    emit sceneChanged();
+    select(e);
+    return e;
+}
+
+bool EditorContext::setSystemEnabled(const QString& name, bool enabled, QString* error) {
+    const std::string key = name.toStdString();
+    if (enabled) m_project.systems.erase(key);   // activé = valeur par défaut, inutile de l'écrire
+    else m_project.systems[key] = false;
+    if (!hasProject()) return true;
+    std::string err;
+    if (!m_project.save(&err)) {
+        if (error) *error = QString::fromStdString(err);
+        return false;
+    }
+    emit statusMessage(tr("%1 %2 (enregistré dans %3)").arg(name, enabled ? tr("activé") : tr("désactivé"),
+                                                            QFileInfo(projectFile()).fileName()));
+    return true;
 }

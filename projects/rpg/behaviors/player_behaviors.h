@@ -5,6 +5,7 @@
 #include "ecs/registry.h"
 #include "components/rigid_body2d.h"
 #include "input/input.h"
+#include "ecs/behavior_factory.h"
 #include "components/geometry.h"
 #pragma once
 
@@ -30,3 +31,6 @@ public:
 private:
     float keyTimer = 0;
 };
+
+// Nom utilisé dans les fichiers .scene ("behavior": "PlayerBehavior")
+REGISTER_BEHAVIOR(PlayerBehavior)

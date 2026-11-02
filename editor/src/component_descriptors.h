@@ -36,3 +36,7 @@ struct ComponentDesc {
 };
 
 const std::vector<ComponentDesc>& componentDescriptors();
+
+// Champs d'un comportement (ses PROPERTY) : une section par comportement dans l'Inspector
+struct IBehavior;
+std::vector<FieldDesc> behaviorFields(IBehavior* behavior);

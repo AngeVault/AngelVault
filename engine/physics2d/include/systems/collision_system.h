@@ -4,6 +4,7 @@
 #include "components/collider2d.h"    
 #include "components/rigid_body2d.h" 
 #include "components/transform2d.h"
+#include "utils/collider_shape.h"
 #include <vector>
 #include <functional>
 #include <cmath>
@@ -11,13 +12,20 @@
 #include <cstdint>
 #include <cfloat>
 #include <type_traits>
+#include <unordered_map>
 
 
+// Règles de collision :
+//  - un contact ne BLOQUE (les entités se repoussent) que si les deux entités ont un RigidBody2D
+//    et qu'aucun des deux colliders n'est un déclencheur (isTrigger) ;
+//  - si une seule des deux a un RigidBody2D, le contact est quand même détecté (onCollision, avec
+//    isTrigger = true) mais personne n'est repoussé : on traverse, comme un déclencheur ;
+//  - deux entités sans RigidBody2D, ou deux RigidBody2D statiques, ne sont jamais testées.
 struct CollisionInfo {
     Entity       entityA, entityB;
     sf::Vector2f normal;     // direction du choc (de A vers B)
     float        depth;      // profondeur de pénétration
-    bool         isTrigger;  // true = pas de réponse physique
+    bool         isTrigger;  // true = pas de réponse physique (déclencheur, ou une des entités sans RigidBody2D)
     sf::Vector2f point;
 
 };
@@ -29,6 +37,11 @@ public:
 
     CollisionSystem() { priority = 1; } // après Physics (0), avant Render (10)
 
+    // Plus grand déplacement d'une image traité comme un mouvement (au-delà : téléportation, pas de balayage)
+    float maxSweep = 2000.f;
+    // Nombre max de sous-étapes par image (objets très rapides contre des murs très fins)
+    int maxSubSteps = 16;
+
     void onUpdate(Registry& registry, float dt) override {
         // Collecte toutes les entités collidables
         m_entries.clear();
@@ -39,14 +52,53 @@ public:
                 m_entries.push_back({ e, &c, &t, rb });
             });
 
+        // ---- Sous-étapes (anti « effet tunnel ») ------------------------------------------------
+        // Un objet rapide peut sauter par-dessus un mur fin en une seule image. On rejoue donc son
+        // déplacement de l'image en petits pas (pas plus grand que la moitié de la forme la plus fine),
+        // avec détection + réponse à chaque pas.
+        float thinnest = FLT_MAX;
+        for (const auto& en : m_entries) thinnest = std::min(thinnest, minHalfExtent(*en.col));
+        const float step = std::max(1.f, thinnest);
+        float longest = 0.f;
+        m_moves.assign(m_entries.size(), sf::Vector2f{});
+        for (size_t i = 0; i < m_entries.size(); ++i) {
+            const auto& en = m_entries[i];
+            if (!en.rb || en.rb->isStatic) continue;
+            const auto it = m_lastPositions.find(entityKey(en.e));
+            if (it == m_lastPositions.end()) continue;
+            const sf::Vector2f move = en.tr->getPosition() - it->second;
+            const float len = std::hypot(move.x, move.y);
+            if (len > maxSweep) continue;   // téléportation (script, éditeur) : pas de balayage
+            m_moves[i] = move;
+            longest = std::max(longest, len);
+        }
+        const int steps = std::clamp(int(std::ceil(longest / step)), 1, std::max(1, maxSubSteps));
+        if (steps > 1)
+            for (size_t i = 0; i < m_entries.size(); ++i) m_entries[i].tr->move(-m_moves[i]);   // retour au début de l'image
+
+        m_reported.clear();
+        for (int s = 0; s < steps; ++s) {
+            if (steps > 1)
+                for (size_t i = 0; i < m_entries.size(); ++i) m_entries[i].tr->move(m_moves[i] / float(steps));
+            collidePass();
+        }
+
+        m_lastPositions.clear();
+        for (const auto& en : m_entries) m_lastPositions[entityKey(en.e)] = en.tr->getPosition();
+    }
+
+private:
+    // Une passe : grille spatiale, détection et réponse pour toutes les paires
+    void collidePass() {
         // Grille spatiale : seuls les colliders dont les boîtes englobantes
         // partagent une cellule arrivent jusqu'au test précis.
         constexpr float cellSize = 128.f;
         m_spans.clear();
         m_cellEntries.clear();
         for (size_t i = 0; i < m_entries.size(); ++i) {
-            const sf::Vector2f position = m_entries[i].tr->getPosition();
-            const float radius = boundingRadius(*m_entries[i].col);
+            // cercle englobant autour du centre réel de la forme (le décalage tourne avec l'entité)
+            const sf::Vector2f position = collider_shape::worldCenter(*m_entries[i].col, *m_entries[i].tr);
+            const float radius = collider_shape::boundingRadius(*m_entries[i].col);
             const int minX = static_cast<int>(std::floor((position.x - radius) / cellSize));
             const int maxX = static_cast<int>(std::floor((position.x + radius) / cellSize));
             const int minY = static_cast<int>(std::floor((position.y - radius) / cellSize));
@@ -78,18 +130,25 @@ public:
                     auto& A = m_entries[i];
                     auto& B = m_entries[j];
 
-                    // Deux statiques ne se calculent jamais
+                    // Deux statiques (ou sans RigidBody2D) ne se calculent jamais
                     bool aStatic = !A.rb || A.rb->isStatic;
                     bool bStatic = !B.rb || B.rb->isStatic;
                     if (aStatic && bStatic) continue;
+                    // Sans RigidBody2D d'un côté : le contact est capté mais ne bloque pas
+                    const bool bothBodies = A.rb && B.rb;
 
                     CollisionInfo info;
                     if (detect(*A.col, *A.tr, *B.col, *B.tr, info)) {
                         info.entityA = A.e;
                         info.entityB = B.e;
-                        info.isTrigger = A.col->isTrigger || B.col->isTrigger;
+                        info.isTrigger = A.col->isTrigger || B.col->isTrigger || !bothBodies;
 
-                        if (onCollision) onCollision(info);
+                        // Une seule notification par paire et par image (même avec plusieurs sous-étapes)
+                        const uint64_t pair = pairKey(A.e, B.e);
+                        if (onCollision && std::find(m_reported.begin(), m_reported.end(), pair) == m_reported.end()) {
+                            m_reported.push_back(pair);
+                            onCollision(info);
+                        }
 
                         if (!info.isTrigger)
                             resolve(info, A.rb, B.rb, *A.tr, *B.tr, *A.col, *B.col);
@@ -100,7 +159,6 @@ public:
         }
     }
 
-private:
     struct ColEntry {
         Entity e;
         Collider2D* col;
@@ -112,41 +170,41 @@ private:
     std::vector<ColEntry> m_entries;
     std::vector<GridSpan> m_spans;
     std::vector<CellEntry> m_cellEntries;
+    std::vector<sf::Vector2f> m_moves;                          // déplacement de l'image (sous-étapes)
+    std::unordered_map<uint64_t, sf::Vector2f> m_lastPositions; // position à la fin de l'image précédente
+    std::vector<uint64_t> m_reported;                           // paires déjà notifiées cette image
+
+    static uint64_t entityKey(Entity e) { return (uint64_t(e.index) << 32) | e.generation; }
+    static uint64_t pairKey(Entity a, Entity b) {
+        const uint64_t x = (uint64_t(a.index) << 32) | b.index, y = (uint64_t(b.index) << 32) | a.index;
+        return std::min(x, y);
+    }
+
+    // Demi-épaisseur la plus petite de la forme (sert à choisir la taille des sous-étapes)
+    static float minHalfExtent(const Collider2D& c) {
+        using C = Collider2D;
+        return std::visit([](const auto& s) -> float {
+            using T = std::decay_t<decltype(s)>;
+            if constexpr (std::is_same_v<T, C::Box>) return std::min(s.halfSize.x, s.halfSize.y);
+            else if constexpr (std::is_same_v<T, C::Circle>) return s.radius;
+            else if constexpr (std::is_same_v<T, C::Ellipse>) return std::min(s.radii.x, s.radii.y);
+            else if constexpr (std::is_same_v<T, C::Capsule>) return s.radius;
+            else {
+                if (s.points.empty()) return FLT_MAX;
+                sf::Vector2f mn = s.points[0], mx = s.points[0];
+                for (sf::Vector2f p : s.points) { mn = { std::min(mn.x, p.x), std::min(mn.y, p.y) }; mx = { std::max(mx.x, p.x), std::max(mx.y, p.y) }; }
+                return 0.5f * std::min(mx.x - mn.x, mx.y - mn.y);
+            }
+        }, c.shape);
+    }
 
     static uint64_t cellKey(int x, int y) {
         return (static_cast<uint64_t>(static_cast<uint32_t>(x)) << 32)
             | static_cast<uint32_t>(y);
     }
 
-    static float boundingRadius(const Collider2D& collider) {
-        const float offset = std::hypot(collider.offset.x, collider.offset.y);
-        const float shapeRadius = std::visit([](const auto& shape) -> float {
-            using Shape = std::decay_t<decltype(shape)>;
-            if constexpr (std::is_same_v<Shape, Collider2D::Box>)
-                return std::hypot(shape.halfSize.x, shape.halfSize.y);
-            else if constexpr (std::is_same_v<Shape, Collider2D::Circle>)
-                return shape.radius;
-            else if constexpr (std::is_same_v<Shape, Collider2D::Ellipse>)
-                return std::hypot(shape.radii.x, shape.radii.y);
-            else if constexpr (std::is_same_v<Shape, Collider2D::Capsule>)
-                return shape.radius + shape.height * 0.5f;
-            else {
-                float radius = 0.f;
-                for (const sf::Vector2f point : shape.points)
-                    radius = std::max(radius, std::hypot(point.x, point.y));
-                return radius;
-            }
-        }, collider.shape);
-        return shapeRadius + offset;
-    }
-
-	sf::Vector2f computeWorldPosition(const Collider2D& c, const Transform2D& t) 
-    {
-		float cosA = std::cos(t.getRotation().asRadians());
-		float sinA = std::sin(t.getRotation().asRadians());
-		return { t.getPosition().x + c.offset.x * cosA - c.offset.y * sinA,
-				 t.getPosition().y + c.offset.x * sinA + c.offset.y * cosA };
-	}
+    // Centre de la forme dans le monde (le décalage tourne avec l'entité)
+    sf::Vector2f computeWorldPosition(const Collider2D& c, const Transform2D& t) { return collider_shape::worldCenter(c, t); }
 
     /// DÉTECTION — dispatche selon les types de formes
     bool detect(const Collider2D& cA, const Transform2D& tA,
@@ -159,7 +217,9 @@ private:
         using T = Collider2D::ShapeType;
         T typeA = cA.type(), typeB = cB.type();
 
-        if ((typeA == T::Box && typeB == T::Box) && ( tA.getRotation().asDegrees() < 0.01f && tB.getRotation().asDegrees() < 0.01f))
+        // Rectangles alignés sur les axes (0° ou 180°, angles négatifs compris) : test AABB, plus rapide.
+        // Sinon (rotation quelconque) : SAT ci-dessous.
+        if (typeA == T::Box && typeB == T::Box && collider_shape::isAxisAligned(tA) && collider_shape::isAxisAligned(tB))
             return boxVsBox(cA, posA, cB, posB, info);
         if (typeA == T::Circle && typeB == T::Circle)
             return circleVsCircle(cA, posA, cB, posB, info);
@@ -343,62 +403,90 @@ private:
     // Principe : si on trouve UN axe où les projections ne se chevauchent pas
     //            → pas de collision. Sinon → collision sur l'axe de plus faible chevauchement
     // ---------------------------------------------------------------
+    // Cercles : gardés exacts (projection = centre ± rayon) ; les autres formes sont des polygones
+    // convexes (ellipse et capsule approchées, voir utils/collider_shape.h).
     bool satTest(const Collider2D& cA, const Transform2D& tA, const Collider2D& cB, const Transform2D& tB, CollisionInfo& info)
     {
-        auto ptsA = getWorldPoints(cA, tA);
-        auto ptsB = getWorldPoints(cB, tB);
-        
-		sf::Vector2f posA = computeWorldPosition(cA, tA);
-        sf::Vector2f posB = computeWorldPosition(cB,tB);
+        const bool circleA = cA.type() == Collider2D::ShapeType::Circle;
+        const bool circleB = cB.type() == Collider2D::ShapeType::Circle;
+        const auto ptsA = circleA ? std::vector<sf::Vector2f>{} : getWorldPoints(cA, tA);
+        const auto ptsB = circleB ? std::vector<sf::Vector2f>{} : getWorldPoints(cB, tB);
+        const sf::Vector2f posA = computeWorldPosition(cA, tA);
+        const sf::Vector2f posB = computeWorldPosition(cB, tB);
+        const float radiusA = circleA ? std::get<Collider2D::Circle>(cA.shape).radius : 0.f;
+        const float radiusB = circleB ? std::get<Collider2D::Circle>(cB.shape).radius : 0.f;
 
-        float    minDepth = FLT_MAX;
-        sf::Vector2f bestNormal;
-
-        // Teste les normales des arêtes de A et de B
-        for (int pass = 0; pass < 2; ++pass) {
-            auto& pts = (pass == 0) ? ptsA : ptsB;
-            for (size_t i = 0; i < pts.size(); ++i) {
-                sf::Vector2f edge = pts[(i + 1) % pts.size()] - pts[i];
-                sf::Vector2f axis = { -edge.y, edge.x }; // normale perpendiculaire
-                float len = std::hypot(axis.x, axis.y);
-                if (len < 1e-6f) continue;
-                axis = { axis.x / len, axis.y / len };
-
-                auto [minA, maxA] = project(ptsA, axis);
-                auto [minB, maxB] = project(ptsB, axis);
-
-                float depth = std::min(maxA, maxB) - std::max(minA, minB);
-                if (depth <= 0.f) return false; // axe séparateur trouvé
-
-                if (depth < minDepth) {
-                    minDepth = depth;
-                    bestNormal = axis;
-                    
-                }
+        auto projectShape = [](const std::vector<sf::Vector2f>& pts, bool circle, sf::Vector2f center, float radius,
+                               sf::Vector2f axis) -> std::pair<float, float> {
+            if (circle) {
+                const float c = center.x * axis.x + center.y * axis.y;
+                return { c - radius, c + radius };
             }
+            float mn = FLT_MAX, mx = -FLT_MAX;
+            for (const auto& p : pts) {
+                const float d = p.x * axis.x + p.y * axis.y;
+                mn = std::min(mn, d);
+                mx = std::max(mx, d);
+            }
+            return { mn, mx };
+        };
+
+        // Axes à tester : normales des arêtes des polygones, et pour un cercle, la direction vers
+        // le sommet le plus proche de l'autre forme (indispensable pour les coins).
+        std::vector<sf::Vector2f> axes;
+        auto addEdgeAxes = [&](const std::vector<sf::Vector2f>& pts) {
+            for (size_t i = 0; i < pts.size(); ++i) {
+                const sf::Vector2f edge = pts[(i + 1) % pts.size()] - pts[i];
+                axes.push_back({ -edge.y, edge.x });
+            }
+        };
+        auto addCircleAxis = [&](sf::Vector2f center, const std::vector<sf::Vector2f>& other, sf::Vector2f otherCenter) {
+            sf::Vector2f closest = otherCenter;
+            float best = FLT_MAX;
+            for (const auto& p : other) {
+                const float d = (p.x - center.x) * (p.x - center.x) + (p.y - center.y) * (p.y - center.y);
+                if (d < best) { best = d; closest = p; }
+            }
+            axes.push_back(closest - center);
+        };
+        addEdgeAxes(ptsA);
+        addEdgeAxes(ptsB);
+        if (circleA) addCircleAxis(posA, ptsB, posB);
+        if (circleB) addCircleAxis(posB, ptsA, posA);
+
+        // Profondeur DIRIGÉE : distance pour sortir B d'un côté ou de l'autre de A sur cet axe.
+        // (Le simple chevauchement des projections est plafonné à l'épaisseur de la forme la plus fine :
+        //  contre un mur fin, la poussée était trop faible et on s'enfonçait image après image.)
+        float minDepth = FLT_MAX;
+        sf::Vector2f bestNormal{ 1.f, 0.f };
+        for (sf::Vector2f axis : axes) {
+            const float len = std::hypot(axis.x, axis.y);
+            if (len < 1e-6f) continue;
+            axis /= len;
+            const auto [minA, maxA] = projectShape(ptsA, circleA, posA, radiusA, axis);
+            const auto [minB, maxB] = projectShape(ptsB, circleB, posB, radiusB, axis);
+            const float pushPlus = maxA - minB;    // B poussé vers +axis
+            const float pushMinus = maxB - minA;   // B poussé vers -axis
+            if (pushPlus <= 0.f || pushMinus <= 0.f) return false;   // axe séparateur trouvé
+            const float depth = std::min(pushPlus, pushMinus);
+            if (depth < minDepth) { minDepth = depth; bestNormal = pushPlus <= pushMinus ? axis : -axis; }
         }
+        if (minDepth == FLT_MAX) return false;
 
-        // S'assurer que la normale pointe de A vers B
-        sf::Vector2f dir = posB - posA;
-        if (dir.x * bestNormal.x + dir.y * bestNormal.y < 0.f)
-            bestNormal = { -bestNormal.x, -bestNormal.y };
-
+        // La normale pointe de A vers B (sens dans lequel B doit sortir)
         info.normal = bestNormal;
         info.depth = minDepth;
 
-		float maxProj = -FLT_MAX;
-		sf::Vector2f contactPoint = ptsA[0];
-		for (const auto& p : ptsA) 
-        {
-			float proj = p.x * bestNormal.x + p.y * bestNormal.y;
-			if (proj > maxProj) {
-				maxProj = proj;
-				contactPoint = p;
-			}
-		}
-
-		info.point = contactPoint + bestNormal * (info.depth * 0.5f);
-
+        // Point de contact : le point de A le plus avancé vers B
+        sf::Vector2f contactPoint = posA + bestNormal * radiusA;
+        if (!circleA) {
+            float maxProj = -FLT_MAX;
+            for (const auto& p : ptsA) {
+                const float proj = p.x * bestNormal.x + p.y * bestNormal.y;
+                if (proj > maxProj) { maxProj = proj; contactPoint = p; }
+            }
+        }
+        info.point = contactPoint - bestNormal * (info.depth * 0.5f);
         return true;
     }
 
@@ -413,64 +501,10 @@ private:
         return { mn, mx };
     }
 
-    // Retourne les points mondiaux d'une forme (transformés en world space)
-    std::vector<sf::Vector2f> getWorldPoints(const Collider2D& c, const Transform2D& t) 
+    // Points mondiaux d'une forme (polygone convexe ; ellipse et capsule approchées)
+    std::vector<sf::Vector2f> getWorldPoints(const Collider2D& c, const Transform2D& t)
     {
-        return std::visit([&](auto& shape) -> std::vector<sf::Vector2f> 
-            {
-                float cosA = std::cos(t.getRotation().asRadians());
-                float sinA = std::sin(t.getRotation().asRadians());
-
-                using T = std::decay_t<decltype(shape)>;
-                if constexpr (std::is_same_v<T, Collider2D::Box>) 
-                {
-                    auto toWorld = [&](sf::Vector2f local) 
-                        {
-                            sf::Vector2f withOffset = local + c.offset; // offset et forme tournent ensemble
-                            return sf::Vector2f
-                            {
-                                t.getPosition().x + withOffset.x * cosA - withOffset.y * sinA,
-                                t.getPosition().y + withOffset.x * sinA + withOffset.y * cosA
-                            };
-                        };
-
-                    return {
-                        toWorld({ -shape.halfSize.x, -shape.halfSize.y }),
-                        toWorld({  shape.halfSize.x, -shape.halfSize.y }),
-                        toWorld({  shape.halfSize.x,  shape.halfSize.y }),
-                        toWorld({ -shape.halfSize.x,  shape.halfSize.y })
-                    };
-                }
-                if constexpr (std::is_same_v<T, Collider2D::Polygon>) {
-                    std::vector<sf::Vector2f> out;
-                    out.reserve(shape.points.size());
-                    for (auto& p : shape.points)
-						out.push_back({ t.getPosition().x + (p.x + c.offset.x) * cosA - (p.y + c.offset.y) * sinA,
-										t.getPosition().y + (p.x + c.offset.x) * sinA + (p.y + c.offset.y) * cosA
-                            });
-                    return out;
-                }
-                // Fallback pour cercle/ellipse/capsule : approximation polygonale
-                std::vector<sf::Vector2f> pts;
-                float r = 16.f;
-                if constexpr (std::is_same_v<T, Collider2D::Circle>) {
-                    r = shape.radius;
-                }
-                else if constexpr (std::is_same_v<T, Collider2D::Ellipse>) {
-                    r = std::max(shape.radii.x, shape.radii.y);
-                }
-                else if constexpr (std::is_same_v<T, Collider2D::Capsule>) {
-                    r = shape.radius;
-                }
-                for (int i = 0; i < 8; ++i) {
-                    float a = i * 3.14159f * 2.f / 8.f;
-					sf::Vector2f p = { std::cos(a) * r, std::sin(a) * r };
-                    pts.push_back({ t.getPosition().x + (p.x + c.offset.x) * cosA - (p.y + c.offset.y) * sinA  ,
-                        t.getPosition().y + (p.x + c.offset.x) * sinA + (p.y + c.offset.y) * cosA 
-                        });
-                }
-                return pts;
-            }, c.shape);
+        return collider_shape::worldOutline(c, t, 16);
     }
 
     // ---------------------------------------------------------------

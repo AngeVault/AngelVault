@@ -3,13 +3,16 @@
 #include "editor_context.h"
 
 #include "utils/loose_file_loader.h"
+#include "components/collider2d.h"
+#include "components/geometry.h"
+#include "shape_edit.h"
 
 #include <QPoint>
 #include <SFML/Graphics/View.hpp>
 #include <SFML/System/Clock.hpp>
 #include <memory>
 
-class TileMapRenderSystem;
+class TilemapRenderSystem;
 
 // Caméra de l'ÉDITEUR (pan / zoom de la vue scène). Ce n'est pas une entité :
 // elle ne fait pas partie de la scène et n'est jamais sauvegardée avec elle.
@@ -28,7 +31,12 @@ class RenderSystem;
 // Vue scène de l'éditeur : la tilemap + les entités de la scène (EditorContext).
 //  - molette : zoom (centré sur la souris)     - clic droit / clic molette + glisser : déplacer la vue
 //  - outil Sélection : clic = sélectionner, glisser = déplacer l'entité (Ctrl = aligner sur la grille)
-//  - outils Pinceau / Gomme / Pipette : voir la Tile Palette
+//  - outil Taille (R) : poignées sur l'entité sélectionnée pour agrandir sa forme (Geometry) et / ou sa
+//    collision (Collider2D) ; Maj = garder les proportions, Ctrl = arrondir à la demi-case
+//  - Affichage > Collisions : contours des Collider2D (vert ; déclencheurs en jaune)
+//  - outils Pinceau / Gomme / Remplir / Pipette : voir la Tile Palette
+//      glisser = tracé continu (aucune case sautée)   Maj + clic = ligne droite depuis le dernier point
+//      Ctrl + molette, [ ] ou - + : taille du pinceau   Alt + clic : pipette
 //  - F : cadrer la carte   Suppr : supprimer l'entité   Échap : désélectionner
 //
 // La caméra de cette vue est celle de l'ÉDITEUR : elle ne fait pas partie de la scène.
@@ -42,10 +50,13 @@ public:
 
     void setGridVisible(bool visible) { m_showGrid = visible; }
     bool isGridVisible() const { return m_showGrid; }
+    void setCollidersVisible(bool visible) { m_showColliders = visible; }
+    bool areCollidersVisible() const { return m_showColliders; }
     void fitToMap();
 
 signals:
     void hoveredTileChanged(int x, int y, const QString& type);
+    void statusText(const QString& text);
 
 protected:
     void wheelEvent(QWheelEvent* e) override;
@@ -54,38 +65,75 @@ protected:
     void mouseReleaseEvent(QMouseEvent* e) override;
     void keyPressEvent(QKeyEvent* e) override;
     void leaveEvent(QEvent* e) override;
+    void dragEnterEvent(QDragEnterEvent* e) override;   // prefab (.prefab) ou comportement (.h) du panneau Project
+    void dragMoveEvent(QDragMoveEvent* e) override;
+    void dropEvent(QDropEvent* e) override;
     void resizeEvent(QResizeEvent* e) override;
 
 private:
     void init(sf::RenderWindow& target);
     void frame(sf::RenderWindow& target);
-    void buildDemoMap();
-    void buildTileset();
     void drawGrid(sf::RenderTarget& target);
     void drawCameras(sf::RenderTarget& target);
     void drawSelection(sf::RenderTarget& target);
     void drawGizmo(sf::RenderTarget& target);
     void drawBrush(sf::RenderTarget& target);
+    void drawColliders(sf::RenderTarget& target);
+    void drawResizeGizmo(sf::RenderTarget& target);
+
+    // ---- Outil Taille ----
+    // Boîte de référence des poignées (la forme, sinon la collision) et repère local -> monde
+    struct ResizeFrame {
+        bool valid = false;
+        bool collider = false;            // la référence est la collision (sinon la Geometry)
+        shape_edit::LocalBox box;
+        sf::Transform toWorld;
+    };
+    ResizeFrame resizeFrame(Entity e) const;
+    int resizeHandleAt(sf::Vector2f world) const;   // 0..7, -1 = aucune
+    void beginResize(int handle);
+    void dragResize(sf::Vector2f world, Qt::KeyboardModifiers mods);
+    struct ResizeDrag {
+        int handle = -1;
+        Entity entity = NULL_ENTITY;
+        ResizeFrame frame;
+        bool hasGeometry = false, hasCollider = false;
+        Geometry geometry;                // au début du glisser
+        Collider2D collider;
+        sf::Vector2f scale{ 1.f, 1.f };   // Transform2D (sprites)
+    };
+    ResizeDrag m_resize;
+    int m_hoverResize = -1;
     void updateCursor();
 
     sf::Vector2f toWorld(const QPointF& widgetPos);
     Entity pickEntity(sf::Vector2f world);
+    float snapStep();
 
     // Gizmo de déplacement sur l'entité sélectionnée (outil Sélection) :
     // flèche rouge = X seulement, flèche verte = Y seulement, carré central = libre.
     enum class GizmoHandle { None, X, Y, Free };
     GizmoHandle gizmoHandleAt(sf::Vector2f world) const;
-    void paintAt(sf::Vector2i tile);
+    // Peinture (Pinceau / Gomme / Remplir / Pipette)
+    void beginStroke(sf::Vector2i cell);
+    void strokeTo(sf::Vector2i cell);                 // de la dernière case peinte jusqu'à `cell`
+    bool dab(sf::Vector2i cell);                      // un coup de pinceau ; true si la carte a changé
+    void floodFill(sf::Vector2i cell);
+    void pickAt(sf::Vector2i cell);
+    void changeBrushSize(int delta);
     void updateHover(const QPointF& pos);
+    QString describeCell(const TileMapData& map, TileCell cell) const;
 
     EditorContext& m_ctx;
     EditorCamera m_camera;
     LooseFileLoader m_textures{ "" };          // charge les PNG (id = chemin)
-    std::unique_ptr<TileMapRenderSystem> m_tileRenderer;
+    std::unique_ptr<TilemapRenderSystem> m_tilemapRenderer;   // dessine les entités Tilemap
     std::unique_ptr<RenderSystem> m_entityRenderer;
     sf::Clock m_clock;
 
     bool m_showGrid = true;
+    bool m_showColliders = true;
+    bool m_interacting = false;   // clic gauche en cours (beginInteraction appelé)
     bool m_needsFit = true;
     bool m_userCamera = false;   // la caméra a été bougée à la main : plus de recadrage auto
     bool m_panning = false;
@@ -100,5 +148,10 @@ private:
 
     sf::Vector2i m_hoveredTile{ 0, 0 };
     bool m_hoverValid = false;
-    sf::Vector2i m_lastPainted{ INT32_MIN, INT32_MIN };
+    sf::Vector2i m_lastPainted{ INT32_MIN, INT32_MIN };   // dernière case du tracé en cours
+    sf::Vector2i m_strokeOrigin;                          // tampon : la grille de pose part d'ici
+    sf::Vector2i m_lastDab{ INT32_MIN, INT32_MIN };       // tampon : dernière case où il a été posé
+    sf::Vector2i m_strokeEnd;                             // fin du dernier tracé (Maj + clic : ligne)
+    bool m_hasStrokeEnd = false;
+    bool m_strokeChanged = false;
 };

@@ -1,0 +1,15 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Herbe",
+  "image": "assets/tilesets/demo/herbe.png",
+  "tileSize": [
+    16,
+    16
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 16,
+  "count": 112,
+  "autotile": "corners16"
+}

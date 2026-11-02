@@ -1,0 +1,16 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Eau",
+  "image": "assets/tilesets/demo/eau.png",
+  "tileSize": [
+    16,
+    16
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 16,
+  "count": 256,
+  "autotile": "corners16",
+  "frameTime": 0.15000000596046448
+}

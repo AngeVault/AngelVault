@@ -1,0 +1,20 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Roof G",
+  "image": "assets/tilesets/fantasy_iso/roof_g.png",
+  "tileSize": [
+    91,
+    147
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 4,
+  "anchor": [
+    54,
+    110
+  ],
+  "autotile": "none",
+  "ySort": true
+}
