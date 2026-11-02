@@ -47,7 +47,6 @@ public:
 
     Registry& scene() { return m_scene; }
     // --- Map and layers ---
-    TileMap& map() { return m_map; }
 
     // --- Tilemaps (composant Tilemap : facultatif, il peut y en avoir 0, 1 ou plusieurs) ---
     // La tilemap « active » est celle que l'on peint : l'entité sélectionnée si c'est une tilemap,

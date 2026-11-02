@@ -21,7 +21,6 @@
 #include <cmath>
 #include <queue>
 
-#include "save_map.h"
 
 namespace {
 const sf::Color kSelection(255, 170, 40);

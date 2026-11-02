@@ -26,6 +26,7 @@
           "zoom": 1.0,
           "minZoom": 0.25,
           "maxZoom": 4.0,
+          "zoomLocked": false,
           "panSpeedKeyboard": 1000.0,
           "panSpeedGamepad": 100.0,
           "zoomStep": 0.5,
@@ -367,31 +368,7 @@
       }
     },
     {
-      "id": 15294090322440002633,
-      "components": {
-        "Name": {
-          "name": "tilemap_iso"
-        },
-        "Transform2D": {
-          "position": [
-            49.139068603515625,
-            -806.655029296875
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "Tilemap": {
-          "file": "maps/tilemap_iso.map",
-          "visible": true
-        }
-      }
-    },
-    {
-      "id": 9248257352794584917,
+      "id": 16391507726689606093,
       "components": {
         "Name": {
           "name": "tilemap_iso"
@@ -544,6 +521,7 @@
           "zoom": 1.0,
           "minZoom": 0.25,
           "maxZoom": 4.0,
+          "zoomLocked": false,
           "panSpeedKeyboard": 1000.0,
           "panSpeedGamepad": 100.0,
           "zoomStep": 0.5,
@@ -558,6 +536,54 @@
             3000.0
           ],
           "targetLock": 2392736522797589009
+        }
+      }
+    },
+    {
+      "id": 15699913434436958338,
+      "components": {
+        "Name": {
+          "name": "tilemap_iso"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso.map",
+          "visible": true
+        }
+      }
+    },
+    {
+      "id": 11319571069868255815,
+      "components": {
+        "Name": {
+          "name": "tilemap_iso"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso.map",
+          "visible": true
         }
       }
     }
@@ -577,8 +603,6 @@
       "8432238510110025053": "colision",
       "7647194933246917022": "colision",
       "15999493952223515466": "colision",
-      "15294090322440002633": "map",
-      "9248257352794584917": "map",
       "9932720423414607161": "colision"
     }
   }

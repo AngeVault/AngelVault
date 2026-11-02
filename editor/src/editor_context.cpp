@@ -9,7 +9,6 @@
 #include "scene/prefab.h"
 #include "scene/tilemaps.h"
 #include "components/transform2d.h"
-#include "save_map.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -189,13 +188,6 @@ void EditorContext::setTool(EditorTool tool) {
     emit toolChanged(tool);
 }
 
-void EditorContext::setPaintType(TileType type) {
-    if (type == m_paintType) return;
-    m_paintType = type;
-    emit paintTypeChanged(type);
-    save_map(*this);
-    load_map(*this);
-}
 void EditorContext::setBrush(const TileBrush& brush) {
     if (brush == m_brush) return;
     m_brush = brush;
@@ -340,6 +332,9 @@ bool EditorContext::openScene(const QString& path, QString* error) {
 bool EditorContext::saveScene(QString* error) {
     if (m_scenePath.isEmpty()) { if (error) *error = tr("La scène n'a pas encore de fichier."); return false; }
     std::string err;
+    // if (!::save_maps(m_scene)) { if (error) *error = fromUtf8(err); return false; }
+    save_map(*activeMap());
+
     if (!::saveScene(m_scene, sceneMeta(), toUtf8(m_scenePath), &err)) { if (error) *error = fromUtf8(err); return false; }
     if (hasProject()) {   // scène connue du projet (liste de l'éditeur, scène de départ si c'est la première)
         const std::string rel = m_project.relative(toUtf8(m_scenePath));

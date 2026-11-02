@@ -1,6 +1,6 @@
 #include "tilemap/tilemap.h"
-
-#include <nlohmann/json.hpp>
+#include "fstream"
+#include "scene/project.h"
 
 #include <algorithm>
 #include <cmath>
@@ -8,8 +8,16 @@
 #include <fstream>
 #include <sstream>
 
+
+
+
+
+
+
 using Json = nlohmann::ordered_json;
 namespace fs = std::filesystem;
+
+
 
 namespace {
 fs::path toPath(const std::string& utf8) { return fs::path(std::u8string(utf8.begin(), utf8.end())); }
@@ -27,6 +35,51 @@ sf::Vector2f vec2(const Json& j, sf::Vector2f fallback) {
 } // namespace
 
 const char* toString(TileMapOrientation o) { return o == TileMapOrientation::Isometric ? "isometric" : "orthogonal"; }
+
+
+
+bool save_maps(Registry& scene) {
+    scene.view<TileMapData>([&] (Entity& e, TileMapData& tileMapData) {
+        save_map(tileMapData);
+    });
+    return true;
+}
+
+
+nlohmann::ordered_json tilesToJson(TileMapData &tileMapData) {
+Json tiles = Json::array();
+    for (int i = 0; i < tileMapData.width(); ++i) {
+        for (int j = 0; j < tileMapData.height(); ++j) {
+            tiles.push_back(tileMapData.get(i,j));
+        }
+    }
+    return tiles;
+}
+
+void save_map(TileMapData& tileMapData) {
+    Json map_save;
+    // map_save = {
+    //     "format:", "angeVault.map",
+    //     {"version:" ,1},
+    //     {"width:" ,ctx.map().width},
+    //     {"height:" ,ctx.map().height},
+    //     {"tileSize:" ,ctx.map().tileSize},
+    //     {"tileset:" ,"assets/tilesets/overworld"},
+    //     {"types:" ,"[None", "Sand", "Water", "Grass", "BrickPath", "DirtPath", "DonjonFloor", "Wall", "Path]"},
+    //     {"encoding:" ,"rle-base64"},
+    //     {"tiles:" ,"AwDIAQQB...."}
+    // };
+    map_save["format"] = "angeVault.map";
+    map_save["version"] = 1;
+    map_save["width"] = tileMapData.width();
+    map_save["height"] = tileMapData.height();
+    map_save["tileset"] = "assets/tilesets/overworld";
+    map_save["tiles"] = tilesToJson(tileMapData);
+    std::ofstream map_file("save_map.json");
+    map_file << map_save.dump();
+    map_file.close();
+}
+
 
 // ---- Cases -------------------------------------------------------------------------------------
 
