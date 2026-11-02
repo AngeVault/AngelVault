@@ -32,8 +32,10 @@ inline void loadRpgEntities(Registry& registry) {
     registry.addComponent<Collider2D>(player, Collider2D::makeBox({ 16.f, 32.f }));
     registry.addComponent<NameComponent>(player, "Player");
 
-    // La caméra suit le joueur
-    registry.getComponent<Camera2d>(cameraEntity).setTarget(player);
+    // La caméra suit le joueur definit et lock le zoom
+    //registry.getComponent<Camera2d>(cameraEntity).setTarget(player);
+    //camera.setZoomLoked(true);
+    //camera.setTargetZoom(0.25f);  
 
     // Attache le script PlayerBehavior
     auto& scriptPlayer = registry.addComponent<Script>(player);

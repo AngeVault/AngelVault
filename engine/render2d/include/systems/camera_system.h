@@ -8,6 +8,8 @@
 #include "ecs/entity.h"
 #include "components/transform2d.h"
 #include "ecs/registry.h"
+#include "input/input.h"
+#include "math/easing.h"
 
 #include <SFML/Graphics.hpp>
 
@@ -36,35 +38,17 @@ public:
             sf::Vector2f position = registry.getComponent<Transform2D>(e).getPosition();
             if (camera.targetLock == NULL_ENTITY)
             {
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
+
+                position.x += (camera.panSpeedKeyboard * camera.zoom *dt) * Input::getAxis("Horizontal");
+                position.y += (camera.panSpeedKeyboard * camera.zoom *dt) * Input::getAxis("Vertical");
+                if (camera.zoomLocked == false)
                 {
-                    position.x -= camera.panSpeedKeyboard * camera.zoom *dt;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
-                {
-                    position.x += camera.panSpeedKeyboard * camera.zoom*dt;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
-                {
-                    position.y -= camera.panSpeedKeyboard * camera.zoom*dt;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
-                {
-                    position.y += camera.panSpeedKeyboard * camera.zoom*dt;
+                    camera.targetZoom += (camera.zoomStep *dt) * Input::getAxis("ZoomWheel") ;
                 }
 
-
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Add))
-                {
-                    camera.targetZoom += camera.zoomStep *dt ;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Subtract))
-                {
-                    camera.targetZoom -= camera.zoomStep *dt ;
-                }
                 if (camera.targetZoom != camera.zoom)
                 {
-                    camera.zoom = camera.targetZoom ;
+                    camera.zoom =  Math::moveTowards(camera.zoom, camera.targetZoom, camera.zoomLerpSpeed) ;
                 }
 
             }
@@ -73,6 +57,14 @@ public:
                 if (registry.isValid(camera.targetLock))
                 {
                     position = registry.getComponent<Transform2D>(camera.targetLock).getPosition();
+                    if (camera.zoomLocked == false)
+                    {
+                        camera.targetZoom += (camera.zoomStep *dt) * Input::getAxis("ZoomWheel") ;
+                    }
+                    if (camera.targetZoom != camera.zoom)
+                    {
+                        camera.zoom =  Math::moveTowards(camera.zoom, camera.targetZoom, camera.zoomLerpSpeed) ;
+                    }
                 }
                 else
                 {
