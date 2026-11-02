@@ -10,6 +10,8 @@
 #include "ecs/registry.h"
 #include "input/input.h"
 #include "math/easing.h"
+#include "components/rigid_body2d.h"
+#include <math.h>
 
 #include <SFML/Graphics.hpp>
 
@@ -48,7 +50,7 @@ public:
 
                 if (camera.targetZoom != camera.zoom)
                 {
-                    camera.zoom =  Math::moveTowards(camera.zoom, camera.targetZoom, camera.zoomLerpSpeed) ;
+                    camera.zoom =  Math::moveTowards(camera.zoom, camera.targetZoom, camera.zoomLerpSpeed *dt) ;
                 }
 
             }
@@ -56,14 +58,41 @@ public:
             {
                 if (registry.isValid(camera.targetLock))
                 {
-                    position = registry.getComponent<Transform2D>(camera.targetLock).getPosition();
+                    float shiftAdaptatifX = camera.shiftSpeed;
+                    float shiftAdaptatifY = camera.shiftSpeed;
+                    sf::Vector2f positionCible = registry.getComponent<Transform2D>(camera.targetLock).getPosition();
+                    auto& rb = registry.getComponent<RigidBody2D>(camera.targetLock);
+                    if (rb.velocity.x > 0.f)
+                    {
+                        positionCible.x += camera.additionalAdvancement;
+                    }
+                    else if (rb.velocity.x < 0.f)
+                    {
+                        positionCible.x -= camera.additionalAdvancement;
+                    }
+                    shiftAdaptatifX = std::fabsf(positionCible.x - position.x)* camera.shiftSpeedMultiplicateur * camera.shiftSpeed;
+                    if (rb.velocity.y > 0.f)
+                    {
+                        positionCible.y += camera.additionalAdvancement;
+                    }
+                    else if (rb.velocity.y < 0.f)
+                    {
+                        positionCible.y -= camera.additionalAdvancement;
+                    }
+                    shiftAdaptatifY = std::fabsf(positionCible.y - position.y)* camera.shiftSpeedMultiplicateur * camera.shiftSpeed;
+                    if (shiftAdaptatifX < camera.shiftSpeed) shiftAdaptatifX = camera.shiftSpeed;
+                    if (shiftAdaptatifY < camera.shiftSpeed) shiftAdaptatifY = camera.shiftSpeed;
+                    //position = registry.getComponent<Transform2D>(camera.targetLock).getPosition();
+
+                    position.x = Math::moveTowards(position.x, positionCible.x, shiftAdaptatifX*dt);
+                    position.y = Math::moveTowards(position.y, positionCible.y, shiftAdaptatifY*dt);
                     if (camera.zoomLocked == false)
                     {
                         camera.targetZoom += (camera.zoomStep *dt) * Input::getAxis("ZoomWheel") ;
                     }
                     if (camera.targetZoom != camera.zoom)
                     {
-                        camera.zoom =  Math::moveTowards(camera.zoom, camera.targetZoom, camera.zoomLerpSpeed) ;
+                        camera.zoom =  Math::moveTowards(camera.zoom, camera.targetZoom, camera.zoomLerpSpeed*dt);
                     }
                 }
                 else
