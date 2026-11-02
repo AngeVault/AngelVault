@@ -113,13 +113,6 @@ public:
                 }
 
             }
-            // Zoom (caméra libre ou qui suit) : on règle la cible, le zoom la rejoint en douceur
-            const float zoomHeld = Input::getAxis(kActionZoom);        // maintenu : par seconde
-            const float zoomNotches = Input::getAxis(kActionZoomWheel); // crans de molette de la frame
-            if (zoomHeld != 0.f) camera.targetZoom *= std::pow(1.f + camera.zoomStep, zoomHeld * dt);
-            if (zoomNotches != 0.f) camera.targetZoom *= std::pow(1.f + camera.zoomStep * 0.25f, zoomNotches);
-            camera.targetZoom = std::clamp(camera.targetZoom, camera.minZoom, camera.maxZoom);
-            camera.zoom = Math::damp(camera.zoom, camera.targetZoom, camera.zoomLerpSpeed, dt);   // même douceur à tout FPS
 
             if (position != registry.getComponent<Transform2D>(e).getPosition())
             {
