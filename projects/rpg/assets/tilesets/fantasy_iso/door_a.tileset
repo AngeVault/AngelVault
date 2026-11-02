@@ -1,0 +1,20 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Door A",
+  "image": "assets/tilesets/fantasy_iso/door_a.png",
+  "tileSize": [
+    110,
+    147
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 8,
+  "anchor": [
+    55,
+    125
+  ],
+  "autotile": "none",
+  "ySort": true
+}

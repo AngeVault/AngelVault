@@ -4,7 +4,9 @@
 #include "ecs/system_manager.h"
 #include "utils/loose_file_loader.h"
 #include "input/input_manager.h"
+#include <map>
 #include <optional>
+#include <string>
 
 // Deux façons d'utiliser Game :
 //  - autonome (Sandbox.exe) : Game game; ... game.run();         -> ouvre sa propre fenêtre
@@ -13,6 +15,7 @@
 class Game {
 public:
     Game();                                       // crée sa fenêtre 1920x1080
+    Game(sf::Vector2u size, const std::string& title, bool vsync = true);   // fenêtre réglée (ex. depuis le .angproj)
     explicit Game(sf::RenderWindow& target);      // dessine dans une fenêtre fournie (ex. SfmlWidget)
     ~Game();
 
@@ -29,6 +32,10 @@ public:
     // Mode autonome : run() lui passe les événements de la fenêtre.
     // Mode embarqué : c'est à l'hôte (l'éditeur) d'appeler input().handleEvent(...).
     InputManager& input() { return m_input; }
+
+    // Active / désactive des systèmes par leur nom (réglages du projet : "systems" dans le .angproj).
+    // Les noms inconnus sont ignorés.
+    void applySystemSettings(const std::map<std::string, bool>& enabledByName);
 
 private:
     std::optional<sf::RenderWindow> m_ownWindow;   // utilisé seulement en mode autonome

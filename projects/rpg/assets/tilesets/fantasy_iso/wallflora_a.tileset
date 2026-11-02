@@ -1,0 +1,20 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "WallFlora A",
+  "image": "assets/tilesets/fantasy_iso/wallflora_a.png",
+  "tileSize": [
+    187,
+    208
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 56,
+  "anchor": [
+    93,
+    161
+  ],
+  "autotile": "none",
+  "ySort": true
+}

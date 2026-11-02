@@ -1,0 +1,20 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Misc B (1-31)",
+  "image": "assets/tilesets/fantasy_iso/misc_b_1_31.png",
+  "tileSize": [
+    220,
+    189
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 120,
+  "anchor": [
+    110,
+    145
+  ],
+  "autotile": "none",
+  "ySort": true
+}

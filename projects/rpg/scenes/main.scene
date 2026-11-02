@@ -1,0 +1,585 @@
+{
+  "format": "angeVault.scene",
+  "version": 1,
+  "name": "main",
+  "map": null,
+  "entities": [
+    {
+      "id": 901886561833534410,
+      "components": {
+        "Name": {
+          "name": "CameraEntity"
+        },
+        "Transform2D": {
+          "position": [
+            -395.7392883300781,
+            637.0469360351563
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Camera2d": {
+          "zoom": 1.0,
+          "minZoom": 0.25,
+          "maxZoom": 4.0,
+          "panSpeedKeyboard": 1000.0,
+          "panSpeedGamepad": 100.0,
+          "zoomStep": 0.5,
+          "zoomLerpSpeed": 12.0,
+          "targetZoom": 1.0,
+          "worldMin": [
+            -1000.0,
+            -1000.0
+          ],
+          "worldMax": [
+            3000.0,
+            3000.0
+          ],
+          "targetLock": 18092514487157541069
+        }
+      }
+    },
+    {
+      "id": 18092514487157541069,
+      "components": {
+        "Name": {
+          "name": "Player"
+        },
+        "Transform2D": {
+          "position": [
+            -395.7392883300781,
+            637.0469360351563
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.1543892621994019
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Sprite",
+          "texture": "player",
+          "rect": [
+            0,
+            0,
+            32,
+            64
+          ],
+          "tint": "#FFFFFFFF"
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": false,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            22.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            16.0,
+            15.0
+          ]
+        },
+        "Script": {
+          "behaviors": [
+            {
+              "name": "PlayerBehavior",
+              "properties": {
+                "speed": 400.0
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 18418294981170371368,
+      "components": {
+        "Name": {
+          "name": "care"
+        },
+        "Transform2D": {
+          "position": [
+            703.4586791992188,
+            569.6966552734375
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 10.0,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            11.3448486328125,
+            8.86029052734375
+          ]
+        }
+      }
+    },
+    {
+      "id": 18107087873688893773,
+      "components": {
+        "Name": {
+          "name": "arbre1"
+        },
+        "Transform2D": {
+          "position": [
+            -1.3573884963989258,
+            219.3151092529297
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            10.0,
+            5.6558685302734375
+          ]
+        }
+      }
+    },
+    {
+      "id": 15643577204517526455,
+      "components": {
+        "Name": {
+          "name": "mur gauche"
+        },
+        "Transform2D": {
+          "position": [
+            -854.83251953125,
+            428.8375549316406
+          ],
+          "rotation": -26.499996185302734,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            1316.7005615234375,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "id": 8432238510110025053,
+      "components": {
+        "Name": {
+          "name": "mur haut"
+        },
+        "Transform2D": {
+          "position": [
+            1013.4470825195313,
+            500.4137878417969
+          ],
+          "rotation": 26.499996185302734,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            1177.268798828125,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "id": 7647194933246917022,
+      "components": {
+        "Name": {
+          "name": "mur bas"
+        },
+        "Transform2D": {
+          "position": [
+            -1006.9256591796875,
+            1521.399169921875
+          ],
+          "rotation": 26.499996185302734,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            1158.716796875,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "id": 15999493952223515466,
+      "components": {
+        "Name": {
+          "name": "Nouvelle entité"
+        },
+        "Transform2D": {
+          "position": [
+            1064.574462890625,
+            1497.6640625
+          ],
+          "rotation": -26.499996185302734,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            1237.125,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "id": 15294090322440002633,
+      "components": {
+        "Name": {
+          "name": "tilemap_iso"
+        },
+        "Transform2D": {
+          "position": [
+            49.139068603515625,
+            -806.655029296875
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso.map",
+          "visible": true
+        }
+      }
+    },
+    {
+      "id": 9248257352794584917,
+      "components": {
+        "Name": {
+          "name": "tilemap_iso"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso.map",
+          "visible": true
+        }
+      }
+    },
+    {
+      "id": 9932720423414607161,
+      "components": {
+        "Name": {
+          "name": "Nouvelle entité"
+        },
+        "Transform2D": {
+          "position": [
+            -383.1396484375,
+            522.206298828125
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": false,
+          "useGravity": true,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "id": 2392736522797589009,
+      "components": {
+        "Name": {
+          "name": "Player"
+        },
+        "Transform2D": {
+          "position": [
+            72.81442260742188,
+            633.8133544921875
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.1543892621994019
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Sprite",
+          "texture": "player",
+          "rect": [
+            0,
+            0,
+            32,
+            64
+          ],
+          "tint": "#FFFFFFFF"
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": false,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            22.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            16.0,
+            15.0
+          ]
+        },
+        "Script": {
+          "behaviors": [
+            {
+              "name": "PlayerBehavior",
+              "properties": {
+                "speed": 400.0
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 4795818514185465428,
+      "components": {
+        "Name": {
+          "name": "CameraEntity"
+        },
+        "Transform2D": {
+          "position": [
+            72.81442260742188,
+            633.8133544921875
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Camera2d": {
+          "zoom": 1.0,
+          "minZoom": 0.25,
+          "maxZoom": 4.0,
+          "panSpeedKeyboard": 1000.0,
+          "panSpeedGamepad": 100.0,
+          "zoomStep": 0.5,
+          "zoomLerpSpeed": 12.0,
+          "targetZoom": 1.0,
+          "worldMin": [
+            -1000.0,
+            -1000.0
+          ],
+          "worldMax": [
+            3000.0,
+            3000.0
+          ],
+          "targetLock": 2392736522797589009
+        }
+      }
+    }
+  ],
+  "editor": {
+    "categories": [
+      "Personnages",
+      "test",
+      "map",
+      "colision"
+    ],
+    "entityCategory": {
+      "18092514487157541069": "Personnages",
+      "18418294981170371368": "test",
+      "18107087873688893773": "colision",
+      "15643577204517526455": "colision",
+      "8432238510110025053": "colision",
+      "7647194933246917022": "colision",
+      "15999493952223515466": "colision",
+      "15294090322440002633": "map",
+      "9248257352794584917": "map",
+      "9932720423414607161": "colision"
+    }
+  }
+}
