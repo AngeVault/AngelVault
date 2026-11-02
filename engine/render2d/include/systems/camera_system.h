@@ -10,10 +10,10 @@
 #include "ecs/registry.h"
 #include "input/input.h"
 #include "math/interpolation.h"
+#include "math/easing.h"
 
 #include <algorithm>
 #include <cmath>
-
 #include <SFML/Graphics.hpp>
 
 // Entrées utilisées (actions de l'Input Manager, voir assets/input.cfg du projet) :
@@ -49,16 +49,34 @@ public:
             sf::Vector2f position = registry.getComponent<Transform2D>(e).getPosition();
             if (camera.targetLock == NULL_ENTITY)
             {
-                // Déplacement : vitesse en pixels écran / s, donc plus lent dans le monde quand on zoome
-                const float speed = camera.panSpeedKeyboard / std::max(camera.zoom, 0.001f) * dt;
-                position.x += Input::getAxis(kActionPanX) * speed;
-                position.y += Input::getAxis(kActionPanY) * speed;
+
+
+                position.x += (camera.panSpeedKeyboard * camera.zoom *dt) * Input::getAxis("Horizontal");
+                position.y += (camera.panSpeedKeyboard * camera.zoom *dt) * Input::getAxis("Vertical");
+                if (camera.zoomLocked == false)
+                {
+                    camera.targetZoom += (camera.zoomStep *dt) * Input::getAxis("ZoomWheel") ;
+                }
+
+                if (camera.targetZoom != camera.zoom)
+                {
+                    camera.zoom =  Math::moveTowards(camera.zoom, camera.targetZoom, camera.zoomLerpSpeed) ;
+                }
+
             }
             else
             {
                 if (registry.isValid(camera.targetLock))
                 {
                     position = registry.getComponent<Transform2D>(camera.targetLock).getPosition();
+                    if (camera.zoomLocked == false)
+                    {
+                        camera.targetZoom += (camera.zoomStep *dt) * Input::getAxis("ZoomWheel") ;
+                    }
+                    if (camera.targetZoom != camera.zoom)
+                    {
+                        camera.zoom =  Math::moveTowards(camera.zoom, camera.targetZoom, camera.zoomLerpSpeed) ;
+                    }
                 }
                 else
                 {
