@@ -1,4 +1,9 @@
 #include "sfml_widget.h"
+
+#include <QImage>
+#include <SFML/Graphics/Image.hpp>
+#include <SFML/Graphics/Sprite.hpp>
+#include <algorithm>
 #include <type_traits>
 
 /**
@@ -128,8 +133,50 @@ void SfmlWidget::renderFrame() {
     }
 
     m_window->clear(sf::Color(uint8_t(m_clearColor.red()), uint8_t(m_clearColor.green()), uint8_t(m_clearColor.blue())));
+    drawBackground();
 
     if (onFrame) onFrame(*m_window);
 
     m_window->display();
+}
+void SfmlWidget::setBackgroundImage(const QString& path) {
+    const QString p = path.trimmed() == "none" ? QString() : path.trimmed();
+    if (p == m_backgroundPath) return;
+    m_backgroundPath = p;
+    m_backgroundDirty = true;
+}
+
+// Image de fond du thème : dessinée en coordonnées écran, en « cover » (remplit la vue, centrée, sans déformer),
+// avant la scène. La vue de la scène est remise telle quelle ensuite.
+void SfmlWidget::drawBackground() {
+    if (m_backgroundDirty) {
+        m_backgroundDirty = false;
+        m_background.reset();
+        if (!m_backgroundPath.isEmpty()) {
+            const QImage image = QImage(m_backgroundPath).convertToFormat(QImage::Format_RGBA8888);
+            if (!image.isNull()) {
+                const sf::Image pixels(sf::Vector2u(unsigned(image.width()), unsigned(image.height())), image.constBits());
+                sf::Texture texture;
+                if (texture.loadFromImage(pixels)) {
+                    texture.setSmooth(true);
+                    m_background = std::move(texture);
+                }
+            }
+        }
+    }
+    if (!m_background || m_backgroundOpacity <= 0.0) return;
+
+    const sf::Vector2f target(m_window->getSize());
+    const sf::Vector2f size(m_background->getSize());
+    if (target.x <= 0.f || target.y <= 0.f) return;
+    const float scale = std::max(target.x / size.x, target.y / size.y);
+    sf::Sprite sprite(*m_background);
+    sprite.setScale({ scale, scale });
+    sprite.setPosition({ (target.x - size.x * scale) * 0.5f, (target.y - size.y * scale) * 0.5f });
+    sprite.setColor(sf::Color(255, 255, 255, uint8_t(m_backgroundOpacity * 255.0)));
+
+    const sf::View sceneView = m_window->getView();
+    m_window->setView(sf::View(sf::FloatRect({ 0.f, 0.f }, target)));
+    m_window->draw(sprite);
+    m_window->setView(sceneView);
 }

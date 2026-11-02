@@ -1,0 +1,19 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Ground J",
+  "image": "assets/tilesets/fantasy_iso/ground_j.png",
+  "tileSize": [
+    133,
+    73
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 40,
+  "anchor": [
+    67,
+    39
+  ],
+  "autotile": "none"
+}

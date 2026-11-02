@@ -11,4 +11,9 @@ FetchContent_Declare(SFML
 FetchContent_Declare(glm
     GIT_REPOSITORY https://github.com/g-truc/glm.git
     GIT_TAG 1.0.1 GIT_SHALLOW ON SYSTEM EXCLUDE_FROM_ALL)
-FetchContent_MakeAvailable(SFML glm)
+# JSON (.scene, .angproj, .map, .tileset) : bibliothèque en-têtes seulement
+FetchContent_Declare(nlohmann_json
+    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+    URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d
+    DOWNLOAD_EXTRACT_TIMESTAMP ON SYSTEM EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(SFML glm nlohmann_json)

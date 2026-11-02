@@ -10,22 +10,24 @@ public:
     void onUpdate(Registry& registry, float dt) override {
         registry.view<Script>(
             [&](Entity e, Script& s) {
-                if (!s.behavior) return;
-
-                if (!s.started) {
-                    s.behavior->onStart(e, registry);
-                    s.started = true;
+                // Par index : un comportement peut en ajouter un autre pendant son update
+                for (std::size_t i = 0; i < s.behaviors.size(); ++i) {
+                    IBehavior* b = s.behaviors[i].behavior.get();
+                    if (!b) continue;
+                    if (!s.behaviors[i].started) {
+                        s.behaviors[i].started = true;
+                        b->onStart(e, registry);
+                    }
+                    b->onUpdate(e, registry, dt);
                 }
-
-                s.behavior->onUpdate(e, registry, dt);
             });
     }
 
     void onStop(Registry& registry) override {
         registry.view<Script>(
             [&](Entity e, Script& s) {
-                if (s.behavior && s.started)
-                    s.behavior->onDestroy(e, registry);
+                for (Script::Slot& slot : s.behaviors)
+                    if (slot.behavior && slot.started) slot.behavior->onDestroy(e, registry);
             });
     }
 };

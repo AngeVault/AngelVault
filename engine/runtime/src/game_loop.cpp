@@ -1,12 +1,21 @@
 #include "game_loop.h"
 #include "systems/render_system.h"
+#include "systems/tilemap_render_system.h"
 #include "systems/render_collision_system.h"
 #include "systems/force_debug_system.h"
+#include "game_systems.h"
 #include <iostream>
 
 Game::Game() {
     m_ownWindow.emplace(sf::VideoMode({ 1920, 1080 }), "AngeVault", sf::Style::Default, sf::State::Windowed);
     m_ownWindow->setVerticalSyncEnabled(true);
+    m_window = &*m_ownWindow;
+    init();
+}
+
+Game::Game(sf::Vector2u size, const std::string& title, bool vsync) {
+    m_ownWindow.emplace(sf::VideoMode(size), title, sf::Style::Default, sf::State::Windowed);
+    m_ownWindow->setVerticalSyncEnabled(vsync);
     m_window = &*m_ownWindow;
     init();
 }
@@ -21,10 +30,17 @@ Game::~Game() {
 
 void Game::init() {
     InputManager::setCurrent(&m_input);   // Input::getAxis(...) lit ce Game
+    m_systems.addSystem<TilemapRenderSystem>(*m_window, m_textureLoader);   // cartes (composant Tilemap), sous les entités
     m_systems.addSystem<RenderSystem>(*m_window, m_textureLoader);
     m_systems.addSystem<RenderCollisionSystem>(*m_window);
     m_systems.addSystem<ForceDebugSystem>(*m_window);
+    // Systèmes de jeu du projet (REGISTER_SYSTEM, dossier systems/ du projet)
+    for (const GameSystemInfo& info : GameSystemRegistry::get().all()) m_systems.add(info.create(*this, *m_window));
     m_systems.start(m_registry);
+}
+
+void Game::applySystemSettings(const std::map<std::string, bool>& enabledByName) {
+    for (const auto& [name, enabled] : enabledByName) m_systems.setEnabled(name, enabled);
 }
 
 void Game::handleEvents() {

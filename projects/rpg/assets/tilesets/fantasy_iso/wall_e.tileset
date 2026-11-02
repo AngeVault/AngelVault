@@ -1,0 +1,20 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Wall E",
+  "image": "assets/tilesets/fantasy_iso/wall_e.png",
+  "tileSize": [
+    147,
+    199
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 64,
+  "anchor": [
+    76,
+    161
+  ],
+  "autotile": "none",
+  "ySort": true
+}

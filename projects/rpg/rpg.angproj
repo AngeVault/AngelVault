@@ -1,0 +1,25 @@
+{
+  "format": "angeVault.project",
+  "version": 1,
+  "name": "RPG",
+  "startScene": "scenes/main.scene",
+  "scenes": [
+    "scenes/main.scene",
+    "scenes/iso_demo.scene"
+  ],
+  "paths": {
+    "assets": "assets",
+    "input": "assets/input.cfg"
+  },
+  "window": {
+    "title": "RPG",
+    "size": [
+      1920,
+      1080
+    ],
+    "vsync": true
+  },
+  "systems": {
+    "ForceDebugSystem": false
+  }
+}
