@@ -516,10 +516,10 @@
       }
     },
     {
-      "id": 2122497004405986168,
+      "id": 14902816452303928878,
       "components": {
         "Name": {
-          "name": "tilemap_iso"
+          "name": "tilemap_iso_2"
         },
         "Transform2D": {
           "position": [
@@ -534,7 +534,31 @@
           "depth": 0.0
         },
         "Tilemap": {
-          "file": "maps/tilemap_iso.map",
+          "file": "maps/tilemap_iso_2.map",
+          "visible": true
+        }
+      }
+    },
+    {
+      "id": 11113899491512774170,
+      "components": {
+        "Name": {
+          "name": "tilemap_iso_3"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso_3.map",
           "visible": true
         }
       }
