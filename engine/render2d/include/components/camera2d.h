@@ -22,7 +22,7 @@ struct Camera2d
 	float zoomLerpSpeed = 1.f;
 	float shiftSpeed = 40.f;
 	float shiftSpeedMultiplicateur = 0.1f;
-	float additionalAdvancement = 80.f;
+	float additionalAdvancement = 200.f;
 
 	// border
 	sf::Vector2f worldMin{ 0.f , 0.f };
