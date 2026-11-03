@@ -12,7 +12,7 @@
         },
         "Transform2D": {
           "position": [
-            -400.24346923828125,
+            -399.1390075683594,
             639.5967407226563
           ],
           "rotation": 0.0,
@@ -52,7 +52,7 @@
         },
         "Transform2D": {
           "position": [
-            -400.24346923828125,
+            -399.1390075683594,
             639.5967407226563
           ],
           "rotation": 0.0,
@@ -106,20 +106,6 @@
               }
             }
           ]
-        },
-        "Life": {
-          "actualLife": 1000.0,
-          "maxLife": 1000.0,
-          "regenlLife": 0.0
-        },
-        "Stats": {
-          "force": 0.0,
-          "agilite": 0.0,
-          "constitution": 20.0,
-          "intelligence": 0.0,
-          "sagesse": 0.0,
-          "Volonte": 0.0,
-          "charisme": 0.0
         }
       }
     },
@@ -524,30 +510,6 @@
             32.0625,
             5.73114013671875
           ]
-        },
-        "Script": {
-          "behaviors": [
-            {
-              "name": "monstre",
-              "properties": {
-                "speed": 100.0
-              }
-            }
-          ]
-        },
-        "Life": {
-          "actualLife": 1000.0,
-          "maxLife": 1000.0,
-          "regenlLife": 0.0
-        },
-        "Stats": {
-          "force": 0.0,
-          "agilite": 0.0,
-          "constitution": 20.0,
-          "intelligence": 0.0,
-          "sagesse": 0.0,
-          "Volonte": 0.0,
-          "charisme": 0.0
         }
       }
     }
