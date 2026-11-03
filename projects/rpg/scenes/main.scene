@@ -13,7 +13,7 @@
         "Transform2D": {
           "position": [
             -399.1390075683594,
-            639.5967407226563
+            637.6307983398438
           ],
           "rotation": 0.0,
           "scale": [
@@ -53,7 +53,7 @@
         "Transform2D": {
           "position": [
             -399.1390075683594,
-            639.5967407226563
+            637.6307983398438
           ],
           "rotation": 0.0,
           "scale": [
@@ -106,6 +106,20 @@
               }
             }
           ]
+        },
+        "Life": {
+          "actualLife": 1000.0,
+          "maxLife": 1000.0,
+          "regenlLife": 0.0
+        },
+        "Stats": {
+          "force": 0.0,
+          "agilite": 0.0,
+          "constitution": 20.0,
+          "intelligence": 0.0,
+          "sagesse": 0.0,
+          "Volonte": 0.0,
+          "charisme": 0.0
         }
       }
     },
@@ -491,7 +505,7 @@
         "RigidBody2D": {
           "mass": 1.0,
           "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
+          "friction": 10.0,
           "isStatic": false,
           "useGravity": false,
           "inertia": 0.0,
@@ -510,6 +524,20 @@
             32.0625,
             5.73114013671875
           ]
+        },
+        "Life": {
+          "actualLife": 1000.0,
+          "maxLife": 1000.0,
+          "regenlLife": 0.0
+        },
+        "Stats": {
+          "force": 0.0,
+          "agilite": 0.0,
+          "constitution": 10.0,
+          "intelligence": 0.0,
+          "sagesse": 0.0,
+          "Volonte": 0.0,
+          "charisme": 0.0
         }
       }
     }
