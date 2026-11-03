@@ -19,7 +19,10 @@ struct Camera2d
 	float panSpeedKeyboard = 1000.f;
 	float panSpeedGamepad = 100.f;
 	float zoomStep = 0.5f;
-	float zoomLerpSpeed = 0.01f;
+	float zoomLerpSpeed = 1.f;
+	float shiftSpeed = 40.f;
+	float shiftSpeedMultiplicateur = 0.1f;
+	float additionalAdvancement = 200.f;
 
 	// border
 	sf::Vector2f worldMin{ 0.f , 0.f };
@@ -67,6 +70,9 @@ inline ReflectedComponent reflectComponent<Camera2d>(Camera2d& rb) {
 			{ "panSpeedGamepad",    PropertyInfo::Type::Float, &rb.panSpeedGamepad    },
 			{ "zoomStep",    PropertyInfo::Type::Float, &rb.zoomStep    },
 			{ "zoomLerpSpeed",    PropertyInfo::Type::Float, &rb.zoomLerpSpeed    },
+			{ "shiftSpeed",    PropertyInfo::Type::Float, &rb.shiftSpeed    },
+			{ "shiftSpeedMultiplicateur",    PropertyInfo::Type::Float, &rb.shiftSpeedMultiplicateur    },
+			{ "additionalAdvancement",    PropertyInfo::Type::Float, &rb.additionalAdvancement    },
 			{ "targetZoom",    PropertyInfo::Type::Float, &rb.targetZoom    },
 	} };
 }
