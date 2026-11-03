@@ -12,8 +12,8 @@
         },
         "Transform2D": {
           "position": [
-            -395.7392883300781,
-            637.0469360351563
+            -399.1390075683594,
+            639.5967407226563
           ],
           "rotation": 0.0,
           "scale": [
@@ -26,6 +26,7 @@
           "zoom": 1.0,
           "minZoom": 0.25,
           "maxZoom": 4.0,
+          "zoomLocked": false,
           "panSpeedKeyboard": 1000.0,
           "panSpeedGamepad": 100.0,
           "zoomStep": 0.5,
@@ -51,8 +52,8 @@
         },
         "Transform2D": {
           "position": [
-            -395.7392883300781,
-            637.0469360351563
+            -399.1390075683594,
+            639.5967407226563
           ],
           "rotation": 0.0,
           "scale": [
@@ -482,8 +483,8 @@
           "rect": [
             0,
             0,
-            32,
-            64
+            64,
+            32
           ],
           "tint": "#FFFFFFFF"
         },
@@ -498,66 +499,17 @@
         },
         "Collider2D": {
           "offset": [
-            0.0,
-            22.0
+            0.123992919921875,
+            12.73114013671875
           ],
           "isTrigger": false,
           "restitution": 0.20000000298023224,
           "friction": 0.4000000059604645,
           "shape": "Box",
           "halfSize": [
-            16.0,
-            15.0
+            32.0625,
+            5.73114013671875
           ]
-        },
-        "Script": {
-          "behaviors": [
-            {
-              "name": "PlayerBehavior",
-              "properties": {
-                "speed": 400.0
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": 4795818514185465428,
-      "components": {
-        "Name": {
-          "name": "CameraEntity"
-        },
-        "Transform2D": {
-          "position": [
-            72.81442260742188,
-            633.8133544921875
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "Camera2d": {
-          "zoom": 1.0,
-          "minZoom": 0.25,
-          "maxZoom": 4.0,
-          "panSpeedKeyboard": 1000.0,
-          "panSpeedGamepad": 100.0,
-          "zoomStep": 0.5,
-          "zoomLerpSpeed": 12.0,
-          "targetZoom": 1.0,
-          "worldMin": [
-            -1000.0,
-            -1000.0
-          ],
-          "worldMax": [
-            3000.0,
-            3000.0
-          ],
-          "targetLock": 2392736522797589009
         }
       }
     }

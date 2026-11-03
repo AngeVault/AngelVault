@@ -14,16 +14,16 @@ public:
     PROPERTY(float, speed, 250.f)
 
         void onUpdate(Entity self, Registry& registry, float dt) override
-        {
+    {
 
         keyTimer += dt;
 
         auto& rb = registry.getComponent<RigidBody2D>(self);
 
         // Actions de l'Input Manager (assets/input.cfg) : flèches, ZQSD/WASD et stick gauche par défaut
-        const float moveX = Input::getAxis("Horizontal");
-        const float moveY = Input::getAxis("Vertical");
-
+        float moveX = Input::getAxis("Horizontal");
+        float moveY = Input::getAxis("Vertical");
+        if (moveX != 0.f && moveY != 0.f){ moveX /= 2.f; moveY /= 2.f; }
         rb.velocity.x = moveX * speed;
         rb.velocity.y = moveY * speed;
     }
