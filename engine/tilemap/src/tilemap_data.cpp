@@ -1,11 +1,13 @@
 #include "tilemap/tilemap.h"
 #include "fstream"
 #include "scene/project.h"
+#include "components/name.h"
 
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 
 
@@ -39,14 +41,15 @@ const char* toString(TileMapOrientation o) { return o == TileMapOrientation::Iso
 
 
 bool save_maps(Registry& scene) {
-    scene.view<TileMapData>([&] (Entity& e, TileMapData& tileMapData) {
-        save_map(tileMapData);
+    scene.view<Tilemap>([&] (Entity& e, Tilemap& tileMap) {
+        save_map(*scene.getComponent<Tilemap>(e).data.get(),"../../../../projects/rpg/maps/"+ scene.getComponent<NameComponent>(e).name +".map");
     });
+    // load_map();
     return true;
 }
 
 
-nlohmann::ordered_json tilesToJson(TileMapData &tileMapData) {
+nlohmann::ordered_json tilesToJson(TileMapData& tileMapData) {
 Json tiles = Json::array();
     for (int i = 0; i < tileMapData.width(); ++i) {
         for (int j = 0; j < tileMapData.height(); ++j) {
@@ -56,7 +59,15 @@ Json tiles = Json::array();
     return tiles;
 }
 
-void save_map(TileMapData& tileMapData) {
+nlohmann::ordered_json tilesetsToJson(const TileMapData& tileMapData) {
+    Json tilesets;
+    for (int i = 0; i < tileMapData.tilesets.size(); ++i) {
+            tilesets[tileMapData.tilesets[i]->name] = tileMapData.tilesets[i]->file;
+    }
+    return tilesets;
+}
+
+void save_map(TileMapData& tileMap, std::string path) {
     Json map_save;
     // map_save = {
     //     "format:", "angeVault.map",
@@ -70,14 +81,27 @@ void save_map(TileMapData& tileMapData) {
     //     {"tiles:" ,"AwDIAQQB...."}
     // };
     map_save["format"] = "angeVault.map";
-    map_save["version"] = 1;
-    map_save["width"] = tileMapData.width();
-    map_save["height"] = tileMapData.height();
-    map_save["tileset"] = "assets/tilesets/overworld";
-    map_save["tiles"] = tilesToJson(tileMapData);
-    std::ofstream map_file("save_map.json");
+    map_save["version"] = 2;
+    map_save["width"] = tileMap.width();
+    map_save["height"] = tileMap.height();
+    map_save["orientation"] = toString(TileMapOrientation::Isometric);
+    map_save["tileset"] = tilesetsToJson(tileMap);
+    map_save["tiles"] = tilesToJson(tileMap);
+    std::ofstream map_file(path);
     map_file << map_save.dump();
     map_file.close();
+}
+
+void load_map() {
+    std::ifstream map_file("../../../../editor/maps/save_map.json");
+    Json map;
+    map_file >> map;
+    std::cout << map["format"] << std::endl;
+    std::cout << map["version"] << std::endl;
+    std::cout << map["width"] << std::endl;
+    std::cout << map["height"] << std::endl;
+    std::cout << map["tileset"] << std::endl;
+    std::cout << map["tiles"] << std::endl;
 }
 
 
@@ -232,7 +256,7 @@ TileCell parseCell(const std::string& v, int slots) {
 bool TileMapData::fromJson(const std::string& text, std::string* error, std::vector<std::string>* warnings) {
     const Json j = Json::parse(text, nullptr, false);
     if (j.is_discarded() || !j.is_object()) { setError(error, "JSON invalide"); return false; }
-    if (j.value("format", std::string()) != "angeVault.tilemap") { setError(error, "ce n'est pas une tilemap AngeVault"); return false; }
+    // if (j.value("format", std::string()) != "angeVault.tilemap") { setError(error, "ce n'est pas une tilemap AngeVault"); return false; }
     const int fileVersion = j.value("version", 1);
     if (fileVersion > 2) { setError(error, "tilemap créée par une version plus récente du moteur"); return false; }
     if (fileVersion < 2) {

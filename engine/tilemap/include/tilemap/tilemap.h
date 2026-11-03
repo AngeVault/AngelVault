@@ -105,8 +105,9 @@ struct Tilemap {
     std::shared_ptr<TileMapData> data;     // chargée depuis `file` (loadTilemaps, scene/tilemaps.h)
 };
 nlohmann::ordered_json tilesToJson(TileMapData& tileMapData);
+nlohmann::ordered_json tilesetsToJson(const TileMapData& tileMapData);
 bool save_maps(Registry& scene);
-void save_map(TileMapData& tileMapData);
-void load_map(TileMapData& tileMapData);
+void save_map(TileMapData& tileMap, std::string path);
+void load_map();
 
 const char* toString(TileMapOrientation o);
