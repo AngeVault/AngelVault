@@ -40,9 +40,9 @@ const char* toString(TileMapOrientation o) { return o == TileMapOrientation::Iso
 
 
 
-bool save_maps(Registry& scene) {
+bool save_maps(Registry& scene, std::string path) {
     scene.view<Tilemap>([&] (Entity& e, Tilemap& tileMap) {
-        save_map(*tileMap.data,"../../../../projects/rpg/maps/"+ scene.getComponent<NameComponent>(e).name +".map");
+        save_map(*tileMap.data,path+"/maps/"+ scene.getComponent<NameComponent>(e).name +".map");
     });
     // load_map();
     return true;
@@ -88,19 +88,8 @@ nlohmann::ordered_json tilesetsToJson(const TileMapData& tileMapData) {
     return tilesets;
 }
 
-void save_map(TileMapData& tileMap, std::string path) {
+void save_map(TileMapData& tileMap, const std::string& path) {
     Json map_save;
-    // map_save = {
-    //     "format:", "angeVault.map",
-    //     {"version:" ,1},
-    //     {"width:" ,ctx.map().width},
-    //     {"height:" ,ctx.map().height},
-    //     {"tileSize:" ,ctx.map().tileSize},
-    //     {"tileset:" ,"assets/tilesets/overworld"},
-    //     {"types:" ,"[None", "Sand", "Water", "Grass", "BrickPath", "DirtPath", "DonjonFloor", "Wall", "Path]"},
-    //     {"encoding:" ,"rle-base64"},
-    //     {"tiles:" ,"AwDIAQQB...."}
-    // };
     map_save["format"] = "angeVault.tilemap";
     map_save["version"] = 2;
     map_save["tileSize"] = {tileMap.tileSize.x,tileMap.tileSize.y};
@@ -111,18 +100,6 @@ void save_map(TileMapData& tileMap, std::string path) {
     std::ofstream map_file(path);
     map_file << map_save.dump();
     map_file.close();
-}
-
-void load_map() {
-    std::ifstream map_file("../../../../editor/maps/save_map.json");
-    Json map;
-    map_file >> map;
-    std::cout << map["format"] << std::endl;
-    std::cout << map["version"] << std::endl;
-    std::cout << map["width"] << std::endl;
-    std::cout << map["height"] << std::endl;
-    std::cout << map["tileset"] << std::endl;
-    std::cout << map["tiles"] << std::endl;
 }
 
 

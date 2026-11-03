@@ -106,8 +106,8 @@ struct Tilemap {
 };
 nlohmann::ordered_json tilesToJson(TileMapData& tileMapData);
 nlohmann::ordered_json tilesetsToJson(const TileMapData& tileMapData);
-bool save_maps(Registry& scene);
-void save_map(TileMapData& tileMap, std::string path);
+bool save_maps(Registry& scene, std::string path);
+void save_map(TileMapData& tileMap, const std::string& path);
 void load_map();
 
 const char* toString(TileMapOrientation o);
