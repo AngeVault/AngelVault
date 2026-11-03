@@ -476,7 +476,7 @@
       "id": 2392736522797589009,
       "components": {
         "Name": {
-          "name": "Player"
+          "name": "monstre"
         },
         "Transform2D": {
           "position": [

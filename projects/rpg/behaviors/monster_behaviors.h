@@ -30,7 +30,55 @@ public:
             auto& npc = registry.getComponent<Npc>(self);
             if (npc.ennemies)
             {
-                
+                registry.view<NameComponent>([&](Entity e, NameComponent& name)
+                {
+                    if (name.name == "Player")
+                    {
+                        auto& rbSelf = registry.getComponent<RigidBody2D>(self);
+                        auto& coSelf = registry.getComponent<Collider2D>(self);
+                        auto& coCible = registry.getComponent<Collider2D>(e);
+                        auto& trSelf = registry.getComponent<Transform2D>(self);
+                        auto& trCible = registry.getComponent<Transform2D>(e);
+                        sf::Vector2f posSelf = trSelf.getPosition();
+                        sf::Vector2f posCible = trCible.getPosition();
+                        posSelf.x += coSelf.offset.x;
+                        posSelf.y += coSelf.offset.y;
+                        posCible.x += coCible.offset.x;
+                        posCible.y += coCible.offset.y;
+
+                        float moveX = 0;
+                        float moveY = 0;
+                        //if (((posSelf.x * posCible.x) + (posSelf.y * posCible.y)) < npc.vision * npc.vision )
+                        //{
+                            if ( fabsf(posSelf.x - posCible.x) > 50.f || fabsf(posSelf.y - posCible.y) > 50.f)
+                            {
+
+
+                                if (posSelf.x - posCible.x > 50.f)
+                                {
+                                    moveX = -1.f;
+                                }else if (posCible.x - posSelf.x > 50.f)
+                                {
+                                    moveX = 1.f;
+                                }
+                                if (posSelf.y - posCible.y > 50.f)
+                                {
+                                    moveY = -1.f;
+                                }else if (posCible.y - posSelf.y > 50.f)
+                                {
+                                    moveY = 1.f;
+                                }
+
+                                if (moveX != 0.f && moveY != 0.f){ moveX /= 2.f; moveY /= 2.f; }
+
+                            }
+
+                        //}
+                        rbSelf.velocity.x = moveX * speed;
+                        rbSelf.velocity.y = moveY * speed;
+                    }
+
+                });
             }
         }
     }
