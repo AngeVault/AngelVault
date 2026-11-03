@@ -49,25 +49,31 @@ void CameraSystem::onUpdate(Registry& registry, float dt)
                     float shiftAdaptatifX = camera.shiftSpeed;
                     float shiftAdaptatifY = camera.shiftSpeed;
                     sf::Vector2f positionCible = registry.getComponent<Transform2D>(camera.targetLock).getPosition();
-                    auto& rb = registry.getComponent<RigidBody2D>(camera.targetLock);
-                    if (rb.velocity.x > 0.f)
+                    sf::Vector2f velocity = {};
+
+                    if (registry.hasComponent<RigidBody2D>(camera.targetLock))
+                    {
+                        velocity = registry.getComponent<RigidBody2D>(camera.targetLock).velocity;
+                    }
+                    if (velocity.x > 0.f)
                     {
                         positionCible.x += camera.additionalAdvancement;
                     }
-                    else if (rb.velocity.x < 0.f)
+                    else if (velocity.x < 0.f)
                     {
                         positionCible.x -= camera.additionalAdvancement;
                     }
                     shiftAdaptatifX = std::fabsf(positionCible.x - position.x)* camera.shiftSpeedMultiplicateur * camera.shiftSpeed;
-                    if (rb.velocity.y > 0.f)
+                    if (velocity.y > 0.f)
                     {
                         positionCible.y += camera.additionalAdvancement;
                     }
-                    else if (rb.velocity.y < 0.f)
+                    else if (velocity.y < 0.f)
                     {
                         positionCible.y -= camera.additionalAdvancement;
                     }
                     shiftAdaptatifY = std::fabsf(positionCible.y - position.y)* camera.shiftSpeedMultiplicateur * camera.shiftSpeed;
+
                     if (shiftAdaptatifX < camera.shiftSpeed) shiftAdaptatifX = camera.shiftSpeed;
                     if (shiftAdaptatifY < camera.shiftSpeed) shiftAdaptatifY = camera.shiftSpeed;
                     //position = registry.getComponent<Transform2D>(camera.targetLock).getPosition();
