@@ -94,7 +94,7 @@ void save_map(TileMapData& tileMap, const std::string& path) {
     map_save["version"] = 2;
     map_save["tileSize"] = {tileMap.tileSize.x,tileMap.tileSize.y};
     map_save["size"] = {tileMap.width(),tileMap.height()};
-    map_save["orientation"] = toString(TileMapOrientation::Isometric);
+    map_save["orientation"] = toString(tileMap.orientation);
     map_save["tilesets"] = tilesetsToJson(tileMap);
     map_save["cells"] = tilesToJson(tileMap);
     std::ofstream map_file(path);
