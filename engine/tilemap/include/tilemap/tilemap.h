@@ -21,6 +21,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <nlohmann/json.hpp>
+#include "ecs/registry.h"
 
 enum class TileMapOrientation {
     Orthogonal,   // cases carrées / rectangulaires
@@ -102,5 +104,10 @@ struct Tilemap {
     bool visible = true;                   // décocher pour la masquer sans la supprimer
     std::shared_ptr<TileMapData> data;     // chargée depuis `file` (loadTilemaps, scene/tilemaps.h)
 };
+nlohmann::ordered_json tilesToJson(TileMapData& tileMapData);
+nlohmann::ordered_json tilesetsToJson(const TileMapData& tileMapData);
+bool save_maps(Registry& scene, std::string path);
+void save_map(TileMapData& tileMap, const std::string& path);
+void load_map();
 
 const char* toString(TileMapOrientation o);

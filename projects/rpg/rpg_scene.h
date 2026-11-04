@@ -33,7 +33,7 @@ inline void loadRpgEntities(Registry& registry) {
     registry.addComponent<NameComponent>(player, "Player");
 
     // La caméra suit le joueur definit et lock le zoom
-    //registry.getComponent<Camera2d>(cameraEntity).setTarget(player);
+    registry.getComponent<Camera2d>(cameraEntity).setTarget(player);
     //camera.setZoomLoked(true);
     //camera.setTargetZoom(0.25f);  
 
