@@ -5,6 +5,30 @@
   "map": null,
   "entities": [
     {
+      "id": 16421626958495036344,
+      "components": {
+        "Name": {
+          "name": "misc"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso.map",
+          "visible": true
+        }
+      }
+    },
+    {
       "id": 12808752909115651700,
       "components": {
         "Name": {
@@ -12,8 +36,8 @@
         },
         "Transform2D": {
           "position": [
-            -411.7074279785156,
-            647.0641479492188
+            -671.5680541992188,
+            2170.123779296875
           ],
           "rotation": 0.0,
           "scale": [
@@ -77,8 +101,8 @@
         },
         "Transform2D": {
           "position": [
-            -411.7074279785156,
-            647.0641479492188
+            -671.5680541992188,
+            2170.123779296875
           ],
           "rotation": 0.0,
           "scale": [
@@ -91,6 +115,7 @@
           "zoom": 1.0,
           "minZoom": 0.25,
           "maxZoom": 4.0,
+          "zoomLocked": false,
           "panSpeedKeyboard": 1000.0,
           "panSpeedGamepad": 100.0,
           "zoomStep": 0.5,
@@ -109,10 +134,10 @@
       }
     },
     {
-      "id": 8365126126627568726,
+      "id": 13898290318426704080,
       "components": {
         "Name": {
-          "name": "Sol isométrique"
+          "name": "sol"
         },
         "Transform2D": {
           "position": [
@@ -127,16 +152,16 @@
           "depth": 0.0
         },
         "Tilemap": {
-          "file": "maps/iso_demo.map",
+          "file": "maps/tilemap_iso.map",
           "visible": true
         }
       }
     },
     {
-      "id": 6058421939409909243,
+      "id": 17016174432983454369,
       "components": {
         "Name": {
-          "name": "tilemap_iso_3"
+          "name": "wall"
         },
         "Transform2D": {
           "position": [
@@ -151,7 +176,7 @@
           "depth": 0.0
         },
         "Tilemap": {
-          "file": "maps/tilemap_iso_3.map",
+          "file": "maps/tilemap_iso.map",
           "visible": true
         }
       }
@@ -159,10 +184,14 @@
   ],
   "editor": {
     "categories": [
-      "entity"
+      "entity",
+      "map"
     ],
     "entityCategory": {
-      "12808752909115651700": "entity"
+      "16421626958495036344": "map",
+      "12808752909115651700": "entity",
+      "13898290318426704080": "map",
+      "17016174432983454369": "map"
     }
   }
 }

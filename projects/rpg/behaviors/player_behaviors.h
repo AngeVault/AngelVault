@@ -24,8 +24,16 @@ public:
         const float moveX = Input::getAxis("Horizontal");
         const float moveY = Input::getAxis("Vertical");
 
-        rb.velocity.x = moveX * speed;
-        rb.velocity.y = moveY * speed;
+        if (moveX && moveY)
+        {
+            rb.velocity.x = moveX * speed * 0.5f;
+            rb.velocity.y = moveY * speed * 0.5f;
+        }
+        else 
+        {
+            rb.velocity.x = moveX * speed;
+            rb.velocity.y = moveY * speed;
+        }
     }
 
 private:
