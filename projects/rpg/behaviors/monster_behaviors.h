@@ -2,13 +2,13 @@
 #include "ecs/behavior.h"
 #include "ecs/behavior_factory.h"
 #include "ecs/registry.h"
-#include "input/input.h"
 #include "components/name.h"
 #include "components/rigid_body2d.h"
 #include "components/collider2d.h"
 #include "components/transform2d.h"
 #include "../components/life.h"
 #include "../components/npc.h"
+#include <stdexcept>
 
 // Comportement « monster_behaviors ».
 // Après compilation, glissez ce fichier sur une entité (Hierarchy, Inspector ou vue scène),
@@ -24,6 +24,14 @@ public:
 
     // Appelé à chaque frame (dt en secondes)
     void onUpdate(Entity self, Registry& registry, float dt) override {
+        if (!registry.hasComponent<Life>(self))
+        {
+            throw std::logic_error("component Life n'existe pas");
+        }
+        if (!registry.hasComponent<Npc>(self))
+        {
+            throw std::logic_error("component Npc n'existe pas");
+        }
         auto& life = registry.getComponent<Life>(self);
         if (life.actualLife > 0)
         {
@@ -34,6 +42,18 @@ public:
                 {
                     if (name.name == "Player")
                     {
+                        if (!registry.hasComponent<RigidBody2D>(self))
+                        {
+                            throw std::logic_error("component RigideBody n'existe pas");
+                        }
+                        if (!registry.hasComponent<Collider2D>(self))
+                        {
+                            throw std::logic_error("component Collider2D n'existe pas");
+                        }
+                        if (!registry.hasComponent<Transform2D>(self))
+                        {
+                            throw std::logic_error("component Transform2D n'existe pas");
+                        }
                         auto& rbSelf = registry.getComponent<RigidBody2D>(self);
                         auto& coSelf = registry.getComponent<Collider2D>(self);
                         auto& coCible = registry.getComponent<Collider2D>(e);

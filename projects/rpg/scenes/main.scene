@@ -536,7 +536,7 @@
           ]
         },
         "Life": {
-          "actualLife": 1000.0,
+          "actualLife": 50.0,
           "maxLife": 1000.0,
           "regenlLife": 0.0
         },
