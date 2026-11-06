@@ -116,7 +116,7 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
     bar->setSpacing(4);
     auto* add = new QToolButton;
     add->setObjectName("panelToolButton");
-    add->setText("+");
+    add->setIcon(QIcon(":/resources/icons/buttons/add.png"));
     add->setToolTip(tr("Créer une entité ou une catégorie"));
     add->setPopupMode(QToolButton::InstantPopup);
     auto* addMenu = new QMenu(add);

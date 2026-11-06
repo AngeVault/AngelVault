@@ -110,10 +110,7 @@ void TilesetView::paintEvent(QPaintEvent* e) {
     }
     p.setRenderHint(QPainter::SmoothPixmapTransform, m_zoom < 1.0);   // pixel art net en zoom avant
 
-    // Damier sous les tiles (transparence)
-    QPixmap checker(16, 16);
-    checker.fill(QColor(58, 58, 64));
-    { QPainter c(&checker); c.fillRect(0, 0, 8, 8, QColor(70, 70, 78)); c.fillRect(8, 8, 8, 8, QColor(70, 70, 78)); }
+    const QPixmap& checker = m_checker;   // damier sous les tiles (transparence)
 
     const QRect dirty = e->rect();
     for (int row = 0; row < m_ts.rows(); ++row)

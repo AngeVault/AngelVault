@@ -39,8 +39,6 @@
 #include <QPointer>
 #include <QProcess>
 #include <QSettings>
-#include <QPainter>
-#include <QPainterPath>
 #include <QSplitter>
 #include <QStackedWidget>
 #include <QTimer>
@@ -89,52 +87,21 @@ ads::CDockWidget* makeDock(ads::CDockManager* manager, const QString& title, con
     return dock;
 }
 
-// Icônes des petits boutons des panneaux (fermer, punaise, menu des onglets, réduire), dessinées ici :
-// un gris moyen lisible sur les thèmes clairs comme sombres, sans dépendre des SVG de la bibliothèque.
+// Icônes des petits boutons des panneaux (fermer, punaise, menu des onglets, réduire, détacher) :
+// PNG de assets/icons/dock/ (gris moyen, lisible sur les thèmes clairs comme sombres).
+// La version @2x de chaque fichier est chargée toute seule pour les écrans haute densité.
 QIcon dockIcon(ads::eIcon id) {
-    QIcon icon;
-    for (int size : { 16, 32 }) {
-        QPixmap pix(size, size);
-        pix.fill(Qt::transparent);
-        QPainter p(&pix);
-        p.setRenderHint(QPainter::Antialiasing);
-        p.scale(size / 16.0, size / 16.0);
-        QPen pen(QColor(140, 140, 150), 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
-        p.setPen(pen);
-        switch (id) {
-        case ads::TabCloseIcon:
-        case ads::DockAreaCloseIcon:
-            p.drawLine(QPointF(4.5, 4.5), QPointF(11.5, 11.5));
-            p.drawLine(QPointF(11.5, 4.5), QPointF(4.5, 11.5));
-            break;
-        case ads::AutoHideIcon: {   // punaise
-            QPainterPath head;
-            head.moveTo(6, 2.5); head.lineTo(10, 2.5); head.lineTo(9.5, 7); head.lineTo(11.5, 9.5);
-            head.lineTo(4.5, 9.5); head.lineTo(6.5, 7); head.closeSubpath();
-            p.drawPath(head);
-            p.drawLine(QPointF(8, 9.5), QPointF(8, 13.5));
-            break;
-        }
-        case ads::DockAreaMenuIcon: {   // chevron
-            QPainterPath v;
-            v.moveTo(4.5, 6.5); v.lineTo(8, 10); v.lineTo(11.5, 6.5);
-            p.drawPath(v);
-            break;
-        }
-        case ads::DockAreaMinimizeIcon:
-            p.drawLine(QPointF(4.5, 11), QPointF(11.5, 11));
-            break;
-        case ads::DockAreaUndockIcon:
-            p.drawRoundedRect(QRectF(5.5, 3.5, 7, 7), 1.5, 1.5);
-            p.drawPolyline(QPolygonF({ QPointF(3.5, 6.5), QPointF(3.5, 12.5), QPointF(9.5, 12.5) }));
-            break;
-        default:
-            break;
-        }
-        p.end();
-        icon.addPixmap(pix);
+    const char* name = nullptr;
+    switch (id) {
+    case ads::TabCloseIcon:
+    case ads::DockAreaCloseIcon:   name = "close"; break;
+    case ads::AutoHideIcon:        name = "pin"; break;
+    case ads::DockAreaMenuIcon:    name = "menu"; break;
+    case ads::DockAreaMinimizeIcon: name = "minimize"; break;
+    case ads::DockAreaUndockIcon:  name = "undock"; break;
+    default: return {};
     }
-    return icon;
+    return QIcon(QStringLiteral(":/resources/icons/dock/%1.png").arg(QLatin1String(name)));
 }
 
 // Projets récents (Fichier > Récents), du plus récent au plus ancien

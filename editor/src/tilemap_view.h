@@ -75,6 +75,7 @@ private:
     void frame(sf::RenderWindow& target);
     void drawGrid(sf::RenderTarget& target);
     void drawCameras(sf::RenderTarget& target);
+    void drawScreenIcon(sf::RenderTarget& target, const sf::Texture& icon, sf::Vector2f at, sf::Vector2f origin);
     void drawSelection(sf::RenderTarget& target);
     void drawGizmo(sf::RenderTarget& target);
     void drawBrush(sf::RenderTarget& target);
@@ -127,6 +128,8 @@ private:
     EditorContext& m_ctx;
     EditorCamera m_camera;
     LooseFileLoader m_textures{ "" };          // charge les PNG (id = chemin)
+    std::optional<sf::Texture> m_cameraIcon;   // assets/icons/scene/ (chargées dans init)
+    std::optional<sf::Texture> m_lockIcon;
     std::unique_ptr<TilemapRenderSystem> m_tilemapRenderer;   // dessine les entités Tilemap
     std::unique_ptr<RenderSystem> m_entityRenderer;
     sf::Clock m_clock;

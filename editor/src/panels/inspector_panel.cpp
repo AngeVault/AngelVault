@@ -206,7 +206,7 @@ QWidget* InspectorPanel::buildSection(const QString& title, bool removable, cons
     if (removable) {
         auto* remove = new QToolButton;
         remove->setObjectName("componentRemove");
-        remove->setText(QString::fromUtf8("✕"));
+        remove->setIcon(QIcon(":/resources/icons/buttons/remove.png"));
         remove->setToolTip(tr("Retirer le composant"));
         h->addWidget(remove);
         connect(remove, &QToolButton::clicked, this, [onRemove] { onRemove(); });

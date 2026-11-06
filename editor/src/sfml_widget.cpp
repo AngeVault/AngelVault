@@ -139,6 +139,16 @@ void SfmlWidget::renderFrame() {
 
     m_window->display();
 }
+std::optional<sf::Texture> loadTexture(const QString& path, bool smooth) {
+    const QImage image = QImage(path).convertToFormat(QImage::Format_RGBA8888);
+    if (image.isNull()) return std::nullopt;
+    const sf::Image pixels(sf::Vector2u(unsigned(image.width()), unsigned(image.height())), image.constBits());
+    sf::Texture texture;
+    if (!texture.loadFromImage(pixels)) return std::nullopt;
+    texture.setSmooth(smooth);
+    return texture;
+}
+
 void SfmlWidget::setBackgroundImage(const QString& path) {
     const QString p = path.trimmed() == "none" ? QString() : path.trimmed();
     if (p == m_backgroundPath) return;
@@ -152,17 +162,7 @@ void SfmlWidget::drawBackground() {
     if (m_backgroundDirty) {
         m_backgroundDirty = false;
         m_background.reset();
-        if (!m_backgroundPath.isEmpty()) {
-            const QImage image = QImage(m_backgroundPath).convertToFormat(QImage::Format_RGBA8888);
-            if (!image.isNull()) {
-                const sf::Image pixels(sf::Vector2u(unsigned(image.width()), unsigned(image.height())), image.constBits());
-                sf::Texture texture;
-                if (texture.loadFromImage(pixels)) {
-                    texture.setSmooth(true);
-                    m_background = std::move(texture);
-                }
-            }
-        }
+        if (!m_backgroundPath.isEmpty()) m_background = loadTexture(m_backgroundPath);
     }
     if (!m_background || m_backgroundOpacity <= 0.0) return;
 

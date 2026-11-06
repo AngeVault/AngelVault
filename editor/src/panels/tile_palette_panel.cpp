@@ -139,8 +139,8 @@ TilePalettePanel::TilePalettePanel(EditorContext& context, QWidget* parent) : QW
     quickRow->addStretch(1);
     m_square = new QToolButton;
     m_circle = new QToolButton;
-    m_square->setText(QString::fromUtf8("■"));
-    m_circle->setText(QString::fromUtf8("●"));
+    m_square->setIcon(QIcon(":/resources/icons/buttons/brush_square.png"));
+    m_circle->setIcon(QIcon(":/resources/icons/buttons/brush_circle.png"));
     m_square->setToolTip(tr("Pinceau carré"));
     m_circle->setToolTip(tr("Pinceau rond"));
     auto* shapes = new QButtonGroup(this);
@@ -207,7 +207,7 @@ TilePalettePanel::TilePalettePanel(EditorContext& context, QWidget* parent) : QW
     m_tilesets->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     bar->addWidget(m_tilesets, 1);
     auto* add = new QToolButton;
-    add->setText("+");
+    add->setIcon(QIcon(":/resources/icons/buttons/add.png"));
     add->setToolTip(tr("Ajouter un tileset"));
     add->setPopupMode(QToolButton::InstantPopup);
     auto* addMenu = new QMenu(add);
@@ -217,16 +217,16 @@ TilePalettePanel::TilePalettePanel(EditorContext& context, QWidget* parent) : QW
     addMenu->addAction(tr("Ajouter un tileset existant (.tileset)..."), this, &TilePalettePanel::addExistingTileset);
     add->setMenu(addMenu);
     m_editTs = new QToolButton;
-    m_editTs->setText(QString::fromUtf8("✎"));
+    m_editTs->setIcon(QIcon(":/resources/icons/buttons/edit.png"));
     m_editTs->setToolTip(tr("Modifier le tileset (image, grille, autotile, placement)"));
     m_removeTs = new QToolButton;
-    m_removeTs->setText(QString::fromUtf8("✕"));
+    m_removeTs->setIcon(QIcon(":/resources/icons/buttons/remove.png"));
     m_removeTs->setToolTip(tr("Retirer le tileset de cette carte (le fichier n'est pas supprimé)"));
     m_upTs = new QToolButton;
-    m_upTs->setText(QString::fromUtf8("▲"));
+    m_upTs->setIcon(QIcon(":/resources/icons/buttons/move_up.png"));
     m_upTs->setToolTip(tr("Monter : passe SOUS les tilesets suivants"));
     m_downTs = new QToolButton;
-    m_downTs->setText(QString::fromUtf8("▼"));
+    m_downTs->setIcon(QIcon(":/resources/icons/buttons/move_down.png"));
     m_downTs->setToolTip(tr("Descendre : déborde par-dessus les tilesets précédents (autotile)"));
     for (QToolButton* b : { add, m_editTs, m_removeTs, m_upTs, m_downTs }) {
         b->setObjectName("panelToolButton");

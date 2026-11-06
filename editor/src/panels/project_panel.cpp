@@ -192,7 +192,7 @@ ProjectPanel::ProjectPanel(const QString& rootDir, QWidget* parent)
     bar->setSpacing(4);
     auto* up = new QToolButton;
     up->setObjectName("panelToolButton");
-    up->setText(QString::fromUtf8("↑"));
+    up->setIcon(QIcon(":/resources/icons/buttons/parent_folder.png"));
     up->setToolTip(tr("Dossier parent"));
     m_path = new QLabel;
     m_path->setObjectName("projectPath");

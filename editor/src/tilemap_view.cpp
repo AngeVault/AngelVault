@@ -16,6 +16,7 @@
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QWheelEvent>
+#include <SFML/Graphics/Sprite.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -24,7 +25,6 @@
 
 namespace {
 const sf::Color kSelection(255, 170, 40);
-const sf::Color kCameraColor(120, 200, 255);
 // Taille de l'écran de jeu supposée pour le cadre des caméras (fenêtre par défaut de Game)
 const sf::Vector2f kGameScreen(1920.f, 1080.f);
 
@@ -86,6 +86,8 @@ TilemapView::~TilemapView() = default;
 void TilemapView::init(sf::RenderWindow& target) {
     m_tilemapRenderer = std::make_unique<TilemapRenderSystem>(target, m_textures);
     m_entityRenderer = std::make_unique<RenderSystem>(target, m_textures);
+    m_cameraIcon = loadTexture(":/resources/icons/scene/camera.png");
+    m_lockIcon = loadTexture(":/resources/icons/scene/lock.png");
     m_clock.restart();
 }
 
@@ -175,20 +177,20 @@ void TilemapView::drawCameras(sf::RenderTarget& target) {
         frame.setOutlineThickness(1.5f * px);
         target.draw(frame);
 
-        // icône : un boîtier et un objectif, taille fixe à l'écran
-        sf::RectangleShape body({ 18.f * px, 12.f * px });
-        body.setOrigin({ 11.f * px, 6.f * px });
-        body.setPosition(t.getPosition());
-        body.setFillColor(kCameraColor);
-        target.draw(body);
-        sf::ConvexShape lens(3);
-        lens.setPoint(0, { 7.f * px, 0.f });
-        lens.setPoint(1, { 13.f * px, -6.f * px });
-        lens.setPoint(2, { 13.f * px, 6.f * px });
-        lens.setPosition(t.getPosition());
-        lens.setFillColor(kCameraColor);
-        target.draw(lens);
+        // icône (24 x 12 pixels écran), son point (11, 6) sur la position de la caméra
+        if (m_cameraIcon) drawScreenIcon(target, *m_cameraIcon, t.getPosition(), { 11.f, 6.f });
     });
+}
+
+// Icône PNG à taille fixe à l'écran (dessinée en double résolution), `origin` en pixels écran.
+void TilemapView::drawScreenIcon(sf::RenderTarget& target, const sf::Texture& icon, sf::Vector2f at, sf::Vector2f origin) {
+    constexpr float kIconScale = 2.f;   // les PNG des icônes de scène sont en @2x
+    const float s = 1.f / (m_camera.zoom * kIconScale);
+    sf::Sprite sprite(icon);
+    sprite.setOrigin(origin * kIconScale);
+    sprite.setScale({ s, s });
+    sprite.setPosition(at);
+    target.draw(sprite);
 }
 
 void TilemapView::drawSelection(sf::RenderTarget& target) {
@@ -250,20 +252,7 @@ void TilemapView::drawGizmo(sf::RenderTarget& target) {
     const float px = 1.f / m_camera.zoom;
 
     if (m_ctx.isPositionLocked(e)) {   // caméra liée à une entité : cadenas à la place du gizmo
-        const sf::Color lockColor(200, 200, 210, 230);
-        const sf::Vector2f at = o + sf::Vector2f(16.f, -16.f) * px;
-        sf::CircleShape shackle(5.f * px);                // anse
-        shackle.setOrigin({ 5.f * px, 5.f * px });
-        shackle.setPosition(at + sf::Vector2f(0.f, -4.f) * px);
-        shackle.setFillColor(sf::Color::Transparent);
-        shackle.setOutlineThickness(2.f * px);
-        shackle.setOutlineColor(lockColor);
-        target.draw(shackle);
-        sf::RectangleShape body({ 14.f * px, 10.f * px }); // corps
-        body.setOrigin({ 7.f * px, 2.f * px });
-        body.setPosition(at);
-        body.setFillColor(lockColor);
-        target.draw(body);
+        if (m_lockIcon) drawScreenIcon(target, *m_lockIcon, o + sf::Vector2f(16.f, -16.f) * px, { 7.f, 11.f });
         return;
     }
 
