@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 
+
 // Outils de la vue scène (choisis dans la Tile Palette)
 enum class EditorTool { Select, Paint, Erase, Fill, Pick, Resize };
 
@@ -42,7 +43,10 @@ class EditorContext : public QObject {
 public:
     explicit EditorContext(QObject* parent = nullptr);
 
+    friend void load_map(EditorContext& ctx);
+
     Registry& scene() { return m_scene; }
+    // --- Map and layers ---
 
     // --- Tilemaps (composant Tilemap : facultatif, il peut y en avoir 0, 1 ou plusieurs) ---
     // La tilemap « active » est celle que l'on peint : l'entité sélectionnée si c'est une tilemap,
