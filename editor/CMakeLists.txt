@@ -60,7 +60,31 @@ target_sources(AngeVaultEditor PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/file_icons.q
 
 set_target_properties(AngeVaultEditor PROPERTIES AUTORCC ON)
 
+# Panneaux façon Visual Studio / Unity : Qt Advanced Docking System (LGPL 2.1, compilée en statique)
+# repères de dépôt, onglets glissables, panneaux flottants et masqués sur le côté, disposition mémorisée.
+include(FetchContent)
+# ADS cherche Qt sous le nom « QT » (Qt5 ou Qt6) : on lui donne le kit déjà trouvé pour l'éditeur
+set(QT_VERSION_MAJOR 6)
+set(QT_DIR "${Qt6_DIR}")
+get_filename_component(_av_qt_prefix "${Qt6_DIR}/../../.." ABSOLUTE)
+list(APPEND CMAKE_PREFIX_PATH "${_av_qt_prefix}")
+# ADS se lie à Qt6::GuiPrivate (en-têtes privés utiles seulement sous Linux). Depuis Qt 6.9 ce module
+# se charge à part ; s'il manque au kit, une cible vide suffit (Windows n'en a pas besoin).
+set(QT_NO_PRIVATE_MODULE_WARNING ON)   # avertissement « module privé » : ADS n'en utilise rien sous Windows
+find_package(Qt6 COMPONENTS GuiPrivate QUIET)
+if(NOT TARGET Qt6::GuiPrivate)
+  add_library(Qt6::GuiPrivate INTERFACE IMPORTED)
+endif()
+set(BUILD_STATIC ON CACHE BOOL "ADS : bibliothèque statique" FORCE)
+set(BUILD_EXAMPLES OFF CACHE BOOL "ADS : pas d'exemples" FORCE)
+set(ADS_VERSION 4.4.1 CACHE STRING "ADS : version (pas de dépôt git dans l'archive)" FORCE)
+FetchContent_Declare(qtads
+    URL https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System/archive/refs/tags/4.4.1.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_MakeAvailable(qtads)
+
 target_link_libraries(AngeVaultEditor PRIVATE Qt6::Widgets AngeVault::Engine)
+target_link_libraries(AngeVaultEditor PRIVATE ads::qtadvanceddocking-qt6)
 target_include_directories(AngeVaultEditor PRIVATE src)
 
 # Dossier montré par le panneau Project : le projet source (assets + scripts), pas la copie dans bin/

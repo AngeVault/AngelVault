@@ -5,7 +5,8 @@
   "startScene": "scenes/main.scene",
   "scenes": [
     "scenes/main.scene",
-    "scenes/iso_demo.scene"
+    "scenes/iso_demo.scene",
+    "scenes/nouvelle.scene"
   ],
   "paths": {
     "assets": "assets",

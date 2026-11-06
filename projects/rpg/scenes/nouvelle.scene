@@ -1,0 +1,93 @@
+{
+  "format": "angeVault.scene",
+  "version": 1,
+  "name": "nouvelle",
+  "map": null,
+  "entities": [
+    {
+      "id": 10318481837744718980,
+      "components": {
+        "Name": {
+          "name": "camera"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Camera2d": {
+          "zoom": 1.0,
+          "minZoom": 0.25,
+          "maxZoom": 4.0,
+          "zoomLocked": false,
+          "panSpeedKeyboard": 1000.0,
+          "panSpeedGamepad": 100.0,
+          "zoomStep": 0.5,
+          "zoomLerpSpeed": 1.0,
+          "shiftSpeed": 40.0,
+          "shiftSpeedMultiplicateur": 0.10000000149011612,
+          "additionalAdvancement": 200.0,
+          "targetZoom": 1.0,
+          "worldMin": [
+            0.0,
+            0.0
+          ],
+          "worldMax": [
+            0.0,
+            0.0
+          ],
+          "targetLock": null
+        }
+      }
+    },
+    {
+      "id": 7064676059521601479,
+      "components": {
+        "Name": {
+          "name": "Nouvelle entité"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Box",
+          "halfSize": [
+            239.9652099609375,
+            34.79888916015625
+          ],
+          "style": {
+            "fill": "#FFFFFFFF",
+            "outline": "#00000000",
+            "outlineThickness": 0.0
+          }
+        }
+      }
+    }
+  ],
+  "editor": {
+    "categories": [
+      "camera"
+    ],
+    "entityCategory": {
+      "10318481837744718980": "camera",
+      "7064676059521601479": "camera"
+    }
+  }
+}

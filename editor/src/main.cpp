@@ -1,4 +1,8 @@
 #include "customWindow.h"
+#include "DockAreaWidget.h"
+#include "DockManager.h"
+#include "DockWidget.h"
+#include "IconProvider.h"
 #include "editor_context.h"
 #include "game_view.h"
 #include "game_loop.h"
@@ -27,7 +31,6 @@
 #include <QStyleFactory>
 #include <QDesktopServices>
 #include <QDir>
-#include <QDockWidget>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QInputDialog>
@@ -36,6 +39,9 @@
 #include <QPointer>
 #include <QProcess>
 #include <QSettings>
+#include <QPainter>
+#include <QPainterPath>
+#include <QSplitter>
 #include <QStackedWidget>
 #include <QTimer>
 #include <QUrl>
@@ -71,14 +77,64 @@ QString projectDir() {
 #endif
 }
 
-// Panneau détachable : on peut le déplacer, l'empiler en onglets, le faire flotter ou le fermer
-QDockWidget* makeDock(QMainWindow& window, const QString& title, const QString& id, QWidget* content) {
-    auto* dock = new QDockWidget(title, &window);
+// Panneau détachable (Qt Advanced Docking System) : on le glisse par son onglet, on le dépose sur un
+// repère (bord, centre = en onglet), on le fait flotter, on l'épingle sur le côté ou on le ferme.
+ads::CDockWidget* makeDock(ads::CDockManager* manager, const QString& title, const QString& id, QWidget* content) {
+    auto* dock = new ads::CDockWidget(manager, title);
     dock->setObjectName(id);   // indispensable pour mémoriser la disposition
-    content->setAttribute(Qt::WA_StyledBackground);   // sinon le QSS ne dessine ni fond ni contour
+    content->setAttribute(Qt::WA_StyledBackground);   // sinon le QSS ne dessine pas le fond
     dock->setWidget(content);
-    dock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+    dock->setMinimumSizeHintMode(ads::CDockWidget::MinimumSizeHintFromDockWidget);   // se réduit sans bloquer
+    dock->setMinimumSize(120, 80);
     return dock;
+}
+
+// Icônes des petits boutons des panneaux (fermer, punaise, menu des onglets, réduire), dessinées ici :
+// un gris moyen lisible sur les thèmes clairs comme sombres, sans dépendre des SVG de la bibliothèque.
+QIcon dockIcon(ads::eIcon id) {
+    QIcon icon;
+    for (int size : { 16, 32 }) {
+        QPixmap pix(size, size);
+        pix.fill(Qt::transparent);
+        QPainter p(&pix);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.scale(size / 16.0, size / 16.0);
+        QPen pen(QColor(140, 140, 150), 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+        p.setPen(pen);
+        switch (id) {
+        case ads::TabCloseIcon:
+        case ads::DockAreaCloseIcon:
+            p.drawLine(QPointF(4.5, 4.5), QPointF(11.5, 11.5));
+            p.drawLine(QPointF(11.5, 4.5), QPointF(4.5, 11.5));
+            break;
+        case ads::AutoHideIcon: {   // punaise
+            QPainterPath head;
+            head.moveTo(6, 2.5); head.lineTo(10, 2.5); head.lineTo(9.5, 7); head.lineTo(11.5, 9.5);
+            head.lineTo(4.5, 9.5); head.lineTo(6.5, 7); head.closeSubpath();
+            p.drawPath(head);
+            p.drawLine(QPointF(8, 9.5), QPointF(8, 13.5));
+            break;
+        }
+        case ads::DockAreaMenuIcon: {   // chevron
+            QPainterPath v;
+            v.moveTo(4.5, 6.5); v.lineTo(8, 10); v.lineTo(11.5, 6.5);
+            p.drawPath(v);
+            break;
+        }
+        case ads::DockAreaMinimizeIcon:
+            p.drawLine(QPointF(4.5, 11), QPointF(11.5, 11));
+            break;
+        case ads::DockAreaUndockIcon:
+            p.drawRoundedRect(QRectF(5.5, 3.5, 7, 7), 1.5, 1.5);
+            p.drawPolyline(QPolygonF({ QPointF(3.5, 6.5), QPointF(3.5, 12.5), QPointF(9.5, 12.5) }));
+            break;
+        default:
+            break;
+        }
+        p.end();
+        icon.addPixmap(pix);
+    }
+    return icon;
 }
 
 // Projets récents (Fichier > Récents), du plus récent au plus ancien
@@ -248,6 +304,8 @@ int main(int argc, char** argv) {
     // La vue de jeu s'empile par-dessus pendant que l'on joue.
     // Au-dessus : la barre des outils d'entités (Sélection, Taille), cachée pendant que l'on joue.
     auto* central = new QWidget;
+    central->setObjectName("sceneCentral");
+    central->setAttribute(Qt::WA_StyledBackground);
     auto* centralLayout = new QVBoxLayout(central);
     centralLayout->setContentsMargins(0, 0, 0, 0);
     centralLayout->setSpacing(0);
@@ -258,7 +316,6 @@ int main(int argc, char** argv) {
     auto* tilemapView = new TilemapView(ctx);
     viewports->addWidget(tilemapView);
     centralLayout->addWidget(viewports, 1);
-    window.setCentralWidget(central);
     QObject::connect(viewports, &QStackedWidget::currentChanged, sceneToolbar,
                      [viewports, tilemapView, sceneToolbar] { sceneToolbar->setVisible(viewports->currentWidget() == tilemapView); });
 
@@ -279,57 +336,101 @@ int main(int argc, char** argv) {
     window.statusBar()->showMessage("Molette : zoom  —  clic droit / molette + glisser : déplacer  —  F5 : jouer");
 
     // --- Panneaux : Hierarchy / Inspector / Project / Console / Tile Palette ---
-    window.setDockOptions(QMainWindow::AnimatedDocks | QMainWindow::AllowTabbedDocks | QMainWindow::AllowNestedDocks);
-    window.setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::North);
-    window.setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);      // gauche et droite sur toute la hauteur
-    window.setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
+    // Qt Advanced Docking System : glisser un onglet affiche des repères (comme Visual Studio) ;
+    // centre = empiler en onglet, flèches = coller sur ce bord. Double-clic sur l'onglet = flottant.
+    // Les options globales se règlent AVANT de créer le gestionnaire.
+    using ads::CDockManager;
+    CDockManager::setConfigFlags(CDockManager::DefaultNonOpaqueConfig);   // aperçu pendant le glisser (la vue SFML ne bouge pas)
+    CDockManager::setConfigFlag(CDockManager::FocusHighlighting, true);              // onglet du panneau actif souligné
+    CDockManager::setConfigFlag(CDockManager::EqualSplitOnInsertion, true);
+    CDockManager::setConfigFlag(CDockManager::DockAreaHasUndockButton, false);       // double-clic ou glisser suffit
+    CDockManager::setConfigFlag(CDockManager::DockAreaDynamicTabsMenuButtonVisibility, true);
+    CDockManager::setConfigFlag(CDockManager::MiddleMouseButtonClosesTab, true);
+    CDockManager::setAutoHideConfigFlags(CDockManager::DefaultAutoHideConfig);   // épingler sur le côté (comme VS)
+    for (ads::eIcon id : { ads::TabCloseIcon, ads::AutoHideIcon, ads::DockAreaMenuIcon, ads::DockAreaUndockIcon,
+                           ads::DockAreaCloseIcon, ads::DockAreaMinimizeIcon })
+        CDockManager::iconProvider().registerCustomIcon(id, dockIcon(id));
+    auto* docks = new CDockManager(&window);   // devient la zone centrale de la fenêtre
+    docks->setStyleSheet(QString());           // le style vient des thèmes (QSS de l'application)
+
+    // La scène au centre : fixe, les panneaux se rangent autour
+    auto* sceneDock = new ads::CDockWidget(docks, "Scène");
+    sceneDock->setObjectName("dockScene");
+    sceneDock->setWidget(central);
+    sceneDock->setFeature(ads::CDockWidget::NoTab, true);
+    ads::CDockAreaWidget* sceneArea = docks->setCentralWidget(sceneDock);
 
     auto* palettePanel = new TilePalettePanel(ctx);
     auto* projectPanel = new ProjectPanel(ctx.hasProject() ? ctx.projectDir() : projectDir());
-    QDockWidget* hierarchyDock = makeDock(window, "Hierarchy", "dockHierarchy", new HierarchyPanel(ctx));
-    QDockWidget* inspectorDock = makeDock(window, "Inspector", "dockInspector", new InspectorPanel(ctx));
-    QDockWidget* projectDock   = makeDock(window, "Project", "dockProject", projectPanel);
-    QDockWidget* consoleDock   = makeDock(window, "Console", "dockConsole", new ConsolePanel);
-    QDockWidget* paletteDock   = makeDock(window, "Tile Palette", "dockTilePalette", palettePanel);
+    ads::CDockWidget* hierarchyDock = makeDock(docks, "Hierarchy", "dockHierarchy", new HierarchyPanel(ctx));
+    ads::CDockWidget* inspectorDock = makeDock(docks, "Inspector", "dockInspector", new InspectorPanel(ctx));
+    ads::CDockWidget* projectDock   = makeDock(docks, "Project", "dockProject", projectPanel);
+    ads::CDockWidget* consoleDock   = makeDock(docks, "Console", "dockConsole", new ConsolePanel);
+    ads::CDockWidget* paletteDock   = makeDock(docks, "Tile Palette", "dockTilePalette", palettePanel);
     window.addActions(palettePanel->toolActions());   // V / B / E / G / I et taille du pinceau partout dans la fenêtre
 
-    // Disposition par défaut
-    window.addDockWidget(Qt::LeftDockWidgetArea, hierarchyDock);
-    window.splitDockWidget(hierarchyDock, paletteDock, Qt::Vertical);
-    window.addDockWidget(Qt::RightDockWidgetArea, inspectorDock);
-    window.addDockWidget(Qt::BottomDockWidgetArea, projectDock);
-    window.tabifyDockWidget(projectDock, consoleDock);
-    projectDock->raise();
+    // Disposition par défaut : Hierarchy + Tile Palette à gauche, Inspector à droite, Project + Console en bas
+    ads::CDockAreaWidget* leftArea   = docks->addDockWidget(ads::LeftDockWidgetArea, hierarchyDock);
+    docks->addDockWidget(ads::BottomDockWidgetArea, paletteDock, leftArea);
+    docks->addDockWidget(ads::RightDockWidgetArea, inspectorDock);
+    ads::CDockAreaWidget* bottomArea = docks->addDockWidget(ads::BottomDockWidgetArea, projectDock, sceneArea);
+    docks->addDockWidgetTabToArea(consoleDock, bottomArea);
+    projectDock->setAsCurrentTab();
 
     // Affichage > Fenêtres : une case à cocher par panneau
-    const QList<QDockWidget*> docks = { hierarchyDock, inspectorDock, projectDock, consoleDock, paletteDock };
-    for (int i = 0; i < docks.size(); ++i) {
-        QAction* toggle = docks[i]->toggleViewAction();
+    const QList<ads::CDockWidget*> panels = { hierarchyDock, inspectorDock, projectDock, consoleDock, paletteDock };
+    for (int i = 0; i < panels.size(); ++i) {
+        QAction* toggle = panels[i]->toggleViewAction();
         toggle->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key(Qt::Key_1 + i)));
         windowsMenu->addAction(toggle);
     }
     windowsMenu->addSeparator();
+    QAction* lockLayout = windowsMenu->addAction("Verrouiller la disposition");
+    lockLayout->setCheckable(true);
+    lockLayout->setToolTip("Empêche de déplacer, détacher ou fermer les panneaux par erreur");
+    QObject::connect(lockLayout, &QAction::toggled, docks, [docks](bool locked) {
+        docks->lockDockWidgetFeaturesGlobally(locked ? ads::CDockWidget::GloballyLockableFeatures
+                                                     : ads::CDockWidget::NoDockWidgetFeatures);
+    });
     QAction* resetLayout = windowsMenu->addAction("Réinitialiser la disposition");
 
     // Mémorise la disposition (après l'affichage, quand les tailles sont connues)
-    constexpr int kLayoutVersion = 3;   // 3 : Tile Palette plus haute (grille des tilesets) ; l'ancienne disposition est ignorée
+    constexpr int kLayoutVersion = 4;   // 4 : panneaux ADS (l'ancienne disposition QDockWidget est ignorée)
     QByteArray defaultLayout;
     QTimer::singleShot(0, &window, [&] {
-        window.resizeDocks({ hierarchyDock, inspectorDock }, { 250, 320 }, Qt::Horizontal);
-        window.resizeDocks({ hierarchyDock, paletteDock }, { 230, 520 }, Qt::Vertical);
-        window.resizeDocks({ projectDock }, { 220 }, Qt::Vertical);
-        defaultLayout = window.saveState(kLayoutVersion);
-        const QByteArray saved = QSettings().value("ui/dockLayout").toByteArray();
-        if (!saved.isEmpty()) window.restoreState(saved, kLayoutVersion);
+        // Tailles de départ : le séparateur qui contient `area` dans ce sens (si le nombre de parts correspond)
+        const auto sizeSplitter = [](QWidget* area, Qt::Orientation orientation, QList<int> sizes) {
+            for (QWidget* w = area; w; w = w->parentWidget()) {
+                auto* splitter = qobject_cast<QSplitter*>(w->parentWidget());
+                if (splitter && splitter->orientation() == orientation) {
+                    if (splitter->count() != sizes.size()) return;
+                    int total = 0;
+                    for (int i = 0; i < splitter->count(); ++i) total += splitter->sizes().at(i);
+                    int fixed = 0;
+                    for (int v : sizes) fixed += std::max(0, v);
+                    for (int& v : sizes) if (v < 0) v = std::max(100, total - fixed);   // -1 = le reste
+                    splitter->setSizes(sizes);
+                    return;
+                }
+            }
+        };
+        sizeSplitter(leftArea, Qt::Horizontal, { 380, -1, 320 });     // gauche | scène | droite
+        sizeSplitter(leftArea, Qt::Vertical, { 230, 520 });           // Hierarchy / Tile Palette
+        sizeSplitter(bottomArea, Qt::Vertical, { -1, 220 });          // scène / Project + Console
+        defaultLayout = docks->saveState(kLayoutVersion);
+        const QByteArray saved = QSettings().value("ui/adsLayout").toByteArray();
+        if (!saved.isEmpty()) docks->restoreState(saved, kLayoutVersion);
+        lockLayout->setChecked(QSettings().value("ui/layoutLocked", false).toBool());
     });
     QObject::connect(resetLayout, &QAction::triggered, &window, [&] {
         if (defaultLayout.isEmpty()) return;
-        window.restoreState(defaultLayout, kLayoutVersion);
-        for (QDockWidget* d : docks) d->show();
-        projectDock->raise();
+        docks->restoreState(defaultLayout, kLayoutVersion);
+        for (ads::CDockWidget* d : panels) d->toggleView(true);
+        projectDock->setAsCurrentTab();
     });
     QObject::connect(&app, &QApplication::aboutToQuit, [&] {
-        QSettings().setValue("ui/dockLayout", window.saveState(kLayoutVersion));
+        QSettings().setValue("ui/adsLayout", docks->saveState(kLayoutVersion));
+        QSettings().setValue("ui/layoutLocked", lockLayout->isChecked());
     });
 
     std::cout << "[Editeur] Scene chargee : " << ctx.entities().size() << " entites" << std::endl;

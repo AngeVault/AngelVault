@@ -21,7 +21,8 @@ void CameraSystem::onUpdate(Registry& registry, float dt)
 {
     registry.view<Camera2d>([&](Entity e, Camera2d& camera)
         {
-            const sf::Vector2u viewportSize = m_window.getSize();
+            const bool reference = s_referenceSize.x > 0 && s_referenceSize.y > 0;
+            const sf::Vector2u viewportSize = reference ? s_referenceSize : m_window.getSize();
             const float worldWidth = camera.worldMax.x - camera.worldMin.x;
             const float worldHeight = camera.worldMax.y - camera.worldMin.y;
             sf::Vector2f position = registry.getComponent<Transform2D>(e).getPosition();
@@ -63,7 +64,7 @@ void CameraSystem::onUpdate(Registry& registry, float dt)
                     {
                         positionCible.x -= camera.additionalAdvancement;
                     }
-                    shiftAdaptatifX = std::fabsf(positionCible.x - position.x)* camera.shiftSpeedMultiplicateur * camera.shiftSpeed;
+                    shiftAdaptatifX = std::fabs(positionCible.x - position.x)* camera.shiftSpeedMultiplicateur * camera.shiftSpeed;
                     if (velocity.y > 0.f)
                     {
                         positionCible.y += camera.additionalAdvancement;
@@ -72,7 +73,7 @@ void CameraSystem::onUpdate(Registry& registry, float dt)
                     {
                         positionCible.y -= camera.additionalAdvancement;
                     }
-                    shiftAdaptatifY = std::fabsf(positionCible.y - position.y)* camera.shiftSpeedMultiplicateur * camera.shiftSpeed;
+                    shiftAdaptatifY = std::fabs(positionCible.y - position.y)* camera.shiftSpeedMultiplicateur * camera.shiftSpeed;
 
                     if (shiftAdaptatifX < camera.shiftSpeed) shiftAdaptatifX = camera.shiftSpeed;
                     if (shiftAdaptatifY < camera.shiftSpeed) shiftAdaptatifY = camera.shiftSpeed;
@@ -111,10 +112,25 @@ void CameraSystem::onUpdate(Registry& registry, float dt)
                     camera.minZoom, camera.maxZoom);
                 }
                 clampPosition(e,registry,camera,viewportSize);
-                m_window.setView(makeView(e,registry,camera,viewportSize));
+                sf::View view = makeView(e,registry,camera,viewportSize);
+                if (reference) view.setViewport(letterbox(m_window.getSize(), s_referenceSize));
+                m_window.setView(view);
         });
 
     }
+
+sf::FloatRect CameraSystem::letterbox(sf::Vector2u window, sf::Vector2u reference)
+{
+    if (window.x == 0 || window.y == 0 || reference.x == 0 || reference.y == 0) return { { 0.f, 0.f }, { 1.f, 1.f } };
+    const float windowRatio = static_cast<float>(window.x) / static_cast<float>(window.y);
+    const float referenceRatio = static_cast<float>(reference.x) / static_cast<float>(reference.y);
+    if (windowRatio > referenceRatio) {   // fenêtre plus large : bandes à gauche et à droite
+        const float w = referenceRatio / windowRatio;
+        return { { (1.f - w) * 0.5f, 0.f }, { w, 1.f } };
+    }
+    const float h = windowRatio / referenceRatio;   // plus haute : bandes en haut et en bas
+    return { { 0.f, (1.f - h) * 0.5f }, { 1.f, h } };
+}
 
 void CameraSystem::clampPosition(Entity e, Registry& registry, Camera2d& camera, sf::Vector2u windowSize)
 {

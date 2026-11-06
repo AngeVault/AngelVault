@@ -26,10 +26,14 @@
           "zoom": 1.0,
           "minZoom": 0.25,
           "maxZoom": 4.0,
+          "zoomLocked": false,
           "panSpeedKeyboard": 1000.0,
           "panSpeedGamepad": 100.0,
           "zoomStep": 0.5,
           "zoomLerpSpeed": 12.0,
+          "shiftSpeed": 40.0,
+          "shiftSpeedMultiplicateur": 0.10000000149011612,
+          "additionalAdvancement": 200.0,
           "targetZoom": 1.0,
           "worldMin": [
             -1000.0,
@@ -367,54 +371,6 @@
       }
     },
     {
-      "id": 15294090322440002633,
-      "components": {
-        "Name": {
-          "name": "tilemap_iso"
-        },
-        "Transform2D": {
-          "position": [
-            49.139068603515625,
-            -806.655029296875
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "Tilemap": {
-          "file": "maps/tilemap_iso.map",
-          "visible": true
-        }
-      }
-    },
-    {
-      "id": 9248257352794584917,
-      "components": {
-        "Name": {
-          "name": "tilemap_iso"
-        },
-        "Transform2D": {
-          "position": [
-            0.0,
-            0.0
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "Tilemap": {
-          "file": "maps/tilemap_iso.map",
-          "visible": true
-        }
-      }
-    },
-    {
       "id": 9932720423414607161,
       "components": {
         "Name": {
@@ -456,110 +412,6 @@
           ]
         }
       }
-    },
-    {
-      "id": 2392736522797589009,
-      "components": {
-        "Name": {
-          "name": "Player"
-        },
-        "Transform2D": {
-          "position": [
-            72.81442260742188,
-            633.8133544921875
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.1543892621994019
-          ],
-          "depth": 0.0
-        },
-        "Geometry": {
-          "layer": 1,
-          "shape": "Sprite",
-          "texture": "player",
-          "rect": [
-            0,
-            0,
-            32,
-            64
-          ],
-          "tint": "#FFFFFFFF"
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": false,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            0.0,
-            22.0
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            16.0,
-            15.0
-          ]
-        },
-        "Script": {
-          "behaviors": [
-            {
-              "name": "PlayerBehavior",
-              "properties": {
-                "speed": 400.0
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": 4795818514185465428,
-      "components": {
-        "Name": {
-          "name": "CameraEntity"
-        },
-        "Transform2D": {
-          "position": [
-            72.81442260742188,
-            633.8133544921875
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "Camera2d": {
-          "zoom": 1.0,
-          "minZoom": 0.25,
-          "maxZoom": 4.0,
-          "panSpeedKeyboard": 1000.0,
-          "panSpeedGamepad": 100.0,
-          "zoomStep": 0.5,
-          "zoomLerpSpeed": 12.0,
-          "targetZoom": 1.0,
-          "worldMin": [
-            -1000.0,
-            -1000.0
-          ],
-          "worldMax": [
-            3000.0,
-            3000.0
-          ],
-          "targetLock": 2392736522797589009
-        }
-      }
     }
   ],
   "editor": {
@@ -577,8 +429,6 @@
       "8432238510110025053": "colision",
       "7647194933246917022": "colision",
       "15999493952223515466": "colision",
-      "15294090322440002633": "map",
-      "9248257352794584917": "map",
       "9932720423414607161": "colision"
     }
   }
