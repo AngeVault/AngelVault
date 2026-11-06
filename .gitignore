@@ -6,3 +6,4 @@ CMakeUserPresets.json
 *.lib
 *.obj
 .idea/
+CLAUDE.local.md

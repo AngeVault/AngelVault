@@ -224,10 +224,10 @@ TilePalettePanel::TilePalettePanel(EditorContext& context, QWidget* parent) : QW
     m_removeTs->setToolTip(tr("Retirer le tileset de cette carte (le fichier n'est pas supprimé)"));
     m_upTs = new QToolButton;
     m_upTs->setIcon(QIcon(":/resources/icons/buttons/move_up.png"));
-    m_upTs->setToolTip(tr("Monter : passe SOUS les tilesets suivants"));
+    m_upTs->setToolTip(tr("Monter (dessiné par-dessus)"));
     m_downTs = new QToolButton;
     m_downTs->setIcon(QIcon(":/resources/icons/buttons/move_down.png"));
-    m_downTs->setToolTip(tr("Descendre : déborde par-dessus les tilesets précédents (autotile)"));
+    m_downTs->setToolTip(tr("Descendre (dessiné dessous)"));
     for (QToolButton* b : { add, m_editTs, m_removeTs, m_upTs, m_downTs }) {
         b->setObjectName("panelToolButton");
         bar->addWidget(b);
@@ -235,8 +235,9 @@ TilePalettePanel::TilePalettePanel(EditorContext& context, QWidget* parent) : QW
     layout->addWidget(m_tilesetBar);
     connect(m_editTs, &QToolButton::clicked, this, &TilePalettePanel::editTileset);
     connect(m_removeTs, &QToolButton::clicked, this, &TilePalettePanel::removeTileset);
-    connect(m_upTs, &QToolButton::clicked, this, [this] { moveTileset(-1); });
-    connect(m_downTs, &QToolButton::clicked, this, [this] { moveTileset(+1); });
+    // slot + 1 = dessiné par-dessus
+    connect(m_upTs, &QToolButton::clicked, this, [this] { moveTileset(+1); });
+    connect(m_downTs, &QToolButton::clicked, this, [this] { moveTileset(-1); });
     connect(m_tilesets, &QComboBox::activated, this, [this](int index) {
         currentSlotChanged(m_tilesets->itemData(index).toInt());
     });
@@ -325,16 +326,17 @@ void TilePalettePanel::buildTilesets() {
     {
         QSignalBlocker block(m_tilesets);
         m_tilesets->clear();
+        // façon calques : le dessus en haut
         if (map)
-            for (std::size_t i = 0; i < map->tilesets.size(); ++i) {
-                const Tileset& ts = *map->tilesets[i];
+            for (int i = int(map->tilesets.size()) - 1; i >= 0; --i) {
+                const Tileset& ts = *map->tilesets[std::size_t(i)];
                 QString label = qs(ts.name);
                 if (ts.missing) label += tr("  (introuvable)");
                 else if (ts.autotile == AutotileMode::Edges16) label += tr("  · autotile 4 bords");
                 else if (ts.autotile == AutotileMode::Corners16) label += tr("  · autotile 16 coins");
                 if (ts.ySort) label += tr("  · tri en Y");
-                m_tilesets->addItem(tilesetIcon(*map, ts), label, int(i));
-                m_tilesets->setItemData(int(i), qs(ts.file), Qt::ToolTipRole);
+                m_tilesets->addItem(tilesetIcon(*map, ts), label, i);
+                m_tilesets->setItemData(m_tilesets->count() - 1, qs(ts.file), Qt::ToolTipRole);
             }
     }
     const bool hasMap = map != nullptr;
@@ -344,6 +346,7 @@ void TilePalettePanel::buildTilesets() {
                         static_cast<QWidget*>(m_upTs), static_cast<QWidget*>(m_downTs) })
         w->setEnabled(any);
     m_tilesets->setEnabled(any);
+    updateOrderControls();
 
     if (!hasMap) {
         m_mapInfo->setText(tr("Pas de tilemap dans cette scène (elle est facultative).\n"
@@ -422,6 +425,7 @@ void TilePalettePanel::syncBrush(const TileBrush& b) {
         for (int i = 0; i < m_tilesets->count(); ++i)
             if (m_tilesets->itemData(i).toInt() == b.slot) m_tilesets->setCurrentIndex(i);
     }
+    updateOrderControls();
     showTileset(ts ? b.slot : -1);
     {
         QSignalBlocker block(m_autotile);
@@ -613,6 +617,16 @@ void TilePalettePanel::removeTileset() {
     else if (b.slot > slot) --b.slot;
     m_ctx.setBrush(b);
     m_ctx.notifyTilesChanged();
+}
+
+// ▲ / ▼ actifs seulement s'il y a un tileset de ce côté
+void TilePalettePanel::updateOrderControls() {
+    const TileMapData* map = m_ctx.activeMap();
+    const int slot = currentSlot();
+    const int n = map ? int(map->tilesets.size()) : 0;
+    const bool valid = map && map->tileset(slot);
+    m_upTs->setEnabled(valid && slot < n - 1);
+    m_downTs->setEnabled(valid && slot > 0);
 }
 
 void TilePalettePanel::moveTileset(int delta) {

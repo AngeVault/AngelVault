@@ -111,11 +111,36 @@
           "targetLock": 12808752909115651700
         }
       }
+    },
+    {
+      "id": 14924121848965927189,
+      "components": {
+        "Name": {
+          "name": "tilemap_iso"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso.map",
+          "visible": true
+        }
+      }
     }
   ],
   "editor": {
     "categories": [
-      "entity"
+      "entity",
+      "Nouvelle catégorie"
     ],
     "entityCategory": {
       "12808752909115651700": "entity"

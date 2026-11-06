@@ -23,7 +23,7 @@ class TilesetView;
 //  - tileset simple   : cliquez sur une tile (ou glissez pour un bloc) puis peignez ;
 //  - tileset autotile : « Autotile » peint le terrain et choisit les transitions seul
 //                       (on peut aussi poser une tile précise de la feuille à la main).
-// L'ordre des tilesets = l'empilement (un autotile plus bas déborde sur ceux du dessus).
+// Tilesets façon calques : en haut de la liste = dessiné par-dessus.
 class TilePalettePanel : public QWidget {
     Q_OBJECT
 public:
@@ -50,7 +50,8 @@ private:
     void addExistingTileset();
     void editTileset();
     void removeTileset();
-    void moveTileset(int delta);
+    void moveTileset(int delta);       // +1 = monter, -1 = descendre
+    void updateOrderControls();
     // Ouvre la fenêtre Tileset ; OK = enregistre le .tileset (et l'ajoute à la carte si `isNew`)
     bool runTilesetDialog(const Tileset& start, bool isNew, int slot);
 
