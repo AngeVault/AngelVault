@@ -613,8 +613,13 @@ std::vector<ComponentDesc> build() {
             f.push_back(floatRef<C>(r, e, QObject::tr("Zoom max"), [](C& c) -> float& { return c.maxZoom; }, 0.01, 100, 0.1));
             f.push_back(floatRef<C>(r, e, QObject::tr("Pas de zoom"), [](C& c) -> float& { return c.zoomStep; }, 0, 100, 0.1));
             f.push_back(floatRef<C>(r, e, QObject::tr("Lissage du zoom"), [](C& c) -> float& { return c.zoomLerpSpeed; }, 0, 1000, 1));
+            f.push_back(boolRef<C>(r, e, QObject::tr("Zoom bloqué"), [](C& c) -> bool& { return c.zoomLocked; }));
             f.push_back(floatRef<C>(r, e, QObject::tr("Vitesse clavier"), [](C& c) -> float& { return c.panSpeedKeyboard; }, 0, 1e6, 10));
             f.push_back(floatRef<C>(r, e, QObject::tr("Vitesse manette"), [](C& c) -> float& { return c.panSpeedGamepad; }, 0, 1e6, 10));
+            // suivi d'une entité
+            f.push_back(floatRef<C>(r, e, QObject::tr("Vitesse de suivi"), [](C& c) -> float& { return c.shiftSpeed; }, 0, 1e6, 5));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Accélération de suivi"), [](C& c) -> float& { return c.shiftSpeedMultiplicateur; }, 0, 100, 0.01));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Avance"), [](C& c) -> float& { return c.additionalAdvancement; }, 0, 1e6, 10));
             f.push_back(vecRef<C>(r, e, QObject::tr("Limite min"), [](C& c) -> sf::Vector2f& { return c.worldMin; }, 10));
             f.push_back(vecRef<C>(r, e, QObject::tr("Limite max"), [](C& c) -> sf::Vector2f& { return c.worldMax; }, 10));
 
