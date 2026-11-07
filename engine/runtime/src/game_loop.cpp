@@ -6,12 +6,7 @@
 #include "game_systems.h"
 #include <iostream>
 
-Game::Game() {
-    m_ownWindow.emplace(sf::VideoMode({ 1920, 1080 }), "AngeVault", sf::Style::Default, sf::State::Windowed);
-    m_ownWindow->setVerticalSyncEnabled(true);
-    m_window = &*m_ownWindow;
-    init();
-}
+Game::Game() : Game({ 1920u, 1080u }, "AngeVault") {}
 
 Game::Game(sf::Vector2u size, const std::string& title, bool vsync) {
     m_ownWindow.emplace(sf::VideoMode(size), title, sf::Style::Default, sf::State::Windowed);

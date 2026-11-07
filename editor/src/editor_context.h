@@ -93,6 +93,11 @@ public:
     // Les liens entre entités (caméra qui suit le Player) passent par PersistentId.
     const Project& project() const { return m_project; }
     bool hasProject() const { return !m_project.filePath.empty(); }
+    // Écran du jeu (window.size du .angproj) : cadre des caméras et vue Jouer
+    sf::Vector2u gameScreenSize() const {
+        const ProjectWindow& w = m_project.window;
+        return (w.width > 0 && w.height > 0) ? sf::Vector2u{ w.width, w.height } : sf::Vector2u{ 1920u, 1080u };
+    }
     QString projectFile() const { return QString::fromStdString(m_project.filePath); }
     QString projectDir() const;
     QString scenePath() const { return m_scenePath; }   // "" = scène jamais enregistrée

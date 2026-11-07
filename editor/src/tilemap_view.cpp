@@ -25,8 +25,6 @@
 
 namespace {
 const sf::Color kSelection(255, 170, 40);
-// Taille de l'écran de jeu supposée pour le cadre des caméras (fenêtre par défaut de Game)
-const sf::Vector2f kGameScreen(1920.f, 1080.f);
 
 // Rectangle local (avant Transform2D) d'une entité, pour la sélection à la souris et le cadre
 sf::FloatRect localBounds(Registry& r, Entity e) {
@@ -168,7 +166,7 @@ void TilemapView::drawCameras(sf::RenderTarget& target) {
     const float px = 1.f / m_camera.zoom;   // 1 pixel écran en unités monde
     reg.view<Camera2d, Transform2D>([&](Entity, Camera2d& cam, Transform2D& t) {
         const float zoom = cam.zoom > 0.f ? cam.zoom : 1.f;
-        const sf::Vector2f size = kGameScreen / zoom;
+        const sf::Vector2f size = sf::Vector2f(m_ctx.gameScreenSize()) / zoom;
         sf::RectangleShape frame(size);
         frame.setOrigin(size / 2.f);
         frame.setPosition(t.getPosition());

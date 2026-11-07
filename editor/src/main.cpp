@@ -498,7 +498,8 @@ int main(int argc, char** argv) {
         ctx.scene().view<Tilemap>([&](Entity, Tilemap& tm) {
             if (tm.data) maps[tm.file] = std::make_shared<TileMapData>(*tm.data);
         });
-        gameView = new GameView(ctx.sceneSnapshot(), inputPath(), ctx.projectDir(), std::move(maps), ctx.project().systems);   // une COPIE de la scène
+        gameView = new GameView(ctx.sceneSnapshot(), inputPath(), ctx.projectDir(), std::move(maps), ctx.project().systems,
+                                ctx.gameScreenSize());   // une COPIE de la scène
         viewports->addWidget(gameView);
         viewports->setCurrentWidget(gameView);
         gameView->setFocus();
