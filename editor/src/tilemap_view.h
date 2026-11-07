@@ -127,7 +127,7 @@ private:
 
     EditorContext& m_ctx;
     EditorCamera m_camera;
-    LooseFileLoader m_textures{ "" };          // charge les PNG (id = chemin)
+    LooseFileLoader m_textures;                // PNG, chemins relatifs au projet
     std::optional<sf::Texture> m_cameraIcon;   // assets/icons/scene/ (chargées dans init)
     std::optional<sf::Texture> m_lockIcon;
     std::unique_ptr<TilemapRenderSystem> m_tilemapRenderer;   // dessine les entités Tilemap

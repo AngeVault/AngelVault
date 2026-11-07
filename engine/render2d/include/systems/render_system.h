@@ -3,9 +3,6 @@
 #include "ecs/registry.h"
 #include "components/transform2d.h"
 #include "components/geometry.h"
-#include "components/unitComp.h"
-#include "components/camera2d.h"
-#include "utils/texture_factory.h"
 #include "utils/loose_file_loader.h"
 #include "utils/ysort_queue.h"
 #include <SFML/Graphics.hpp>
@@ -43,11 +40,7 @@ public:
         struct Entry { int layer; float y; Geometry* geo; sf::Transform transform; const sf::Sprite* tile; };
         std::vector<Entry> drawList;
 
-        registry.view<Transform2D, Geometry>([&](Entity e, Transform2D& t, Geometry& g) {
-            if (registry.hasComponent<ECS::Unit>(e)) {
-                const ECS::Unit& unit = registry.getComponent<ECS::Unit>(e);
-                if (unit.team == ECS::Unit::Team::Enemy && !unit.visibleToPlayer) return;
-            }
+        registry.view<Transform2D, Geometry>([&](Entity, Transform2D& t, Geometry& g) {
             drawList.push_back({ g.layer, sortY(t, g), &g, t.getLocalMatrix(), nullptr });
             });
 
@@ -137,12 +130,5 @@ private:
 	sf::Texture dummyTexture;
     sf::Sprite m_sprite{ dummyTexture };
 	sf::RectangleShape m_rect;
-	sf::CircleShape m_circle;
-	sf::ConvexShape m_polygon;
 	LooseFileLoader& m_textureLoader;
 };
-
-inline void test(Camera2d& cam)   // inline : ce header est inclus par plusieurs .cpp
-{
-	return;
-}

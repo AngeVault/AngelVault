@@ -25,6 +25,7 @@ public:
 
     Registry& registry() { return m_registry; }
     SystemManager& systems() { return m_systems; }
+    void setAssetDir(const std::string& dir) { m_textureLoader.setBaseDir(dir); }   // dossier du projet
 
     sf::RenderWindow& window() { return *m_window; }
 

@@ -73,7 +73,12 @@ TilemapView::TilemapView(EditorContext& context, QWidget* parent) : SfmlWidget(p
 
     connect(&m_ctx, &EditorContext::toolChanged, this, [this] { updateCursor(); });
     // Autre tilemap (ou scène) : on recadre tant que l'utilisateur n'a pas bougé la vue lui-même
-    connect(&m_ctx, &EditorContext::documentChanged, this, [this] { m_userCamera = false; m_needsFit = true; });
+    connect(&m_ctx, &EditorContext::documentChanged, this, [this] {
+        m_userCamera = false;
+        m_needsFit = true;
+        m_textures.setBaseDir(m_ctx.projectDir().toUtf8().toStdString());
+    });
+    m_textures.setBaseDir(m_ctx.projectDir().toUtf8().toStdString());
     updateCursor();
 }
 
