@@ -23,6 +23,7 @@ int main(int argc, char** argv)
     game.applySystemSettings(project.systems);   // systèmes activés / désactivés dans le .angproj
 
     if (hasProject) {
+        game.setAssetDir(project.directory());
         loadRpgInput(game.input(), project.resolve(project.inputPath));
         SceneMeta meta;
         const std::string scenePath = argc > 2 ? std::string(argv[2]) : project.resolve(project.startScene);

@@ -18,6 +18,7 @@ GameView::GameView(std::string sceneJson, QString inputPath, QString projectDir,
       m_projectDir(std::move(projectDir)), m_maps(std::move(maps)), m_systemSettings(std::move(systems)) {
     onInit = [this, screenSize](sf::RenderWindow& target) {
         m_game = std::make_unique<Game>(target);   // Game dessine dans ce widget, sans fenêtre à lui
+        m_game->setAssetDir(m_projectDir.toUtf8().toStdString());
         // Même zone que le cadre bleu de la vue scène, bandes noires si le format diffère du panneau
         CameraSystem::setReferenceSize(screenSize);
         registerRpgSystems(*m_game);               // les systèmes sont du code (projects/rpg/rpg_scene.h)
