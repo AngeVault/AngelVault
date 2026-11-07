@@ -61,11 +61,13 @@ public:
     }
 };
 
+enum class DropPos { On, Above, Below };   // où on lâche par rapport à la ligne visée
+
 // Arbre qui gère lui-même le glisser-déposer : il ne déplace pas les lignes,
 // il signale "ces entités vont dans cette catégorie" et la liste est reconstruite.
 class HierarchyTree : public QTreeWidget {
 public:
-    std::function<void(QTreeWidgetItem* target, bool below)> onDropped;              // lignes de la Hierarchy
+    std::function<void(QTreeWidgetItem* target, DropPos pos)> onDropped;              // lignes de la Hierarchy
     std::function<void(const QStringList& files, QTreeWidgetItem* target)> onFilesDropped;   // .prefab / .h
     std::function<QByteArray(const QList<QTreeWidgetItem*>&)> entitiesMime;          // pour Hierarchy -> Project
 
@@ -99,7 +101,8 @@ protected:
             onFilesDropped(dropped, target);
             return;
         }
-        if (onDropped) onDropped(target, dropIndicatorPosition() == BelowItem);
+        const DropIndicatorPosition p = dropIndicatorPosition();
+        if (onDropped) onDropped(target, p == AboveItem ? DropPos::Above : p == BelowItem ? DropPos::Below : DropPos::On);
         e->setDropAction(Qt::CopyAction);   // "copie" : Qt ne supprime pas les lignes d'origine
         e->accept();
     }
@@ -157,22 +160,33 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
     m_tree->setDefaultDropAction(Qt::CopyAction);
     layout->addWidget(m_tree, 1);
 
-    tree->onDropped = [this](QTreeWidgetItem* target, bool below) {
+    tree->onDropped = [this](QTreeWidgetItem* target, DropPos pos) {
         const QString category = targetCategory(target);
 
-        // catégories glissées : changer leur ordre (avant / après la catégorie visée, sinon à la fin)
-        QStringList cats;
-        for (const QString& c : m_ctx.categories())
-            for (QTreeWidgetItem* item : m_tree->selectedItems())
-                if (isCategory(item) && item->data(0, kCategoryRole).toString() == c) cats << c;
-        if (!cats.isEmpty() && !cats.contains(category)) {
+        // catégories glissées : sur une catégorie = dedans, entre deux = à côté, dans le vide = racine
+        QStringList selected;
+        for (QTreeWidgetItem* item : m_tree->selectedItems())
+            if (isCategory(item)) selected << item->data(0, kCategoryRole).toString();
+        QStringList cats;   // dans l'ordre de la liste ; une sous-catégorie suit sa parente si les deux sont glissées
+        for (const QString& c : m_ctx.categories()) {
+            if (!selected.contains(c)) continue;
+            bool nested = false;
+            for (const QString& other : selected) nested |= other != c && m_ctx.isInsideCategory(c, other);
+            if (!nested) cats << c;
+        }
+        if (!cats.isEmpty()) {
+            QString parent = category;   // entité visée : dans sa catégorie
             int index = int(m_ctx.categories().size());
-            if (!category.isEmpty())
-                index = int(m_ctx.categories().indexOf(category)) + ((isCategory(target) && !below) ? 0 : 1);
+            if (isCategory(target) && pos != DropPos::On) {
+                parent = m_ctx.categoryParent(category);
+                index = int(m_ctx.categories().indexOf(category)) + (pos == DropPos::Below ? 1 : 0);
+            }
             for (const QString& c : cats) {
+                if (!m_ctx.setCategoryParent(c, parent)) continue;   // pas dans elle-même
                 m_ctx.moveCategory(c, index);
                 index = int(m_ctx.categories().indexOf(c)) + 1;
             }
+            if (!parent.isEmpty()) m_collapsed.remove(parent);
         }
 
         QList<Entity> moved;
@@ -267,7 +281,7 @@ void HierarchyPanel::rebuild() {
     const QIcon folder = style()->standardIcon(QStyle::SP_DirIcon);
     QHash<QString, QTreeWidgetItem*> categoryItems;
     for (const QString& name : m_ctx.categories()) {
-        auto* item = new QTreeWidgetItem(m_tree, { name });
+        auto* item = new QTreeWidgetItem({ name });   // rangée plus bas, une fois toutes les catégories créées
         item->setIcon(0, folder);
         item->setData(0, kKindRole, 1);
         item->setData(0, kCategoryRole, name);
@@ -277,6 +291,12 @@ void HierarchyPanel::rebuild() {
         f.setBold(true);
         item->setFont(0, f);
         categoryItems.insert(name, item);
+    }
+    for (const QString& name : m_ctx.categories()) {
+        if (QTreeWidgetItem* parent = categoryItems.value(m_ctx.categoryParent(name), nullptr))
+            parent->addChild(categoryItems.value(name));
+        else
+            m_tree->addTopLevelItem(categoryItems.value(name));
     }
     Registry& reg = m_ctx.scene();
     QHash<quint64, QTreeWidgetItem*> entityItems;
@@ -313,7 +333,7 @@ void HierarchyPanel::rebuild() {
         parent->setExpanded(true);
     }
     for (auto it = categoryItems.begin(); it != categoryItems.end(); ++it) {
-        it.value()->setToolTip(0, tr("%n entité(s)", nullptr, it.value()->childCount()));
+        it.value()->setToolTip(0, tr("%n élément(s)", nullptr, it.value()->childCount()));
         it.value()->setExpanded(!m_collapsed.contains(it.key()));
     }
     m_updating = false;
@@ -389,6 +409,10 @@ void HierarchyPanel::showContextMenu(const QPoint& pos) {
         const QString name = item->data(0, kCategoryRole).toString();
         connect(menu.addAction(tr("Créer une entité dans « %1 »").arg(name)), &QAction::triggered, this,
                 &HierarchyPanel::createEntityHere);
+        connect(menu.addAction(tr("Créer une sous-catégorie")), &QAction::triggered, this, [this, name] {
+            m_collapsed.remove(name);
+            m_ctx.addCategory(tr("Nouvelle catégorie"), name);
+        });
         menu.addSeparator();
         connect(menu.addAction(tr("Renommer")), &QAction::triggered, this, [this, item] { m_tree->editItem(item); });
         connect(menu.addAction(tr("Supprimer la catégorie (garder les entités)")), &QAction::triggered, this,
