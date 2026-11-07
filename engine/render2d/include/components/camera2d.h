@@ -1,56 +1,18 @@
 #pragma once
-#include <numbers>
 
-#include "ecs/entity.h"
 #include "ecs/reflect.h"
-#include <SFML/System/Vector2.hpp>
 
 
 struct Camera2d
 {
 	// state
 	float zoom = 1.f;
-	float minZoom = 0.25f;
-	float maxZoom = 4.f;
-	Entity targetLock = NULL_ENTITY;
-	bool zoomLocked = false;
 
-	// speed 
-	float panSpeedKeyboard = 1000.f;
-	float panSpeedGamepad = 100.f;
+	// speed
 	float zoomStep = 0.5f;
 	float zoomLerpSpeed = 1.f;
-	float shiftSpeed = 40.f;
-	float shiftSpeedMultiplicateur = 0.1f;
-	float additionalAdvancement = 200.f;
-
-	// border
-	sf::Vector2f worldMin{ 0.f , 0.f };
-	sf::Vector2f worldMax{ 0.f , 0.f };
 
 	float targetZoom = 1.f;
-
-	// helper 
-	void setWorldBorder(sf::Vector2f min, sf::Vector2f max)
-	{
-		worldMin = min;
-		worldMax = max;
-	}
-
-	void setTarget(Entity e)
-	{
-		targetLock = e;
-	};
-
-	void setZoomLoked(bool locked)
-	{
-		zoomLocked = locked;
-	};
-
-	void setZoomLerpSpeed(float speed)
-	{
-		zoomLerpSpeed = speed;
-	}
 
 	void setTargetZoom(float _targetZoom)
 	{
@@ -63,16 +25,8 @@ template<>
 inline ReflectedComponent reflectComponent<Camera2d>(Camera2d& rb) {
 	return { "Camera2d", {
 	        { "zoom",       PropertyInfo::Type::Float, &rb.zoom       },
-			{ "minZoom", PropertyInfo::Type::Float, &rb.minZoom },
-			{ "maxZoom",   PropertyInfo::Type::Float, &rb.maxZoom   },
-			{ "zoomLocked",   PropertyInfo::Type::Bool, &rb.zoomLocked   },
-			{ "panSpeedKeyboard",    PropertyInfo::Type::Float, &rb.panSpeedKeyboard    },
-			{ "panSpeedGamepad",    PropertyInfo::Type::Float, &rb.panSpeedGamepad    },
-			{ "zoomStep",    PropertyInfo::Type::Float, &rb.zoomStep    },
-			{ "zoomLerpSpeed",    PropertyInfo::Type::Float, &rb.zoomLerpSpeed    },
-			{ "shiftSpeed",    PropertyInfo::Type::Float, &rb.shiftSpeed    },
-			{ "shiftSpeedMultiplicateur",    PropertyInfo::Type::Float, &rb.shiftSpeedMultiplicateur    },
-			{ "additionalAdvancement",    PropertyInfo::Type::Float, &rb.additionalAdvancement    },
+			{ "zoomStep",    PropertyInfo::Type::Float, &rb.targetZoom    },
+			{ "zoomLerpSpeed",    PropertyInfo::Type::Float, &rb.targetZoom    },
 			{ "targetZoom",    PropertyInfo::Type::Float, &rb.targetZoom    },
 	} };
 }
