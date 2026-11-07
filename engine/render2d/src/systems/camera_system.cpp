@@ -29,12 +29,14 @@ void CameraSystem::onUpdate(Registry& registry, float dt)
             {
 
 
-                position.x += (camera.panSpeedKeyboard * camera.zoom *dt) * Input::getAxis("Horizontal");
-                position.y += (camera.panSpeedKeyboard * camera.zoom *dt) * Input::getAxis("Vertical");
+                position.x += (camera.panSpeedKeyboard / camera.zoom *dt) * Input::getAxis("Horizontal");
+                position.y += (camera.panSpeedKeyboard / camera.zoom *dt) * Input::getAxis("Vertical");
                 if (camera.zoomLocked == false)
                 {
                     camera.targetZoom += (camera.zoomStep *dt) * Input::getAxis("ZoomWheel") ;
                 }
+                if (camera.targetZoom < camera.minZoom) camera.targetZoom = camera.minZoom;
+                if (camera.targetZoom > camera.maxZoom) camera.targetZoom = camera.maxZoom;
 
                 if (camera.targetZoom != camera.zoom)
                 {
@@ -84,6 +86,8 @@ void CameraSystem::onUpdate(Registry& registry, float dt)
                     {
                         camera.targetZoom += (camera.zoomStep *dt) * Input::getAxis("ZoomWheel") ;
                     }
+                    if (camera.targetZoom < camera.minZoom) camera.targetZoom = camera.minZoom;
+                    if (camera.targetZoom > camera.maxZoom) camera.targetZoom = camera.maxZoom;
                     if (camera.targetZoom != camera.zoom)
                     {
                         camera.zoom =  Math::moveTowards(camera.zoom, camera.targetZoom, camera.zoomLerpSpeed*dt);
