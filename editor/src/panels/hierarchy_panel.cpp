@@ -65,7 +65,7 @@ public:
 // il signale "ces entités vont dans cette catégorie" et la liste est reconstruite.
 class HierarchyTree : public QTreeWidget {
 public:
-    std::function<void(QTreeWidgetItem* target)> onDropped;                          // lignes de la Hierarchy
+    std::function<void(QTreeWidgetItem* target, bool below)> onDropped;              // lignes de la Hierarchy
     std::function<void(const QStringList& files, QTreeWidgetItem* target)> onFilesDropped;   // .prefab / .h
     std::function<QByteArray(const QList<QTreeWidgetItem*>&)> entitiesMime;          // pour Hierarchy -> Project
 
@@ -99,7 +99,7 @@ protected:
             onFilesDropped(dropped, target);
             return;
         }
-        if (onDropped) onDropped(target);
+        if (onDropped) onDropped(target, dropIndicatorPosition() == BelowItem);
         e->setDropAction(Qt::CopyAction);   // "copie" : Qt ne supprime pas les lignes d'origine
         e->accept();
     }
@@ -157,8 +157,24 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
     m_tree->setDefaultDropAction(Qt::CopyAction);
     layout->addWidget(m_tree, 1);
 
-    tree->onDropped = [this](QTreeWidgetItem* target) {
+    tree->onDropped = [this](QTreeWidgetItem* target, bool below) {
         const QString category = targetCategory(target);
+
+        // catégories glissées : changer leur ordre (avant / après la catégorie visée, sinon à la fin)
+        QStringList cats;
+        for (const QString& c : m_ctx.categories())
+            for (QTreeWidgetItem* item : m_tree->selectedItems())
+                if (isCategory(item) && item->data(0, kCategoryRole).toString() == c) cats << c;
+        if (!cats.isEmpty() && !cats.contains(category)) {
+            int index = int(m_ctx.categories().size());
+            if (!category.isEmpty())
+                index = int(m_ctx.categories().indexOf(category)) + ((isCategory(target) && !below) ? 0 : 1);
+            for (const QString& c : cats) {
+                m_ctx.moveCategory(c, index);
+                index = int(m_ctx.categories().indexOf(c)) + 1;
+            }
+        }
+
         QList<Entity> moved;
         for (QTreeWidgetItem* item : m_tree->selectedItems())
             if (!isCategory(item)) moved.push_back(entityOf(item));
@@ -255,7 +271,8 @@ void HierarchyPanel::rebuild() {
         item->setIcon(0, folder);
         item->setData(0, kKindRole, 1);
         item->setData(0, kCategoryRole, name);
-        item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable | Qt::ItemIsDropEnabled);
+        item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable | Qt::ItemIsDragEnabled |
+                       Qt::ItemIsDropEnabled);
         QFont f = item->font(0);
         f.setBold(true);
         item->setFont(0, f);

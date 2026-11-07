@@ -63,6 +63,16 @@ void EditorContext::renameCategory(const QString& oldName, const QString& newNam
     emit sceneChanged();
 }
 
+void EditorContext::moveCategory(const QString& name, int index) {
+    const int from = m_categories.indexOf(name);
+    if (from < 0) return;
+    if (index > from) --index;   // index compté avant le retrait
+    index = std::clamp(index, 0, int(m_categories.size()) - 1);
+    if (index == from) return;
+    m_categories.move(from, index);
+    emit sceneChanged();
+}
+
 void EditorContext::removeCategory(const QString& name) {
     if (!m_categories.removeOne(name)) return;
     for (auto it = m_entityCategory.begin(); it != m_entityCategory.end();)

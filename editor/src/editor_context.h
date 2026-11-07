@@ -76,6 +76,7 @@ public:
     QString addCategory(const QString& name = tr("Nouvelle catégorie"));   // renvoie le nom (rendu unique)
     void renameCategory(const QString& oldName, const QString& newName);
     void removeCategory(const QString& name);                              // ses entités reviennent à la racine
+    void moveCategory(const QString& name, int index);                     // index dans la liste avant le déplacement
     QString categoryOf(Entity e) const;                                    // "" = aucune catégorie
     void setCategory(Entity e, const QString& category);                   // "" = racine
 

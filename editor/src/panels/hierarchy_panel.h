@@ -13,6 +13,7 @@ class QTreeWidgetItem;
 // Liste des entités de la scène, rangées dans des catégories (dossiers façon Unity).
 //  - clic : sélectionner          - double-clic / F2 : renommer (entité ou catégorie)
 //  - glisser une entité sur une catégorie : l'y ranger (ou dans le vide : la sortir)
+//  - glisser une catégorie : changer l'ordre des catégories
 //  - glisser une caméra sur une entité : la caméra la suit (Camera2d::targetLock) et s'affiche dessous
 //  - Suppr : supprimer l'entité (ou la catégorie, ses entités sont gardées)
 //  - bouton + ou clic droit : créer une entité / une catégorie
