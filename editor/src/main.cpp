@@ -320,12 +320,11 @@ int main(int argc, char** argv) {
     auto* docks = new CDockManager(&window);   // devient la zone centrale de la fenêtre
     docks->setStyleSheet(QString());           // le style vient des thèmes (QSS de l'application)
 
-    // La scène au centre : fixe, les panneaux se rangent autour
-    auto* sceneDock = new ads::CDockWidget(docks, "Scène");
-    sceneDock->setObjectName("dockScene");
-    sceneDock->setWidget(central);
-    sceneDock->setFeature(ads::CDockWidget::NoTab, true);
-    ads::CDockAreaWidget* sceneArea = docks->setCentralWidget(sceneDock);
+    // la scène : un dock comme les autres (onglet, flottant), mais jamais fermée
+    ads::CDockWidget* sceneDock = makeDock(docks, "Scène", "dockScene", central);
+    sceneDock->setFeature(ads::CDockWidget::DockWidgetClosable, false);
+    sceneDock->setFeature(ads::CDockWidget::DockWidgetPinnable, false);
+    ads::CDockAreaWidget* sceneArea = docks->addDockWidget(ads::CenterDockWidgetArea, sceneDock);
 
     auto* palettePanel = new TilePalettePanel(ctx);
     auto* projectPanel = new ProjectPanel(ctx.hasProject() ? ctx.projectDir() : projectDir());
@@ -362,7 +361,7 @@ int main(int argc, char** argv) {
     QAction* resetLayout = windowsMenu->addAction("Réinitialiser la disposition");
 
     // Mémorise la disposition (après l'affichage, quand les tailles sont connues)
-    constexpr int kLayoutVersion = 4;   // 4 : panneaux ADS (l'ancienne disposition QDockWidget est ignorée)
+    constexpr int kLayoutVersion = 5;   // 5 : la scène est un dock normal (plus de widget central)
     QByteArray defaultLayout;
     QTimer::singleShot(0, &window, [&] {
         // Tailles de départ : le séparateur qui contient `area` dans ce sens (si le nombre de parts correspond)
@@ -393,6 +392,7 @@ int main(int argc, char** argv) {
         if (defaultLayout.isEmpty()) return;
         docks->restoreState(defaultLayout, kLayoutVersion);
         for (ads::CDockWidget* d : panels) d->toggleView(true);
+        sceneDock->toggleView(true);
         projectDock->setAsCurrentTab();
     });
     QObject::connect(&app, &QApplication::aboutToQuit, [&] {
