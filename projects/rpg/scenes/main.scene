@@ -26,10 +26,14 @@
           "zoom": 1.0,
           "minZoom": 0.25,
           "maxZoom": 4.0,
+          "zoomLocked": false,
           "panSpeedKeyboard": 1000.0,
           "panSpeedGamepad": 100.0,
           "zoomStep": 0.5,
           "zoomLerpSpeed": 12.0,
+          "shiftSpeed": 40.0,
+          "shiftSpeedMultiplicateur": 0.10000000149011612,
+          "additionalAdvancement": 200.0,
           "targetZoom": 1.0,
           "worldMin": [
             -1000.0,
@@ -367,54 +371,6 @@
       }
     },
     {
-      "id": 15294090322440002633,
-      "components": {
-        "Name": {
-          "name": "tilemap_iso"
-        },
-        "Transform2D": {
-          "position": [
-            49.139068603515625,
-            -806.655029296875
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "Tilemap": {
-          "file": "maps/tilemap_iso.map",
-          "visible": true
-        }
-      }
-    },
-    {
-      "id": 9248257352794584917,
-      "components": {
-        "Name": {
-          "name": "tilemap_iso"
-        },
-        "Transform2D": {
-          "position": [
-            0.0,
-            0.0
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "Tilemap": {
-          "file": "maps/tilemap_iso.map",
-          "visible": true
-        }
-      }
-    },
-    {
       "id": 9932720423414607161,
       "components": {
         "Name": {
@@ -544,10 +500,14 @@
           "zoom": 1.0,
           "minZoom": 0.25,
           "maxZoom": 4.0,
+          "zoomLocked": false,
           "panSpeedKeyboard": 1000.0,
           "panSpeedGamepad": 100.0,
           "zoomStep": 0.5,
           "zoomLerpSpeed": 12.0,
+          "shiftSpeed": 40.0,
+          "shiftSpeedMultiplicateur": 0.10000000149011612,
+          "additionalAdvancement": 200.0,
           "targetZoom": 1.0,
           "worldMin": [
             -1000.0,
@@ -558,6 +518,30 @@
             3000.0
           ],
           "targetLock": 2392736522797589009
+        }
+      }
+    },
+    {
+      "id": 9275984395568580168,
+      "components": {
+        "Name": {
+          "name": "tilemap"
+        },
+        "Transform2D": {
+          "position": [
+            -367.4133605957031,
+            337.2975158691406
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap.map",
+          "visible": true
         }
       }
     }
@@ -577,8 +561,6 @@
       "8432238510110025053": "colision",
       "7647194933246917022": "colision",
       "15999493952223515466": "colision",
-      "15294090322440002633": "map",
-      "9248257352794584917": "map",
       "9932720423414607161": "colision"
     }
   }

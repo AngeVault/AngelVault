@@ -34,3 +34,4 @@ std::shared_ptr<TileMapData> makeTileMap(TileMapOrientation orientation, int wid
     map->modified = true;
     return map;
 }
+
