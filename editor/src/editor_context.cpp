@@ -332,7 +332,7 @@ bool EditorContext::openScene(const QString& path, QString* error) {
 bool EditorContext::saveScene(QString* error) {
     if (m_scenePath.isEmpty()) { if (error) *error = tr("La scène n'a pas encore de fichier."); return false; }
     std::string err;
-    if (!::save_maps(m_scene, toUtf8(projectDir()))) { if (error) *error = fromUtf8(err); return false; }
+    if (!::save_maps(m_scene, toUtf8(projectDir()), &err)) { if (error) *error = fromUtf8(err); return false; }
 
     if (!::saveScene(m_scene, sceneMeta(), toUtf8(m_scenePath), &err)) { if (error) *error = fromUtf8(err); return false; }
     if (hasProject()) {   // scène connue du projet (liste de l'éditeur, scène de départ si c'est la première)

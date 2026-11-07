@@ -40,12 +40,21 @@ const char* toString(TileMapOrientation o) { return o == TileMapOrientation::Iso
 
 
 
-bool save_maps(Registry& scene, std::string path) {
+bool save_maps(Registry& scene, std::string path, std::string* error) {
+    bool ok = true;
     scene.view<Tilemap>([&] (Entity& e, Tilemap& tileMap) {
-        save_map(*tileMap.data,path+"/maps/"+ scene.getComponent<NameComponent>(e).name +".map");
+        if (!tileMap.data) return;   // carte non chargée (fichier introuvable) : rien à écrire
+        if (tileMap.file.empty()) {
+            const std::string name = scene.hasComponent<NameComponent>(e) ? scene.getComponent<NameComponent>(e).name : "tilemap";
+            tileMap.file = "maps/" + name + ".map";
+        }
+        const std::string file = fromPath(toPath(path) / toPath(tileMap.file));   // comme loadTilemaps
+        if (!save_map(*tileMap.data, file)) {
+            setError(error, "Impossible d'écrire " + file);
+            ok = false;
+        }
     });
-    // load_map();
-    return true;
+    return ok;
 }
 
 std::string cellToken(TileCell& cell) {
@@ -88,7 +97,7 @@ nlohmann::ordered_json tilesetsToJson(const TileMapData& tileMapData) {
     return tilesets;
 }
 
-void save_map(TileMapData& tileMap, const std::string& path) {
+bool save_map(TileMapData& tileMap, const std::string& path) {
     Json map_save;
     map_save["format"] = "angeVault.tilemap";
     map_save["version"] = 2;
@@ -97,9 +106,12 @@ void save_map(TileMapData& tileMap, const std::string& path) {
     map_save["orientation"] = toString(tileMap.orientation);
     map_save["tilesets"] = tilesetsToJson(tileMap);
     map_save["cells"] = tilesToJson(tileMap);
-    std::ofstream map_file(path);
-    map_file << map_save.dump();
-    map_file.close();
+    const fs::path file = toPath(path);
+    std::error_code ec;
+    fs::create_directories(file.parent_path(), ec);
+    std::ofstream map_file(file);
+    map_file << map_save.dump(2) << "\n";
+    return bool(map_file);
 }
 
 

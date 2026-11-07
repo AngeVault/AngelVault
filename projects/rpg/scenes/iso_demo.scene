@@ -113,10 +113,34 @@
       }
     },
     {
-      "id": 14924121848965927189,
+      "id": 4553394223319650582,
       "components": {
         "Name": {
-          "name": "tilemap_iso"
+          "name": "ground"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso.map",
+          "visible": true
+        }
+      }
+    },
+    {
+      "id": 2642782657476251936,
+      "components": {
+        "Name": {
+          "name": "wall"
         },
         "Transform2D": {
           "position": [
@@ -140,10 +164,12 @@
   "editor": {
     "categories": [
       "entity",
-      "Nouvelle catégorie"
+      "maps"
     ],
     "entityCategory": {
-      "12808752909115651700": "entity"
+      "12808752909115651700": "entity",
+      "4553394223319650582": "maps",
+      "2642782657476251936": "maps"
     }
   }
 }
