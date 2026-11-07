@@ -1,5 +1,6 @@
 #include "sfml_widget.h"
 
+#include <QEvent>
 #include <QImage>
 #include <SFML/Graphics/Image.hpp>
 #include <SFML/Graphics/Sprite.hpp>
@@ -70,11 +71,24 @@ void SfmlWidget::showEvent(QShowEvent* e) {
     QWidget::showEvent(e);
 
     if (!m_window) {
-        m_window.emplace(toNativeHandle<sf::WindowHandle>(winId()));
-        syncSize();
-
+        attachWindow();
         if (onInit) onInit(*m_window);
     }
+}
+
+// dock détaché ou rattaché : Qt peut recréer la fenêtre native, SFML doit suivre
+bool SfmlWidget::event(QEvent* e) {
+    if (e->type() == QEvent::WinIdChange && m_window && internalWinId()) attachWindow();
+    return QWidget::event(e);
+}
+
+void SfmlWidget::attachWindow() {
+    const auto handle = toNativeHandle<sf::WindowHandle>(winId());
+    if (m_window && m_window->getNativeHandle() == handle) return;
+    // même emplacement : les références gardées par Game et les systèmes restent valides,
+    // les textures aussi (contexte OpenGL partagé)
+    m_window.emplace(handle);
+    syncSize();
 }
 
 /**
@@ -125,6 +139,7 @@ void SfmlWidget::syncSize() {
  */
 void SfmlWidget::renderFrame() {
     if (!m_window || !isVisible()) return;   // hidden view (e.g., under the game view): nothing to draw
+    if (!internalWinId()) return;            // fenêtre native détruite, en attente de la nouvelle
 
     // Keep the internal SFML size synchronized and adjust the view when resized
     while (const std::optional event = m_window->pollEvent()) {
