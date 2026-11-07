@@ -352,6 +352,30 @@
           ]
         }
       }
+    },
+    {
+      "id": 17446693936842415062,
+      "components": {
+        "Name": {
+          "name": "tilemap_iso_2"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso_2.map",
+          "visible": true
+        }
+      }
     }
   ],
   "editor": {
@@ -370,7 +394,8 @@
       "5309003831008224062": "map",
       "18092514487157541069": "Personnages",
       "18418294981170371368": "test",
-      "15643577204517526455": "colision"
+      "15643577204517526455": "colision",
+      "17446693936842415062": "map"
     }
   }
 }
