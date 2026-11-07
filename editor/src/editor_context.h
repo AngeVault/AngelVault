@@ -73,9 +73,14 @@ public:
     // Dossiers de l'éditeur pour ranger les entités, comme les objets vides "dossier" d'Unity.
     // Ils n'existent que dans l'éditeur : rien n'est ajouté aux entités du jeu.
     QStringList categories() const { return m_categories; }
-    QString addCategory(const QString& name = tr("Nouvelle catégorie"));   // renvoie le nom (rendu unique)
+    // renvoie le nom (rendu unique) ; parent "" = racine
+    QString addCategory(const QString& name = tr("Nouvelle catégorie"), const QString& parent = QString());
+    QString categoryParent(const QString& name) const { return m_categoryParent.value(name); }
+    bool isInsideCategory(const QString& name, const QString& ancestor) const;   // name est (dans) ancestor
+    bool setCategoryParent(const QString& name, const QString& parent);         // false si ça fait une boucle
     void renameCategory(const QString& oldName, const QString& newName);
-    void removeCategory(const QString& name);                              // ses entités reviennent à la racine
+    void removeCategory(const QString& name);                              // son contenu remonte d'un niveau
+    void moveCategory(const QString& name, int index);                     // index dans la liste avant le déplacement
     QString categoryOf(Entity e) const;                                    // "" = aucune catégorie
     void setCategory(Entity e, const QString& category);                   // "" = racine
 
@@ -190,7 +195,8 @@ signals:
 private:
     Registry m_scene;
     Entity m_selected = NULL_ENTITY;
-    QStringList m_categories;
+    QStringList m_categories;                   // noms uniques, l'ordre = l'affichage
+    QHash<QString, QString> m_categoryParent;   // catégorie -> parente (absente = racine)
     QHash<quint64, QString> m_entityCategory;   // clé : index + génération de l'entité
 
     Project m_project;

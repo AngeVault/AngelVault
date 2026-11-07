@@ -40,7 +40,6 @@
 #include <QProcess>
 #include <QSettings>
 #include <QSplitter>
-#include <QStackedWidget>
 #include <QTimer>
 #include <QUrl>
 #include <QVBoxLayout>
@@ -279,12 +278,14 @@ int main(int argc, char** argv) {
     auto* sceneToolbar = new SceneToolbar(ctx);
     window.addActions(sceneToolbar->toolActions());   // R partout dans la fenêtre
     centralLayout->addWidget(sceneToolbar);
-    auto* viewports = new QStackedWidget;
     auto* tilemapView = new TilemapView(ctx);
-    viewports->addWidget(tilemapView);
-    centralLayout->addWidget(viewports, 1);
-    QObject::connect(viewports, &QStackedWidget::currentChanged, sceneToolbar,
-                     [viewports, tilemapView, sceneToolbar] { sceneToolbar->setVisible(viewports->currentWidget() == tilemapView); });
+    centralLayout->addWidget(tilemapView, 1);
+
+    // contenu du dock Game : la GameView y est ajoutée pendant le jeu (F5)
+    auto* gameHost = new QWidget;
+    gameHost->setObjectName("gameHost");
+    auto* gameLayout = new QVBoxLayout(gameHost);
+    gameLayout->setContentsMargins(0, 0, 0, 0);
 
     QObject::connect(grid, &QAction::toggled, tilemapView, &TilemapView::setGridVisible);
     tilemapView->setCollidersVisible(colliders->isChecked());
@@ -320,12 +321,16 @@ int main(int argc, char** argv) {
     auto* docks = new CDockManager(&window);   // devient la zone centrale de la fenêtre
     docks->setStyleSheet(QString());           // le style vient des thèmes (QSS de l'application)
 
-    // La scène au centre : fixe, les panneaux se rangent autour
-    auto* sceneDock = new ads::CDockWidget(docks, "Scène");
-    sceneDock->setObjectName("dockScene");
-    sceneDock->setWidget(central);
-    sceneDock->setFeature(ads::CDockWidget::NoTab, true);
-    ads::CDockAreaWidget* sceneArea = docks->setCentralWidget(sceneDock);
+    // la scène : un dock comme les autres (onglet, flottant), mais jamais fermée
+    ads::CDockWidget* sceneDock = makeDock(docks, "Scène", "dockScene", central);
+    sceneDock->setFeature(ads::CDockWidget::DockWidgetClosable, false);
+    sceneDock->setFeature(ads::CDockWidget::DockWidgetPinnable, false);
+    ads::CDockAreaWidget* sceneArea = docks->addDockWidget(ads::CenterDockWidgetArea, sceneDock);
+    ads::CDockWidget* gameDock = makeDock(docks, "Game", "dockGame", gameHost);
+    gameDock->setFeature(ads::CDockWidget::DockWidgetClosable, false);
+    gameDock->setFeature(ads::CDockWidget::DockWidgetPinnable, false);
+    docks->addDockWidget(ads::CenterDockWidgetArea, gameDock, sceneArea);   // en onglet avec la scène
+    sceneDock->setAsCurrentTab();
 
     auto* palettePanel = new TilePalettePanel(ctx);
     auto* projectPanel = new ProjectPanel(ctx.hasProject() ? ctx.projectDir() : projectDir());
@@ -362,7 +367,7 @@ int main(int argc, char** argv) {
     QAction* resetLayout = windowsMenu->addAction("Réinitialiser la disposition");
 
     // Mémorise la disposition (après l'affichage, quand les tailles sont connues)
-    constexpr int kLayoutVersion = 4;   // 4 : panneaux ADS (l'ancienne disposition QDockWidget est ignorée)
+    constexpr int kLayoutVersion = 6;   // 6 : scène et game en docks (plus de widget central)
     QByteArray defaultLayout;
     QTimer::singleShot(0, &window, [&] {
         // Tailles de départ : le séparateur qui contient `area` dans ce sens (si le nombre de parts correspond)
@@ -393,6 +398,9 @@ int main(int argc, char** argv) {
         if (defaultLayout.isEmpty()) return;
         docks->restoreState(defaultLayout, kLayoutVersion);
         for (ads::CDockWidget* d : panels) d->toggleView(true);
+        sceneDock->toggleView(true);
+        gameDock->toggleView(true);
+        sceneDock->setAsCurrentTab();
         projectDock->setAsCurrentTab();
     });
     QObject::connect(&app, &QApplication::aboutToQuit, [&] {
@@ -482,8 +490,6 @@ int main(int argc, char** argv) {
         pause->setEnabled(inEditor);
         stop->setEnabled(inEditor || external);
         playExternal->setEnabled(!external);
-        grid->setEnabled(!inEditor);
-        fit->setEnabled(!inEditor);
         if (inEditor)
             window.statusBar()->showMessage(gameView->isPaused()
                 ? "Jeu en pause  —  F6 : reprendre, Maj+F5 : arrêter"
@@ -500,8 +506,9 @@ int main(int argc, char** argv) {
         });
         gameView = new GameView(ctx.sceneSnapshot(), inputPath(), ctx.projectDir(), std::move(maps), ctx.project().systems,
                                 ctx.gameScreenSize());   // une COPIE de la scène
-        viewports->addWidget(gameView);
-        viewports->setCurrentWidget(gameView);
+        gameLayout->addWidget(gameView);
+        gameDock->toggleView(true);
+        gameDock->setAsCurrentTab();   // devant la scène si elles partagent un onglet
         gameView->setFocus();
         pause->setChecked(false);
         updatePlayState();
@@ -513,9 +520,8 @@ int main(int argc, char** argv) {
     });
     QObject::connect(stop, &QAction::triggered, [&] {
         if (gameView) {
-            viewports->setCurrentWidget(tilemapView);
-            viewports->removeWidget(gameView);
-            delete gameView;                      // arrête le jeu (onStop des systèmes)
+            if (gameDock->dockAreaWidget() == sceneDock->dockAreaWidget()) sceneDock->setAsCurrentTab();
+            delete gameView;                      // arrête le jeu (onStop des systèmes), le retire du dock
             gameView = nullptr;
             pause->setChecked(false);
             window.statusBar()->showMessage("Jeu arrêté.", 3000);

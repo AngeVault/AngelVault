@@ -13,6 +13,7 @@ class QTreeView;
 
 // Navigateur des assets du projet : dossiers à gauche, contenu (avec aperçus d'images) à droite.
 // Double-clic sur un dossier : l'ouvrir ; sur un fichier : l'ouvrir avec l'application par défaut.
+// Suppr : mettre la sélection à la corbeille   Ctrl+Maj+N : nouveau dossier
 class ProjectPanel : public QWidget {
     Q_OBJECT
 public:
@@ -28,9 +29,12 @@ signals:
 private:
     void refresh();
     void openPath(const QString& path);
-    void showContextMenu(const QString& path, const QPoint& globalPos);
+    void showContextMenu(const QString& path, const QPoint& globalPos, bool canDelete);
     QIcon iconFor(const QString& path, bool isDir);
     void createCode(int kind);   // clic droit > Créer (C++) : 0 behavior, 1 composant, 2 système
+    void createFolder(const QString& parentDir);
+    void deletePaths(const QStringList& paths);   // corbeille, jamais la racine du projet
+    QStringList selectedFiles() const;
 
     QString m_root;
     QString m_current;

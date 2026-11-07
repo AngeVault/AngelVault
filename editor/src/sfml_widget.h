@@ -43,8 +43,10 @@ protected:
     void paintEvent(QPaintEvent*) override {}
     void showEvent(QShowEvent*) override;
     void resizeEvent(QResizeEvent*) override;
+    bool event(QEvent* e) override;
 
 private:
+    void attachWindow();   // (re)crée la fenêtre SFML sur le handle natif actuel
     void renderFrame();
     void syncSize();
     std::optional<sf::RenderWindow> m_window;

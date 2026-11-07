@@ -44,13 +44,30 @@ EditorContext::EditorContext(QObject* parent) : QObject(parent) {
     m_brushShape = settings.value("tilePalette/brushShape").toString() == "circle" ? BrushShape::Circle : BrushShape::Square;
 }
 
-QString EditorContext::addCategory(const QString& name) {
+QString EditorContext::addCategory(const QString& name, const QString& parent) {
     QString base = name.trimmed().isEmpty() ? tr("Nouvelle catégorie") : name.trimmed();
     QString unique = base;
     for (int i = 2; m_categories.contains(unique); ++i) unique = QString("%1 %2").arg(base).arg(i);
     m_categories.push_back(unique);
+    if (m_categories.contains(parent)) m_categoryParent.insert(unique, parent);
     emit sceneChanged();
     return unique;
+}
+
+bool EditorContext::isInsideCategory(const QString& name, const QString& ancestor) const {
+    for (QString c = name; !c.isEmpty(); c = m_categoryParent.value(c))
+        if (c == ancestor) return true;
+    return false;
+}
+
+bool EditorContext::setCategoryParent(const QString& name, const QString& parent) {
+    if (!m_categories.contains(name)) return false;
+    if (!parent.isEmpty() && (!m_categories.contains(parent) || isInsideCategory(parent, name))) return false;
+    if (m_categoryParent.value(name) == parent) return true;
+    if (parent.isEmpty()) m_categoryParent.remove(name);
+    else m_categoryParent.insert(name, parent);
+    emit sceneChanged();
+    return true;
 }
 
 void EditorContext::renameCategory(const QString& oldName, const QString& newName) {
@@ -60,13 +77,35 @@ void EditorContext::renameCategory(const QString& oldName, const QString& newNam
     m_categories[i] = name;
     for (auto it = m_entityCategory.begin(); it != m_entityCategory.end(); ++it)
         if (it.value() == oldName) it.value() = name;
+    if (m_categoryParent.contains(oldName)) m_categoryParent.insert(name, m_categoryParent.take(oldName));
+    for (auto it = m_categoryParent.begin(); it != m_categoryParent.end(); ++it)
+        if (it.value() == oldName) it.value() = name;
+    emit sceneChanged();
+}
+
+void EditorContext::moveCategory(const QString& name, int index) {
+    const int from = m_categories.indexOf(name);
+    if (from < 0) return;
+    if (index > from) --index;   // index compté avant le retrait
+    index = std::clamp(index, 0, int(m_categories.size()) - 1);
+    if (index == from) return;
+    m_categories.move(from, index);
     emit sceneChanged();
 }
 
 void EditorContext::removeCategory(const QString& name) {
     if (!m_categories.removeOne(name)) return;
-    for (auto it = m_entityCategory.begin(); it != m_entityCategory.end();)
-        it = (it.value() == name) ? m_entityCategory.erase(it) : std::next(it);
+    const QString parent = m_categoryParent.take(name);   // le contenu remonte d'un niveau
+    for (auto it = m_entityCategory.begin(); it != m_entityCategory.end();) {
+        if (it.value() != name) { ++it; continue; }
+        if (parent.isEmpty()) it = m_entityCategory.erase(it);
+        else { it.value() = parent; ++it; }
+    }
+    for (auto it = m_categoryParent.begin(); it != m_categoryParent.end();) {
+        if (it.value() != name) { ++it; continue; }
+        if (parent.isEmpty()) it = m_categoryParent.erase(it);
+        else { it.value() = parent; ++it; }
+    }
     emit sceneChanged();
 }
 
@@ -241,6 +280,7 @@ void EditorContext::resetScene() {
     emit selectionChanged(NULL_ENTITY);
     clearRegistry(m_scene);
     m_categories.clear();
+    m_categoryParent.clear();
     m_entityCategory.clear();
 }
 
@@ -253,15 +293,27 @@ Json EditorContext::editorData() {
         if (category.isEmpty() || !m_scene.hasComponent<PersistentId>(e)) continue;
         entityCategory[std::to_string(m_scene.getComponent<PersistentId>(e).value)] = toUtf8(category);
     }
-    return Json{ { "categories", categories }, { "entityCategory", entityCategory } };
+    Json categoryParent = Json::object();
+    for (auto it = m_categoryParent.begin(); it != m_categoryParent.end(); ++it)
+        categoryParent[toUtf8(it.key())] = toUtf8(it.value());
+    return Json{ { "categories", categories }, { "categoryParent", categoryParent }, { "entityCategory", entityCategory } };
 }
 
 void EditorContext::applyEditorData(const Json& editor) {
     m_categories.clear();
+    m_categoryParent.clear();
     m_entityCategory.clear();
     if (editor.contains("categories") && editor["categories"].is_array())
         for (const Json& c : editor["categories"])
             if (c.is_string() && !m_categories.contains(fromUtf8(c.get<std::string>()))) m_categories.push_back(fromUtf8(c.get<std::string>()));
+    if (editor.contains("categoryParent") && editor["categoryParent"].is_object())
+        for (auto it = editor["categoryParent"].begin(); it != editor["categoryParent"].end(); ++it) {
+            if (!it->is_string()) continue;
+            const QString name = fromUtf8(it.key()), parent = fromUtf8(it->get<std::string>());
+            // parente inconnue ou boucle : la catégorie reste à la racine
+            if (m_categories.contains(name) && m_categories.contains(parent) && !isInsideCategory(parent, name))
+                m_categoryParent.insert(name, parent);
+        }
     if (!editor.contains("entityCategory") || !editor["entityCategory"].is_object()) return;
     const Json& map = editor["entityCategory"];
     for (Entity e : entities()) {
