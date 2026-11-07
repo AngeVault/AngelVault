@@ -247,6 +247,7 @@ ProjectPanel::ProjectPanel(const QString& rootDir, QWidget* parent)
     m_list->setWordWrap(true);
     m_list->setUniformItemSizes(true);
     m_list->setSpacing(4);
+    m_list->setSelectionMode(QAbstractItemView::ExtendedSelection);   // ctrl / maj + clic
     m_list->setDragEnabled(true);                          // glisser un fichier vers la scène / une entité
     m_list->setAcceptDrops(true);                          // déposer une entité = créer un prefab
     m_list->viewport()->setAcceptDrops(true);              // (setMovement(Static) l'avait désactivé)
@@ -275,13 +276,32 @@ ProjectPanel::ProjectPanel(const QString& rootDir, QWidget* parent)
     connect(m_list, &QListWidget::customContextMenuRequested, this, [this](const QPoint& pos) {
         QListWidgetItem* item = m_list->itemAt(pos);
         if (item && !(item->flags() & Qt::ItemIsEnabled)) item = nullptr;
-        showContextMenu(item ? item->data(kPathRole).toString() : m_current, m_list->viewport()->mapToGlobal(pos));
+        showContextMenu(item ? item->data(kPathRole).toString() : m_current, m_list->viewport()->mapToGlobal(pos), item);
     });
     m_tree->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_tree, &QTreeView::customContextMenuRequested, this, [this](const QPoint& pos) {
         const QModelIndex idx = m_tree->indexAt(pos);
-        if (idx.isValid()) showContextMenu(m_dirs->filePath(idx), m_tree->viewport()->mapToGlobal(pos));
+        if (idx.isValid()) showContextMenu(m_dirs->filePath(idx), m_tree->viewport()->mapToGlobal(pos), true);
     });
+
+    // suppr : la sélection de la liste, ou le dossier choisi dans l'arbre
+    auto* delFiles = new QAction(tr("Supprimer"), this);
+    delFiles->setShortcut(QKeySequence::Delete);
+    delFiles->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+    m_list->addAction(delFiles);
+    connect(delFiles, &QAction::triggered, this, [this] { deletePaths(selectedFiles()); });
+    auto* delDir = new QAction(tr("Supprimer"), this);
+    delDir->setShortcut(QKeySequence::Delete);
+    delDir->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+    m_tree->addAction(delDir);
+    connect(delDir, &QAction::triggered, this, [this] {
+        if (const QModelIndex idx = m_tree->currentIndex(); idx.isValid()) deletePaths({ m_dirs->filePath(idx) });
+    });
+    auto* newFolder = new QAction(tr("Nouveau dossier"), this);
+    newFolder->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_N));
+    newFolder->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+    addAction(newFolder);
+    connect(newFolder, &QAction::triggered, this, [this] { createFolder(m_current); });
     connect(up, &QToolButton::clicked, this, [this] {
         if (m_current != m_root) setCurrentDir(QFileInfo(m_current).absolutePath());
     });
@@ -354,7 +374,7 @@ void ProjectPanel::openPath(const QString& path) {
     else QDesktopServices::openUrl(QUrl::fromLocalFile(path));                     // application par défaut
 }
 
-void ProjectPanel::showContextMenu(const QString& path, const QPoint& globalPos) {
+void ProjectPanel::showContextMenu(const QString& path, const QPoint& globalPos, bool canDelete) {
     using namespace ExternalTools;
     const QFileInfo fi(path);
     QMenu menu(this);
@@ -386,6 +406,18 @@ void ProjectPanel::showContextMenu(const QString& path, const QPoint& globalPos)
         connect(a, &QAction::triggered, this, [e] { setPreferredEditor(e); });
     }
     menu.addSeparator();
+    const QString folderParent = fi.isDir() ? path : fi.absolutePath();
+    QAction* folder = menu.addAction(tr("Nouveau dossier..."));
+    folder->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_N));
+    connect(folder, &QAction::triggered, this, [this, folderParent] { createFolder(folderParent); });
+    if (canDelete && QDir::cleanPath(path) != m_root) {
+        QAction* del = menu.addAction(tr("Supprimer"));
+        del->setShortcut(QKeySequence::Delete);
+        // clic droit dans une sélection multiple : toute la sélection
+        const QStringList selection = selectedFiles();
+        const QStringList targets = selection.contains(path) ? selection : QStringList{ path };
+        connect(del, &QAction::triggered, this, [this, targets] { deletePaths(targets); });
+    }
     QMenu* create = menu.addMenu(tr("Créer (C++)"));
     connect(create->addAction(tr("Behavior...")), &QAction::triggered, this, [this] { createCode(0); });
     connect(create->addAction(tr("Composant de jeu...")), &QAction::triggered, this, [this] { createCode(1); });
@@ -442,6 +474,60 @@ QIcon ProjectPanel::iconFor(const QString& path, bool isDir) {
         it = m_thumbnails.insert(key, icon.isNull() ? provider.icon(fi) : icon);
     }
     return *it;
+}
+
+QStringList ProjectPanel::selectedFiles() const {
+    QStringList out;
+    for (QListWidgetItem* item : m_list->selectedItems())
+        if (item->flags() & Qt::ItemIsEnabled) out << item->data(kPathRole).toString();
+    return out;
+}
+
+void ProjectPanel::createFolder(const QString& parentDir) {
+    const QString title = tr("Nouveau dossier");
+    bool ok = false;
+    const QString name = QInputDialog::getText(this, title, tr("Nom :"), QLineEdit::Normal, title, &ok).trimmed();
+    if (!ok || name.isEmpty()) return;
+    if (name.contains(QRegularExpression(R"([\\/:*?"<>|])")) || name == "." || name == "..") {
+        QMessageBox::warning(this, title, tr("Nom invalide : %1").arg(name));
+        return;
+    }
+    QDir parent(parentDir);
+    if (parent.exists(name)) {
+        QMessageBox::warning(this, title, tr("« %1 » existe déjà.").arg(name));
+        return;
+    }
+    if (!parent.mkdir(name)) {
+        QMessageBox::warning(this, title, tr("Impossible de créer %1").arg(QDir::toNativeSeparators(parent.filePath(name))));
+        return;
+    }
+    if (QDir::cleanPath(parentDir) != m_current) return;
+    refresh();   // sans attendre le watcher, pour sélectionner le dossier
+    const QString created = QDir::cleanPath(parent.absoluteFilePath(name));
+    for (int i = 0; i < m_list->count(); ++i)
+        if (m_list->item(i)->data(kPathRole).toString() == created) m_list->setCurrentRow(i);
+}
+
+void ProjectPanel::deletePaths(const QStringList& paths) {
+    QStringList targets;
+    for (const QString& p : paths)
+        if (QDir::cleanPath(p) != m_root) targets << QDir::cleanPath(p);
+    if (targets.isEmpty()) return;
+
+    const QString what = targets.size() == 1 ? QString("« %1 »").arg(QFileInfo(targets[0]).fileName())
+                                             : tr("%1 éléments").arg(targets.size());
+    if (QMessageBox::question(this, tr("Supprimer"), tr("Mettre %1 à la corbeille ?").arg(what)) != QMessageBox::Yes)
+        return;
+    QStringList failed;
+    for (const QString& p : targets)
+        if (!QFile::moveToTrash(p)) failed << QDir::toNativeSeparators(p);
+    if (!failed.isEmpty())
+        QMessageBox::warning(this, tr("Supprimer"), tr("Impossible de supprimer :\n%1").arg(failed.join('\n')));
+
+    // le dossier affiché a pu partir avec
+    QString dir = m_current;
+    while (!QFileInfo::exists(dir) && dir != m_root) dir = QFileInfo(dir).absolutePath();
+    setCurrentDir(dir);
 }
 
 void ProjectPanel::createCode(int kind) {
