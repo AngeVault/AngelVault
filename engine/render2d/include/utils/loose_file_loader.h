@@ -9,8 +9,9 @@
 
 class LooseFileLoader : public IResourceLoader {
 public:
-	explicit LooseFileLoader(const std::string& mappingFile = "games/rts/assets/resources.txt") {
-		std::cout << "loading path from : " << mappingFile << std::endl;
+	// mappingFile : lignes « id chemin » (optionnel). Sans lui, id = chemin du fichier.
+	explicit LooseFileLoader(const std::string& mappingFile = "") {
+		if (mappingFile.empty()) return;
 		std::ifstream file(mappingFile);
 		std::string id, path;
 		while (file >> id >> path)
