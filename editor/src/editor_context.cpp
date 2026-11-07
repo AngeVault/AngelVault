@@ -416,6 +416,7 @@ void EditorContext::restoreSnapshot(const Snapshot& s) {
     const uint64_t keepSelected = (isValid(m_selected) && m_scene.hasComponent<PersistentId>(m_selected))
                                       ? m_scene.getComponent<PersistentId>(m_selected).value : 0;
     resetScene();
+    m_activeTilemap = NULL_ENTITY;   // entité de l'ancienne scène
     SceneMeta meta;
     const SceneLoadResult result = sceneFromString(m_scene, meta, s.scene);
     for (const std::string& w : result.warnings) std::cerr << "[Annuler] " << w << std::endl;
@@ -429,7 +430,6 @@ void EditorContext::restoreSnapshot(const Snapshot& s) {
     });
     loadTilemaps(m_scene, toUtf8(projectDir()));   // tilemap sans instantané : depuis son fichier
     // Les cartes restaurées gardent leur numéro de version : l'instantané courant les reconnaît
-    m_activeTilemap = NULL_ENTITY;
     emit sceneChanged();
     m_loading = false;
     auto findEntity = [this](uint64_t id) {
@@ -441,11 +441,12 @@ void EditorContext::restoreSnapshot(const Snapshot& s) {
     Entity selected = findEntity(keepSelected);
     if (!isValid(selected)) selected = findEntity(s.selected);
     select(selected);
-    refreshActiveTilemap();
+    m_restoring = false;
+    // Palette refaite une seule fois, une fois la scène complète
+    m_activeTilemap = activeTilemap();
     emit tilemapChanged();
     setDirty(true);
     m_pending = false;
-    m_restoring = false;
 }
 
 void EditorContext::markChanged() {
@@ -664,6 +665,7 @@ sf::Vector2f EditorContext::activeMapOffset() {
 }
 
 void EditorContext::refreshActiveTilemap() {
+    if (m_restoring) return;   // restoreSnapshot émet tilemapChanged une seule fois à la fin
     const Entity e = activeTilemap();
     if (e == m_activeTilemap) return;
     m_activeTilemap = e;

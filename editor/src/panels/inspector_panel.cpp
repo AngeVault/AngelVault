@@ -77,22 +77,29 @@ InspectorPanel::InspectorPanel(EditorContext& context, QWidget* parent) : QWidge
     layout->addWidget(m_scroll);
 
     // Reconstruit au prochain tour de boucle : jamais pendant le clic d'un bouton du panneau
-    connect(&m_ctx, &EditorContext::selectionChanged, this, &InspectorPanel::rebuild, Qt::QueuedConnection);
-    connect(&m_ctx, &EditorContext::sceneChanged, this, [this] { if (!m_ctx.hasSelection()) rebuild(); }, Qt::QueuedConnection);
+    connect(&m_ctx, &EditorContext::selectionChanged, this, &InspectorPanel::scheduleRebuild);
+    connect(&m_ctx, &EditorContext::sceneChanged, this, [this] { if (!m_ctx.hasSelection()) scheduleRebuild(); });
     // Comportement ajouté / retiré (glisser-déposer, menu) : sections à refaire
     connect(&m_ctx, &EditorContext::componentsChanged, this, [this](Entity e) {
-        if (e == m_ctx.selected()) rebuild();
-    }, Qt::QueuedConnection);
+        if (e == m_ctx.selected()) scheduleRebuild();
+    });
     // Glisser un comportement (.h) depuis le panneau Project : il s'ajoute à l'entité sélectionnée
     setAcceptDrops(true);
     // Caméra liée / déliée : la Position passe en lecture seule (ou redevient modifiable)
     connect(&m_ctx, &EditorContext::followTargetChanged, this, [this](Entity e) {
-        if (e == m_ctx.selected()) rebuild();
-    }, Qt::QueuedConnection);
+        if (e == m_ctx.selected()) scheduleRebuild();
+    });
     connect(&m_ctx, &EditorContext::entityModified, this, [this](Entity e, QObject* source) {
         if (source != this && e == m_ctx.selected()) refreshValues();
     });
     rebuild();
+}
+
+// Plusieurs demandes dans le même tour (ex. Ctrl+Z : désélection puis resélection) = un seul rebuild
+void InspectorPanel::scheduleRebuild() {
+    if (m_rebuildQueued) return;
+    m_rebuildQueued = true;
+    QMetaObject::invokeMethod(this, [this] { m_rebuildQueued = false; rebuild(); }, Qt::QueuedConnection);
 }
 
 void InspectorPanel::rebuild() {

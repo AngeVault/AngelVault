@@ -12,8 +12,8 @@
         },
         "Transform2D": {
           "position": [
-            -395.7392883300781,
-            637.0469360351563
+            72.11897277832031,
+            922.519775390625
           ],
           "rotation": 0.0,
           "scale": [
@@ -26,7 +26,7 @@
           "zoom": 1.0,
           "minZoom": 0.25,
           "maxZoom": 4.0,
-          "zoomLocked": false,
+          "zoomLocked": true,
           "panSpeedKeyboard": 1000.0,
           "panSpeedGamepad": 100.0,
           "zoomStep": 0.5,
@@ -55,8 +55,8 @@
         },
         "Transform2D": {
           "position": [
-            -395.7392883300781,
-            637.0469360351563
+            72.11897277832031,
+            922.519775390625
           ],
           "rotation": 0.0,
           "scale": [
@@ -410,6 +410,30 @@
             16.0,
             16.0
           ]
+        }
+      }
+    },
+    {
+      "id": 5309003831008224062,
+      "components": {
+        "Name": {
+          "name": "tilemap_iso"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso.map",
+          "visible": true
         }
       }
     }

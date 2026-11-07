@@ -25,6 +25,7 @@ protected:
     void dropEvent(QDropEvent* e) override;
 
 private:
+    void scheduleRebuild();   // rebuild au prochain tour de boucle
     void rebuild();
     void refreshValues();
     QWidget* buildHeader(Entity e);
@@ -37,4 +38,5 @@ private:
     QScrollArea* m_scroll = nullptr;
     std::vector<std::function<void()>> m_refreshers;   // relisent les valeurs dans les champs
     QSet<QString> m_collapsed;                         // sections repliées (par nom de composant)
+    bool m_rebuildQueued = false;
 };

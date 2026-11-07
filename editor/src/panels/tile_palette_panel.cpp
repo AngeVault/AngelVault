@@ -7,6 +7,7 @@
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDateTime>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDir>
@@ -16,6 +17,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFormLayout>
+#include <QHash>
 #include <QHBoxLayout>
 #include <QImageReader>
 #include <QLabel>
@@ -45,8 +47,14 @@ QIcon tilesetIcon(const TileMapData& map, const Tileset& ts) {
     QPixmap pix(kIcon, kIcon);
     pix.fill(Qt::transparent);
     if (ts.missing || ts.count <= 0) return QIcon(pix);
-    QImageReader reader(qs(map.resolve(ts.image)));
+    const QString path = qs(map.resolve(ts.image));
     const sf::IntRect r = ts.rect(ts.previewTile());
+    // Cache : la palette est refaite souvent (Ctrl+Z, sélection), l'image ne change presque jamais
+    static QHash<QString, QIcon> cache;
+    const QString key = QString("%1|%2,%3,%4,%5|%6").arg(path).arg(r.position.x).arg(r.position.y)
+                            .arg(r.size.x).arg(r.size.y).arg(QFileInfo(path).lastModified().toMSecsSinceEpoch());
+    if (auto it = cache.constFind(key); it != cache.constEnd()) return *it;
+    QImageReader reader(path);
     reader.setClipRect(QRect(r.position.x, r.position.y, r.size.x, r.size.y));
     const QImage part = reader.read();
     if (part.isNull()) return QIcon(pix);
@@ -61,7 +69,8 @@ QIcon tilesetIcon(const TileMapData& map, const Tileset& ts) {
     const QImage scaled = cropped.scaled(kIcon, kIcon, Qt::KeepAspectRatio, pixelArt ? Qt::FastTransformation : Qt::SmoothTransformation);
     QPainter p(&pix);
     p.drawImage((kIcon - scaled.width()) / 2, (kIcon - scaled.height()) / 2, scaled);
-    return QIcon(pix);
+    p.end();
+    return cache[key] = QIcon(pix);
 }
 
 QString uniquePath(const QString& wanted) {
