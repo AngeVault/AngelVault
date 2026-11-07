@@ -5,6 +5,167 @@
   "map": null,
   "entities": [
     {
+      "id": 7647194933246917022,
+      "components": {
+        "Name": {
+          "name": "mur bas"
+        },
+        "Transform2D": {
+          "position": [
+            -1006.9256591796875,
+            1521.399169921875
+          ],
+          "rotation": 26.499996185302734,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            1158.716796875,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "id": 15999493952223515466,
+      "components": {
+        "Name": {
+          "name": "Nouvelle entité"
+        },
+        "Transform2D": {
+          "position": [
+            1064.574462890625,
+            1497.6640625
+          ],
+          "rotation": -26.499996185302734,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            1237.125,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "id": 8432238510110025053,
+      "components": {
+        "Name": {
+          "name": "mur haut"
+        },
+        "Transform2D": {
+          "position": [
+            1013.4470825195313,
+            500.4137878417969
+          ],
+          "rotation": 26.499996185302734,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            1177.268798828125,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "id": 9932720423414607161,
+      "components": {
+        "Name": {
+          "name": "cycle"
+        }
+      }
+    },
+    {
+      "id": 5309003831008224062,
+      "components": {
+        "Name": {
+          "name": "sol"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso.map",
+          "visible": true
+        }
+      }
+    },
+    {
       "id": 901886561833534410,
       "components": {
         "Name": {
@@ -120,8 +281,8 @@
         },
         "Transform2D": {
           "position": [
-            703.4586791992188,
-            569.6966552734375
+            192.9361572265625,
+            954.13525390625
           ],
           "rotation": 0.0,
           "scale": [
@@ -130,71 +291,22 @@
           ],
           "depth": 0.0
         },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 10.0,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            0.0,
-            0.0
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
+        "Geometry": {
+          "layer": 1,
           "shape": "Box",
           "halfSize": [
-            11.3448486328125,
-            8.86029052734375
-          ]
-        }
-      }
-    },
-    {
-      "id": 18107087873688893773,
-      "components": {
-        "Name": {
-          "name": "arbre1"
-        },
-        "Transform2D": {
-          "position": [
-            -1.3573884963989258,
-            219.3151092529297
+            10.015151977539063,
+            11.3492431640625
           ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
+          "style": {
+            "fill": "#FFFFFFFF",
+            "outline": "#00000000",
+            "outlineThickness": 0.0
+          }
         },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            0.0,
-            0.0
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            10.0,
-            5.6558685302734375
-          ]
+        "Spin": {
+          "degreesPerSecond": 90.0,
+          "clockwise": true
         }
       }
     },
@@ -240,202 +352,6 @@
           ]
         }
       }
-    },
-    {
-      "id": 8432238510110025053,
-      "components": {
-        "Name": {
-          "name": "mur haut"
-        },
-        "Transform2D": {
-          "position": [
-            1013.4470825195313,
-            500.4137878417969
-          ],
-          "rotation": 26.499996185302734,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            0.0,
-            0.0
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            1177.268798828125,
-            16.0
-          ]
-        }
-      }
-    },
-    {
-      "id": 7647194933246917022,
-      "components": {
-        "Name": {
-          "name": "mur bas"
-        },
-        "Transform2D": {
-          "position": [
-            -1006.9256591796875,
-            1521.399169921875
-          ],
-          "rotation": 26.499996185302734,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            0.0,
-            0.0
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            1158.716796875,
-            16.0
-          ]
-        }
-      }
-    },
-    {
-      "id": 15999493952223515466,
-      "components": {
-        "Name": {
-          "name": "Nouvelle entité"
-        },
-        "Transform2D": {
-          "position": [
-            1064.574462890625,
-            1497.6640625
-          ],
-          "rotation": -26.499996185302734,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            0.0,
-            0.0
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            1237.125,
-            16.0
-          ]
-        }
-      }
-    },
-    {
-      "id": 9932720423414607161,
-      "components": {
-        "Name": {
-          "name": "Nouvelle entité"
-        },
-        "Transform2D": {
-          "position": [
-            -383.1396484375,
-            522.206298828125
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": false,
-          "useGravity": true,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            0.0,
-            0.0
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            16.0,
-            16.0
-          ]
-        }
-      }
-    },
-    {
-      "id": 5309003831008224062,
-      "components": {
-        "Name": {
-          "name": "tilemap_iso"
-        },
-        "Transform2D": {
-          "position": [
-            0.0,
-            0.0
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "Tilemap": {
-          "file": "maps/tilemap_iso.map",
-          "visible": true
-        }
-      }
     }
   ],
   "editor": {
@@ -443,17 +359,18 @@
       "Personnages",
       "test",
       "map",
-      "colision"
+      "colision",
+      "jours nuit"
     ],
     "entityCategory": {
-      "18092514487157541069": "Personnages",
-      "18418294981170371368": "test",
-      "18107087873688893773": "colision",
-      "15643577204517526455": "colision",
-      "8432238510110025053": "colision",
       "7647194933246917022": "colision",
       "15999493952223515466": "colision",
-      "9932720423414607161": "colision"
+      "8432238510110025053": "colision",
+      "9932720423414607161": "jours nuit",
+      "5309003831008224062": "map",
+      "18092514487157541069": "Personnages",
+      "18418294981170371368": "test",
+      "15643577204517526455": "colision"
     }
   }
 }

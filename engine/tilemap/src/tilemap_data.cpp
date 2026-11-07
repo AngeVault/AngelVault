@@ -110,7 +110,7 @@ bool save_map(TileMapData& tileMap, const std::string& path) {
     std::error_code ec;
     fs::create_directories(file.parent_path(), ec);
     std::ofstream map_file(file);
-    map_file << map_save.dump();
+    map_file << map_save.dump(2) << "\n";
     return bool(map_file);
 }
 
