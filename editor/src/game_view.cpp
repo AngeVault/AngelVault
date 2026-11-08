@@ -47,11 +47,6 @@ void GameView::reloadInput() {
     loadRpgInput(m_game->input(), m_inputPath.toUtf8().toStdString());
 }
 
-void GameView::setSettings(const GameSettings& settings) {
-    m_settings = settings;
-    setAntialiasing(settings.antialiasing);
-}
-
 void GameView::applySettings(const GameSettings& settings) {
     m_settings = settings;
     if (m_game) m_game->applySettings(settings);
@@ -78,9 +73,7 @@ void GameView::frame(sf::RenderWindow& target) {
     // dt limité : évite un saut de physique après un blocage (déplacement de fenêtre, menu...)
     const float dt = std::min(m_clock.restart().asSeconds(), 0.05f);
 
-    // La vue est réglée par le CameraSystem du jeu (entité avec Camera2d).
-    // Sans caméra dans la scène : vue par défaut, à la taille du widget.
-    target.clear(sf::Color::Black);   // bandes autour de l'écran du jeu
-    target.setView(sf::View(sf::FloatRect({ 0.f, 0.f }, sf::Vector2f(target.getSize()))));   // pas getDefaultView() : taille de création
+    // la vue du jeu est réglée par le CameraSystem, sur l'image du jeu (Game::target())
+    target.clear(sf::Color::Black);
     m_game->tick(m_paused ? 0.f : dt);   // en pause : on dessine sans faire avancer le jeu
 }

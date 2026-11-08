@@ -33,9 +33,7 @@ public:
     bool isPaused() const { return m_paused; }
     Game* game() { return m_game.get(); }   // nullptr tant que la vue n'est pas affichée
     void reloadInput();   // relit le input.cfg du projet (modifié dans l'Input Manager)
-    // settings.cfg : avant l'affichage pour l'antialiasing, ensuite seul le post-process suit
-    // (fenêtre et rythme : ceux de Qt)
-    void setSettings(const GameSettings& settings);
+    // settings.cfg : antialiasing et post-process, en direct (fenêtre et rythme : ceux de Qt)
     void applySettings(const GameSettings& settings);
 
 protected:

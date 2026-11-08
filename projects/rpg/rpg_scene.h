@@ -79,7 +79,7 @@ inline void registerRpgSystems(Game& game) {
     game.systems().addSystem<PhysicsSystem>();
     game.systems().addSystem<CollisionSystem>();
     game.systems().addSystem<ScriptSystem>();
-    game.systems().addSystem<CameraSystem>(game.window());
+    game.systems().addSystem<CameraSystem>(game.target());
 }
 
 // Ancienne scène écrite en C++ : systèmes + entités de loadRpgEntities().

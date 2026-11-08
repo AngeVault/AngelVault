@@ -16,13 +16,13 @@
 //     REGISTER_SYSTEM(SpinSystem)
 //
 // Tout système enregistré est ajouté automatiquement à chaque Game (rpg.exe, et F5 dans l'éditeur).
-// Son constructeur peut être vide, ou prendre Game& ou sf::RenderWindow& (pour dessiner).
+// Son constructeur peut être vide, ou prendre Game& ou sf::RenderTarget& (pour dessiner dans l'image du jeu).
 // On l'active / désactive comme les systèmes du moteur : éditeur > Exécuter > Systèmes...
 #include "ecs/registry.h"
 #include "ecs/system.h"
 #include "ecs/system_manager.h"
 
-#include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/RenderTarget.hpp>
 
 #include <functional>
 #include <memory>
@@ -35,7 +35,7 @@ class Game;
 struct GameSystemInfo {
     std::string name;
     std::string file;   // __FILE__ de REGISTER_SYSTEM
-    std::function<std::unique_ptr<ISystem>(Game& game, sf::RenderWindow& window)> create;
+    std::function<std::unique_ptr<ISystem>(Game& game, sf::RenderTarget& target)> create;
 };
 
 class GameSystemRegistry {
@@ -50,12 +50,12 @@ public:
         GameSystemInfo info;
         info.name = name;
         info.file = file;
-        info.create = [name](Game& game, sf::RenderWindow& window) -> std::unique_ptr<ISystem> {
+        info.create = [name](Game& game, sf::RenderTarget& target) -> std::unique_ptr<ISystem> {
             std::unique_ptr<ISystem> s;
             if constexpr (std::is_constructible_v<T, Game&>) s = std::make_unique<T>(game);
-            else if constexpr (std::is_constructible_v<T, sf::RenderWindow&>) s = std::make_unique<T>(window);
+            else if constexpr (std::is_constructible_v<T, sf::RenderTarget&>) s = std::make_unique<T>(target);
             else s = std::make_unique<T>();
-            (void)game; (void)window;
+            (void)game; (void)target;
             s->name = name;
             return s;
         };

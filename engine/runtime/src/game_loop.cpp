@@ -4,6 +4,7 @@
 #include "systems/render_collision_system.h"
 #include "systems/force_debug_system.h"
 #include "game_systems.h"
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 
@@ -27,12 +28,13 @@ Game::~Game() {
 
 void Game::init() {
     InputManager::setCurrent(&m_input);   // Input::getAxis(...) lit ce Game
-    m_systems.addSystem<TilemapRenderSystem>(*m_window, m_textureLoader);   // cartes (composant Tilemap), sous les entités
-    m_systems.addSystem<RenderSystem>(*m_window, m_textureLoader);
-    m_systems.addSystem<RenderCollisionSystem>(*m_window);
-    m_systems.addSystem<ForceDebugSystem>(*m_window);
+    syncScene();                          // taille valide dès onStart
+    m_systems.addSystem<TilemapRenderSystem>(m_scene, m_textureLoader);   // cartes (composant Tilemap), sous les entités
+    m_systems.addSystem<RenderSystem>(m_scene, m_textureLoader);
+    m_systems.addSystem<RenderCollisionSystem>(m_scene);
+    m_systems.addSystem<ForceDebugSystem>(m_scene);
     // Systèmes de jeu du projet (REGISTER_SYSTEM, dossier systems/ du projet)
-    for (const GameSystemInfo& info : GameSystemRegistry::get().all()) m_systems.add(info.create(*this, *m_window));
+    for (const GameSystemInfo& info : GameSystemRegistry::get().all()) m_systems.add(info.create(*this, m_scene));
     m_systems.start(m_registry);
 }
 
@@ -48,7 +50,7 @@ void Game::setAssetDir(const std::string& dir) {
 
 void Game::applySettings(const GameSettings& settings) {
     if (m_ownWindow) {   // embarqué : la fenêtre est à l'hôte
-        if (settings.fullscreen != m_settings.fullscreen || settings.antialiasing != m_settings.antialiasing)
+        if (settings.fullscreen != m_settings.fullscreen)
             createWindow(settings);
         else
             applyFrameRate(settings);
@@ -71,15 +73,26 @@ void Game::loadPostProcess() {
     m_postProcess.setParams(m_settings.shaderParams);
 }
 
-// recrée dans le même objet : m_window et les systèmes gardent leur référence
+// recrée dans le même objet : m_window garde son adresse
+// pas d'antialiasing ici, il est sur m_scene (la fenêtre ne reçoit qu'une image déjà lissée)
 void Game::createWindow(const GameSettings& settings) {
-    sf::ContextSettings context;
-    context.antiAliasingLevel = settings.antialiasing;
     if (settings.fullscreen)
-        m_ownWindow->create(sf::VideoMode::getDesktopMode(), m_title, sf::State::Fullscreen, context);
+        m_ownWindow->create(sf::VideoMode::getDesktopMode(), m_title, sf::State::Fullscreen);
     else
-        m_ownWindow->create(sf::VideoMode(m_size), m_title, sf::Style::Default, sf::State::Windowed, context);
+        m_ownWindow->create(sf::VideoMode(m_size), m_title, sf::Style::Default, sf::State::Windowed);
     applyFrameRate(settings);
+}
+
+// l'image du jeu suit la taille de la fenêtre (widget redimensionné, plein écran) et l'antialiasing
+// resize() garde le même objet : les systèmes gardent leur référence
+void Game::syncScene() {
+    const sf::Vector2u size = m_window->getSize();
+    const unsigned aa = std::min(m_settings.antialiasing, sf::RenderTexture::getMaximumAntiAliasingLevel());
+    if (m_scene.getSize() == size && m_sceneAA == aa) return;
+    sf::ContextSettings context;
+    context.antiAliasingLevel = aa;
+    if (!m_scene.resize(size, context)) std::cerr << "[Game] impossible de créer l'image du jeu\n";
+    m_sceneAA = aa;
 }
 
 void Game::applyFrameRate(const GameSettings& settings) {
@@ -100,8 +113,11 @@ void Game::handleEvents() {
 void Game::tick(float dt) {
     InputManager::setCurrent(&m_input);
     m_input.update();                 // état des actions pour cette frame
+    syncScene();
+    m_scene.clear(sf::Color::Black);
     m_systems.update(m_registry, dt); // tous les systems, dont RenderSystem
-    m_postProcess.apply(*m_window);   // shader sur toute l'image (rien si aucun)
+    m_scene.display();
+    m_postProcess.draw(m_scene.getTexture(), *m_window);   // à l'écran, à travers le shader s'il y en a un
     m_registry.flushPendingDestroys();
     m_input.endFrame();               // oublie les « Down / Up » et la molette de cette frame
 }

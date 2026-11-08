@@ -22,7 +22,7 @@ void CameraSystem::onUpdate(Registry& registry, float dt)
     registry.view<Camera2d>([&](Entity e, Camera2d& camera)
         {
             const bool reference = s_referenceSize.x > 0 && s_referenceSize.y > 0;
-            const sf::Vector2u viewportSize = reference ? s_referenceSize : m_window.getSize();
+            const sf::Vector2u viewportSize = reference ? s_referenceSize : m_target.getSize();
             const float worldWidth = camera.worldMax.x - camera.worldMin.x;
             const float worldHeight = camera.worldMax.y - camera.worldMin.y;
             sf::Vector2f position = registry.getComponent<Transform2D>(e).getPosition();
@@ -113,8 +113,8 @@ void CameraSystem::onUpdate(Registry& registry, float dt)
                 }
                 clampPosition(e,registry,camera,viewportSize);
                 sf::View view = makeView(e,registry,camera,viewportSize);
-                if (reference) view.setViewport(letterbox(m_window.getSize(), s_referenceSize));
-                m_window.setView(view);
+                if (reference) view.setViewport(letterbox(m_target.getSize(), s_referenceSize));
+                m_target.setView(view);
         });
 
     }

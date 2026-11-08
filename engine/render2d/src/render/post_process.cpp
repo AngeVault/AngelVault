@@ -1,6 +1,8 @@
 #include "render/post_process.h"
 
 #include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/View.hpp>
+#include <SFML/System/Time.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -74,22 +76,21 @@ void PostProcess::setParams(const std::map<std::string, float>& values) {
         if (auto it = values.find(p.name); it != values.end()) p.value = it->second;
 }
 
-void PostProcess::apply(sf::RenderWindow& window) {
-    if (!m_shader) return;
-    const sf::Vector2u size = window.getSize();
-    if (m_frame.getSize() != size && !m_frame.resize(size)) return;
-    m_frame.update(window);
+void PostProcess::draw(const sf::Texture& source, sf::RenderTarget& target) {
+    // l'image entière en pixels, pas getDefaultView() : elle garde la taille de création de la fenêtre
+    const sf::Vector2u size = target.getSize();
+    target.setView(sf::View(sf::FloatRect({ 0.f, 0.f }, sf::Vector2f(size))));
+    sf::Sprite sprite(source);
+    sprite.setScale({ float(size.x) / source.getSize().x, float(size.y) / source.getSize().y });
 
+    if (!m_shader) {
+        target.draw(sprite);
+        return;
+    }
     sf::Shader& shader = *m_shader;
     if (m_uniforms.count("frame")) shader.setUniform("frame", sf::Shader::CurrentTexture);
-    if (m_uniforms.count("resolution")) shader.setUniform("resolution", sf::Vector2f(size));
+    if (m_uniforms.count("resolution")) shader.setUniform("resolution", sf::Vector2f(source.getSize()));
     if (m_uniforms.count("time")) shader.setUniform("time", m_clock.getElapsedTime().asSeconds());
     for (const Param& p : m_params) shader.setUniform(p.name, p.value);
-
-    // l'image entière, quelle que soit la caméra du jeu
-    // pas getDefaultView() : elle garde la taille de création de la fenêtre (widget redimensionné dans l'éditeur)
-    const sf::View view = window.getView();
-    window.setView(sf::View(sf::FloatRect({ 0.f, 0.f }, sf::Vector2f(size))));
-    window.draw(sf::Sprite(m_frame), &shader);
-    window.setView(view);
+    target.draw(sprite, &shader);
 }

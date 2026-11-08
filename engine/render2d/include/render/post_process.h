@@ -1,5 +1,5 @@
 #pragma once
-// post-process : un shader .frag appliqué à toute l'image du jeu, après le rendu des systèmes
+// post-process : un shader .frag appliqué à l'image du jeu (RenderTexture de Game) quand elle est copiée à l'écran
 //
 // le shader reçoit
 //     uniform sampler2D frame;       // l'image du jeu
@@ -9,7 +9,7 @@
 //     uniform float contrast; // @param <défaut> <min> <max>
 //
 // les valeurs choisies sont dans assets/settings.cfg (shader.<nom> = valeur)
-#include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Shader.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/Clock.hpp>
@@ -38,15 +38,14 @@ public:
     void setParams(const std::map<std::string, float>& values);
     const std::vector<Param>& params() const { return m_params; }
 
-    // copie ce qui est dessiné dans la fenêtre puis le redessine à travers le shader
-    void apply(sf::RenderWindow& window);
+    // dessine source sur toute la cible, à travers le shader (telle quelle sans shader)
+    void draw(const sf::Texture& source, sf::RenderTarget& target);
 
     // réglages @param d'un source GLSL, avec leur valeur par défaut
     static std::vector<Param> parseParams(const std::string& source);
 
 private:
     std::optional<sf::Shader> m_shader;
-    sf::Texture m_frame;
     std::vector<Param> m_params;
     std::set<std::string> m_uniforms;   // uniforms déclarés : on n'envoie que ceux-là
     sf::Clock m_clock;

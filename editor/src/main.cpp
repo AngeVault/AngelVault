@@ -529,7 +529,7 @@ int main(int argc, char** argv) {
                                 ctx.gameScreenSize());   // une COPIE de la scène
         GameSettings settings;
         if (QFile f(settingsPath()); f.open(QIODevice::ReadOnly)) settings.loadFromString(f.readAll().toStdString());
-        gameView->setSettings(settings);
+        gameView->applySettings(settings);
         gameLayout->addWidget(gameView);
         gameDock->toggleView(true);
         gameDock->setAsCurrentTab();   // devant la scène si elles partagent un onglet

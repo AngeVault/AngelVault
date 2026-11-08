@@ -29,7 +29,7 @@ public:
     static constexpr const char* kActionZoom = "Zoom";
     static constexpr const char* kActionZoomWheel = "ZoomWheel";
 
-    CameraSystem(sf::RenderWindow& window) : m_window(window) {priority = -10;} ;
+    CameraSystem(sf::RenderTarget& target) : m_target(target) {priority = -10;} ;
 
     // Écran de référence (0 x 0 = la taille de la fenêtre, le cas de rpg.exe).
     // L'éditeur met la taille du projet : en jeu, la caméra montre la même zone que son cadre dans la vue scène,
@@ -45,7 +45,7 @@ public:
     void clampPosition(Entity e,Registry& registry, Camera2d& camera,sf::Vector2u windowSize);;
 
 private:
-    sf::RenderWindow& m_window;
+    sf::RenderTarget& m_target;   // image du jeu (RenderTexture de Game)
     inline static sf::Vector2u s_referenceSize{ 0u, 0u };
 };
 

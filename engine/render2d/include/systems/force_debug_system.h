@@ -9,7 +9,7 @@
 
 class ForceDebugSystem : public ISystem {
 public:
-    explicit ForceDebugSystem(sf::RenderWindow& window) : m_window(window) {
+    explicit ForceDebugSystem(sf::RenderTarget& target) : m_target(target) {
         priority = 12;
     }
 
@@ -52,12 +52,12 @@ public:
                 dot.setFillColor(rb.isGrounded
                     ? sf::Color(80, 255, 80, 200)    // vert = au sol
                     : sf::Color(255, 80, 80, 200));   // rouge = en l'air
-                m_window.draw(dot);
+                m_target.draw(dot);
             });
     }
 
 private:
-    sf::RenderWindow& m_window;
+    sf::RenderTarget& m_target;
 
     void drawArrow(sf::Vector2f origin, sf::Vector2f vec, sf::Color color) {
         float len = std::hypot(vec.x, vec.y);
@@ -73,7 +73,7 @@ private:
         body.setPosition(origin);
         body.setRotation(sf::radians(angle));
         body.setFillColor(color);
-        m_window.draw(body);
+        m_target.draw(body);
 
         // teuteu flèche 
         sf::Vector2f tip = origin + vec;
@@ -91,6 +91,6 @@ private:
         head.setPoint(1, baseL);
         head.setPoint(2, baseR);
         head.setFillColor(color);
-        m_window.draw(head);
+        m_target.draw(head);
     }
 };
