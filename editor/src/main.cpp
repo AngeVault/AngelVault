@@ -443,9 +443,19 @@ int main(int argc, char** argv) {
         if (!ctx.hasProject()) return projectDir() + "/assets/settings.cfg";
         return QString::fromStdString(ctx.project().resolve(ctx.project().settingsPath));
     };
+    // Édition > Paramètres du jeu... : non modale, le jeu lancé suit les curseurs en direct
+    QPointer<GameSettingsDialog> settingsDialog;
     QObject::connect(gameSettings, &QAction::triggered, [&] {
-        GameSettingsDialog dialog(settingsPath(), &window);
-        dialog.exec();
+        if (!settingsDialog) {
+            settingsDialog = new GameSettingsDialog(settingsPath(), ctx.hasProject() ? ctx.projectDir() : projectDir(), &window);
+            settingsDialog->setAttribute(Qt::WA_DeleteOnClose);
+            QObject::connect(settingsDialog, &GameSettingsDialog::saved, [&](const GameSettings& settings) {
+                if (gameView) gameView->applySettings(settings);
+            });
+        }
+        settingsDialog->show();
+        settingsDialog->raise();
+        settingsDialog->activateWindow();
     });
 
     // Édition > Input Manager... : fenêtre non modale, une seule à la fois
@@ -517,9 +527,9 @@ int main(int argc, char** argv) {
         });
         gameView = new GameView(ctx.sceneSnapshot(), inputPath(), ctx.projectDir(), std::move(maps), ctx.project().systems,
                                 ctx.gameScreenSize());   // une COPIE de la scène
-        GameSettings settings;   // dans l'éditeur, seul l'antialiasing compte (fenêtre et rythme : ceux de Qt)
+        GameSettings settings;
         if (QFile f(settingsPath()); f.open(QIODevice::ReadOnly)) settings.loadFromString(f.readAll().toStdString());
-        gameView->setAntialiasing(settings.antialiasing);
+        gameView->setSettings(settings);
         gameLayout->addWidget(gameView);
         gameDock->toggleView(true);
         gameDock->setAsCurrentTab();   // devant la scène si elles partagent un onglet

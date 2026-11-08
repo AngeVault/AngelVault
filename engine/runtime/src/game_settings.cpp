@@ -52,6 +52,10 @@ void GameSettings::loadFromString(const std::string& text) {
         else if (key == "vsync") vsync = toBool(value, vsync);
         else if (key == "antialiasing") antialiasing = std::min(toUnsigned(value, antialiasing), 16u);
         else if (key == "fpsLimit") fpsLimit = toUnsigned(value, fpsLimit);
+        else if (key == "shader") shader = value;
+        else if (key.rfind("shader.", 0) == 0) {
+            try { shaderParams[key.substr(7)] = std::stof(value); } catch (...) {}
+        }
     }
 }
 
@@ -61,6 +65,8 @@ std::string GameSettings::toString() const {
         << "fullscreen = " << (fullscreen ? "true" : "false") << "\n"
         << "vsync = " << (vsync ? "true" : "false") << "\n"
         << "antialiasing = " << antialiasing << "\n"
-        << "fpsLimit = " << fpsLimit << "\n";
+        << "fpsLimit = " << fpsLimit << "\n"
+        << "shader = " << shader << "\n";
+    for (const auto& [name, value] : shaderParams) out << "shader." << name << " = " << value << "\n";
     return out.str();
 }

@@ -5,6 +5,7 @@
 #include "utils/loose_file_loader.h"
 #include "input/input_manager.h"
 #include "game_settings.h"
+#include "render/post_process.h"
 #include <map>
 #include <optional>
 #include <string>
@@ -26,7 +27,7 @@ public:
 
     Registry& registry() { return m_registry; }
     SystemManager& systems() { return m_systems; }
-    void setAssetDir(const std::string& dir) { m_textureLoader.setBaseDir(dir); }   // dossier du projet
+    void setAssetDir(const std::string& dir);   // dossier du projet (textures, shader)
 
     sf::RenderWindow& window() { return *m_window; }
 
@@ -39,9 +40,10 @@ public:
     // Les noms inconnus sont ignorés.
     void applySystemSettings(const std::map<std::string, bool>& enabledByName);
 
-    // Plein écran, vsync, antialiasing, FPS max (assets/settings.cfg). Mode autonome seulement :
-    // la fenêtre est recréée si le plein écran ou l'antialiasing change.
+    // Paramètres de assets/settings.cfg. Fenêtre (plein écran, vsync, antialiasing, FPS) : mode autonome
+    // seulement, recréée si le plein écran ou l'antialiasing change. Shader rechargé si son chemin change.
     void applySettings(const GameSettings& settings);
+    PostProcess& postProcess() { return m_postProcess; }
     const GameSettings& settings() const { return m_settings; }
 
 private:
@@ -57,10 +59,13 @@ private:
     SystemManager    m_systems;
     LooseFileLoader  m_textureLoader;
     InputManager     m_input;
+    PostProcess      m_postProcess;
+    std::string      m_assetDir;
 
 
     void init();
     void createWindow(const GameSettings& settings);
     void applyFrameRate(const GameSettings& settings);
+    void loadPostProcess();
     void handleEvents();
 };

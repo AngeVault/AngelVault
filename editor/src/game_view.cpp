@@ -19,6 +19,7 @@ GameView::GameView(std::string sceneJson, QString inputPath, QString projectDir,
     onInit = [this, screenSize](sf::RenderWindow& target) {
         m_game = std::make_unique<Game>(target);   // Game dessine dans ce widget, sans fenêtre à lui
         m_game->setAssetDir(m_projectDir.toUtf8().toStdString());
+        m_game->applySettings(m_settings);         // post-process
         // Même zone que le cadre bleu de la vue scène, bandes noires si le format diffère du panneau
         CameraSystem::setReferenceSize(screenSize);
         registerRpgSystems(*m_game);               // les systèmes sont du code (projects/rpg/rpg_scene.h)
@@ -46,6 +47,16 @@ void GameView::reloadInput() {
     loadRpgInput(m_game->input(), m_inputPath.toUtf8().toStdString());
 }
 
+void GameView::setSettings(const GameSettings& settings) {
+    m_settings = settings;
+    setAntialiasing(settings.antialiasing);
+}
+
+void GameView::applySettings(const GameSettings& settings) {
+    m_settings = settings;
+    if (m_game) m_game->applySettings(settings);
+}
+
 bool GameView::event(QEvent* e) {
     if (m_game) {
         if (const std::optional<sf::Event> ev = QtSfml::toSfmlEvent(e, devicePixelRatioF())) {
@@ -70,6 +81,6 @@ void GameView::frame(sf::RenderWindow& target) {
     // La vue est réglée par le CameraSystem du jeu (entité avec Camera2d).
     // Sans caméra dans la scène : vue par défaut, à la taille du widget.
     target.clear(sf::Color::Black);   // bandes autour de l'écran du jeu
-    target.setView(target.getDefaultView());
+    target.setView(sf::View(sf::FloatRect({ 0.f, 0.f }, sf::Vector2f(target.getSize()))));   // pas getDefaultView() : taille de création
     m_game->tick(m_paused ? 0.f : dt);   // en pause : on dessine sans faire avancer le jeu
 }

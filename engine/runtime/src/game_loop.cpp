@@ -4,6 +4,7 @@
 #include "systems/render_collision_system.h"
 #include "systems/force_debug_system.h"
 #include "game_systems.h"
+#include <filesystem>
 #include <iostream>
 
 Game::Game() : Game({ 1920u, 1080u }, "AngeVault") {}
@@ -39,13 +40,35 @@ void Game::applySystemSettings(const std::map<std::string, bool>& enabledByName)
     for (const auto& [name, enabled] : enabledByName) m_systems.setEnabled(name, enabled);
 }
 
+void Game::setAssetDir(const std::string& dir) {
+    m_assetDir = dir;
+    m_textureLoader.setBaseDir(dir);
+    loadPostProcess();   // le chemin du shader est relatif au projet
+}
+
 void Game::applySettings(const GameSettings& settings) {
-    if (!m_ownWindow) return;   // embarqué : la fenêtre est à l'hôte
-    if (settings.fullscreen != m_settings.fullscreen || settings.antialiasing != m_settings.antialiasing)
-        createWindow(settings);
-    else
-        applyFrameRate(settings);
+    if (m_ownWindow) {   // embarqué : la fenêtre est à l'hôte
+        if (settings.fullscreen != m_settings.fullscreen || settings.antialiasing != m_settings.antialiasing)
+            createWindow(settings);
+        else
+            applyFrameRate(settings);
+    }
+    const bool newShader = settings.shader != m_settings.shader;
     m_settings = settings;
+    if (newShader) loadPostProcess();
+    else m_postProcess.setParams(m_settings.shaderParams);   // curseurs de l'éditeur : pas de recompilation
+}
+
+void Game::loadPostProcess() {
+    namespace fs = std::filesystem;
+    auto u8 = [](const std::string& s) { return fs::path(std::u8string(s.begin(), s.end())); };
+    fs::path path = u8(m_settings.shader);
+    if (!path.empty() && path.is_relative()) path = u8(m_assetDir) / path;
+    const std::u8string full = path.lexically_normal().generic_u8string();
+
+    std::string error;
+    if (!m_postProcess.load(std::string(full.begin(), full.end()), &error)) std::cerr << "[Post-process] " << error << "\n";
+    m_postProcess.setParams(m_settings.shaderParams);
 }
 
 // recrée dans le même objet : m_window et les systèmes gardent leur référence
@@ -78,6 +101,7 @@ void Game::tick(float dt) {
     InputManager::setCurrent(&m_input);
     m_input.update();                 // état des actions pour cette frame
     m_systems.update(m_registry, dt); // tous les systems, dont RenderSystem
+    m_postProcess.apply(*m_window);   // shader sur toute l'image (rien si aucun)
     m_registry.flushPendingDestroys();
     m_input.endFrame();               // oublie les « Down / Up » et la molette de cette frame
 }
