@@ -9,6 +9,7 @@
 #include "game_systems.h"
 #include "systems_dialog.h"
 #include "input_settings_dialog.h"
+#include "game_settings_dialog.h"
 #include "scene_toolbar.h"
 #include "panels/console_panel.h"
 #include "panels/hierarchy_panel.h"
@@ -243,6 +244,7 @@ int main(int argc, char** argv) {
     edit->addSeparator();
     addAction(edit, "Préférences...", QKeySequence(Qt::CTRL | Qt::Key_Comma));
     QAction* inputSettings = addAction(edit, "Input Manager...");   // actions d'entrée du projet (assets/input.cfg)
+    QAction* gameSettings = addAction(edit, "Paramètres du jeu...");   // assets/settings.cfg du projet
     edit->addMenu(themes.createMenu(edit));             // Sombre / Néon rose / fichier .qss
 
     QMenu* view = window.addMenu("&Affichage");
@@ -437,6 +439,15 @@ int main(int argc, char** argv) {
         return QString::fromStdString(ctx.project().resolve(ctx.project().inputPath));
     };
 
+    auto settingsPath = [&]() -> QString {
+        if (!ctx.hasProject()) return projectDir() + "/assets/settings.cfg";
+        return QString::fromStdString(ctx.project().resolve(ctx.project().settingsPath));
+    };
+    QObject::connect(gameSettings, &QAction::triggered, [&] {
+        GameSettingsDialog dialog(settingsPath(), &window);
+        dialog.exec();
+    });
+
     // Édition > Input Manager... : fenêtre non modale, une seule à la fois
     QPointer<InputSettingsDialog> inputDialog;
     QObject::connect(inputSettings, &QAction::triggered, [&] {
@@ -506,6 +517,9 @@ int main(int argc, char** argv) {
         });
         gameView = new GameView(ctx.sceneSnapshot(), inputPath(), ctx.projectDir(), std::move(maps), ctx.project().systems,
                                 ctx.gameScreenSize());   // une COPIE de la scène
+        GameSettings settings;   // dans l'éditeur, seul l'antialiasing compte (fenêtre et rythme : ceux de Qt)
+        if (QFile f(settingsPath()); f.open(QIODevice::ReadOnly)) settings.loadFromString(f.readAll().toStdString());
+        gameView->setAntialiasing(settings.antialiasing);
         gameLayout->addWidget(gameView);
         gameDock->toggleView(true);
         gameDock->setAsCurrentTab();   // devant la scène si elles partagent un onglet

@@ -17,8 +17,10 @@ int main(int argc, char** argv)
     const bool hasProject = project.load(projectPath, &error);
     if (!hasProject) std::cerr << "[RPG] " << error << " : scene de rpg_scene.h\n";
 
+    GameSettings settings;   // plein écran, vsync, antialiasing... (assets/settings.cfg)
+    if (hasProject) settings.loadFromFile(project.resolve(project.settingsPath));
     const ProjectWindow& w = project.window;
-    Game game(sf::Vector2u{ w.width, w.height }, hasProject ? w.title : "RPG", w.vsync);
+    Game game(sf::Vector2u{ w.width, w.height }, hasProject ? w.title : "RPG", settings);
     registerRpgSystems(game);
     game.applySystemSettings(project.systems);   // systèmes activés / désactivés dans le .angproj
 

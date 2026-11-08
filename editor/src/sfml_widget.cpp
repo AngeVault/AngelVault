@@ -87,7 +87,7 @@ void SfmlWidget::attachWindow() {
     if (m_window && m_window->getNativeHandle() == handle) return;
     // même emplacement : les références gardées par Game et les systèmes restent valides,
     // les textures aussi (contexte OpenGL partagé)
-    m_window.emplace(handle);
+    m_window.emplace(handle, m_context);
     syncSize();
 }
 

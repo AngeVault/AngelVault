@@ -6,8 +6,8 @@
 //       "name": "RPG",
 //       "startScene": "scenes/main.scene",
 //       "scenes": [ "scenes/main.scene" ],
-//       "paths": { "assets": "assets", "input": "assets/input.cfg" },
-//       "window": { "title": "RPG", "size": [1920, 1080], "vsync": true }
+//       "paths": { "assets": "assets", "input": "assets/input.cfg", "settings": "assets/settings.cfg" },
+//       "window": { "title": "RPG", "size": [1920, 1080] }
 //     }
 //
 // Tous les chemins sont relatifs au dossier du .angproj : resolve() donne le chemin complet.
@@ -24,7 +24,6 @@ struct ProjectWindow {
     std::string title = "AngeVault";
     unsigned width = 1920;
     unsigned height = 1080;
-    bool vsync = true;
 };
 
 struct Project {
@@ -33,6 +32,7 @@ struct Project {
     std::vector<std::string> scenes;
     std::string assetsDir = "assets";
     std::string inputPath = "assets/input.cfg";
+    std::string settingsPath = "assets/settings.cfg";   // vsync, antialiasing... (game_settings.h)
     ProjectWindow window;
     // Systèmes activés / désactivés (nom de la classe -> activé). Absent = activé.
     // Ex. { "RenderCollisionSystem": false, "ForceDebugSystem": false }

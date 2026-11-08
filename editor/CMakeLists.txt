@@ -20,6 +20,8 @@ add_executable(AngeVaultEditor WIN32
     src/brush_footprint.h
     src/systems_dialog.h
     src/systems_dialog.cpp
+    src/game_settings_dialog.h
+    src/game_settings_dialog.cpp
     src/input_settings_dialog.cpp
     src/qt_sfml_input.h
     src/qt_sfml_input.cpp

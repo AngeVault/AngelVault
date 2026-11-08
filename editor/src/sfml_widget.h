@@ -30,6 +30,7 @@ public:
     // Appelée ~60 fois par seconde : dessinez dans la fenêtre. clear() et display() sont faits pour vous.
     std::function<void(sf::RenderWindow&)> onFrame;
     sf::RenderWindow* window() { return m_window ? &*m_window : nullptr; }
+    void setAntialiasing(unsigned level) { m_context.antiAliasingLevel = level; }   // avant le premier affichage
 
     QColor clearColor() const { return m_clearColor; }
     void setClearColor(const QColor& color) { if (color.isValid()) m_clearColor = color; }
@@ -50,6 +51,7 @@ private:
     void renderFrame();
     void syncSize();
     std::optional<sf::RenderWindow> m_window;
+    sf::ContextSettings m_context;
     QTimer m_timer;
     void drawBackground();
     QColor m_clearColor{ 27, 28, 31 };

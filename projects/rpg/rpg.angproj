@@ -10,15 +10,15 @@
   ],
   "paths": {
     "assets": "assets",
-    "input": "assets/input.cfg"
+    "input": "assets/input.cfg",
+    "settings": "assets/settings.cfg"
   },
   "window": {
     "title": "RPG",
     "size": [
       1920,
       1080
-    ],
-    "vsync": true
+    ]
   },
   "systems": {
     "ForceDebugSystem": false

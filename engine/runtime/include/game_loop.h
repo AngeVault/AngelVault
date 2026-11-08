@@ -4,6 +4,7 @@
 #include "ecs/system_manager.h"
 #include "utils/loose_file_loader.h"
 #include "input/input_manager.h"
+#include "game_settings.h"
 #include <map>
 #include <optional>
 #include <string>
@@ -15,7 +16,7 @@
 class Game {
 public:
     Game();                                       // crée sa fenêtre 1920x1080
-    Game(sf::Vector2u size, const std::string& title, bool vsync = true);   // fenêtre réglée (ex. depuis le .angproj)
+    Game(sf::Vector2u size, const std::string& title, const GameSettings& settings = {});   // fenêtre réglée (.angproj + settings.cfg)
     explicit Game(sf::RenderWindow& target);      // dessine dans une fenêtre fournie (ex. SfmlWidget)
     ~Game();
 
@@ -38,9 +39,17 @@ public:
     // Les noms inconnus sont ignorés.
     void applySystemSettings(const std::map<std::string, bool>& enabledByName);
 
+    // Plein écran, vsync, antialiasing, FPS max (assets/settings.cfg). Mode autonome seulement :
+    // la fenêtre est recréée si le plein écran ou l'antialiasing change.
+    void applySettings(const GameSettings& settings);
+    const GameSettings& settings() const { return m_settings; }
+
 private:
     std::optional<sf::RenderWindow> m_ownWindow;   // utilisé seulement en mode autonome
     sf::RenderWindow* m_window = nullptr;
+    sf::Vector2u     m_size{ 1920u, 1080u };
+    std::string      m_title;
+    GameSettings     m_settings;
     bool             m_isRunning = true;
     bool             m_stopped = false;
     sf::Clock        m_clock;
@@ -51,5 +60,7 @@ private:
 
 
     void init();
+    void createWindow(const GameSettings& settings);
+    void applyFrameRate(const GameSettings& settings);
     void handleEvents();
 };
