@@ -422,7 +422,7 @@
         "Transform2D": {
           "position": [
             72.81442260742188,
-            633.8133544921875
+            739.1589965820313
           ],
           "rotation": 0.0,
           "scale": [
@@ -466,33 +466,23 @@
             5.73114013671875
           ]
         },
-        "Script": {
-          "behaviors": [
-            {
-              "name": "PlayerBehavior",
-              "properties": {
-                "speed": 400.0
-              }
-            }
-          ]
-        },
         "Life": {
           "actualLife": 1000.0,
           "maxLife": 1000.0,
           "regenlLife": 0.0
         },
+        "Npc": {
+          "ennemies": true,
+          "vision": 200.0
+        },
         "Stats": {
           "force": 0.0,
           "agilite": 0.0,
-          "constitution": 0.0,
+          "constitution": 20.0,
           "intelligence": 0.0,
           "sagesse": 0.0,
           "Volonte": 0.0,
           "charisme": 0.0
-        },
-        "Npc": {
-          "ennemies": true,
-          "vision": 200.0
         }
       }
     },
