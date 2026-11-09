@@ -24,11 +24,6 @@
 class CameraSystem : public ISystem
 {
 public:
-    static constexpr const char* kActionPanX = "CameraX";
-    static constexpr const char* kActionPanY = "CameraY";
-    static constexpr const char* kActionZoom = "Zoom";
-    static constexpr const char* kActionZoomWheel = "ZoomWheel";
-
     CameraSystem(sf::RenderTarget& target) : m_target(target) {priority = -10;} ;
 
     // Écran de référence (0 x 0 = la taille de la fenêtre, le cas de rpg.exe).
@@ -39,6 +34,8 @@ public:
     // Zone de la fenêtre (en 0..1) qui garde le format de l'écran de référence, centrée
     static sf::FloatRect letterbox(sf::Vector2u window, sf::Vector2u reference);
     sf::View makeView(Entity e,Registry& registry, Camera2d& camera,sf::Vector2u windowSize) const;
+
+    Entity findHighestPriorityCamera(Registry &registry) const;
 
     void onUpdate(Registry& registry,float dt) override;;
 

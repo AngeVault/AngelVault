@@ -9,11 +9,10 @@
 struct Camera2d
 {
 	// state
-	float zoom = 1.f;
-	float minZoom = 0.25f;
-	float maxZoom = 4.f;
+
 	Entity targetLock = NULL_ENTITY;
 	bool zoomLocked = false;
+	int priority = 0; // plus c'est grand, plus la caméra est prioritaire (si plusieurs caméras dans la scène)
 
 	// speed 
 	float panSpeedKeyboard = 1000.f;
@@ -75,4 +74,4 @@ inline ReflectedComponent reflectComponent<Camera2d>(Camera2d& rb) {
 			{ "additionalAdvancement",    PropertyInfo::Type::Float, &rb.additionalAdvancement    },
 			{ "targetZoom",    PropertyInfo::Type::Float, &rb.targetZoom    },
 	} };
-}
+}""
