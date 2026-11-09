@@ -6,17 +6,13 @@
 #include "game_systems.h"
 #include <iostream>
 
-Game::Game() {
-    m_ownWindow.emplace(sf::VideoMode({ 1920, 1080 }), "AngeVault", sf::Style::Default, sf::State::Windowed);
-    m_ownWindow->setVerticalSyncEnabled(true);
-    m_window = &*m_ownWindow;
-    init();
-}
+Game::Game() : Game({ 1920u, 1080u }, "AngeVault") {}
 
-Game::Game(sf::Vector2u size, const std::string& title, bool vsync) {
-    m_ownWindow.emplace(sf::VideoMode(size), title, sf::Style::Default, sf::State::Windowed);
-    m_ownWindow->setVerticalSyncEnabled(vsync);
+Game::Game(sf::Vector2u size, const std::string& title, const GameSettings& settings)
+    : m_size(size), m_title(title), m_settings(settings) {
+    m_ownWindow.emplace();
     m_window = &*m_ownWindow;
+    createWindow(settings);
     init();
 }
 
@@ -41,6 +37,32 @@ void Game::init() {
 
 void Game::applySystemSettings(const std::map<std::string, bool>& enabledByName) {
     for (const auto& [name, enabled] : enabledByName) m_systems.setEnabled(name, enabled);
+}
+
+void Game::applySettings(const GameSettings& settings) {
+    if (!m_ownWindow) return;   // embarqué : la fenêtre est à l'hôte
+    if (settings.fullscreen != m_settings.fullscreen || settings.antialiasing != m_settings.antialiasing)
+        createWindow(settings);
+    else
+        applyFrameRate(settings);
+    m_settings = settings;
+}
+
+// recrée dans le même objet : m_window et les systèmes gardent leur référence
+void Game::createWindow(const GameSettings& settings) {
+    sf::ContextSettings context;
+    context.antiAliasingLevel = settings.antialiasing;
+    if (settings.fullscreen)
+        m_ownWindow->create(sf::VideoMode::getDesktopMode(), m_title, sf::State::Fullscreen, context);
+    else
+        m_ownWindow->create(sf::VideoMode(m_size), m_title, sf::Style::Default, sf::State::Windowed, context);
+    applyFrameRate(settings);
+}
+
+void Game::applyFrameRate(const GameSettings& settings) {
+    // SFML déconseille les deux à la fois : la vsync l'emporte
+    m_ownWindow->setVerticalSyncEnabled(settings.vsync);
+    m_ownWindow->setFramerateLimit(settings.vsync ? 0 : settings.fpsLimit);
 }
 
 void Game::handleEvents() {

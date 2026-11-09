@@ -5,6 +5,7 @@
 #include "rpg_scene.h"
 #include "scene/scene_io.h"
 #include "scene/tilemaps.h"
+#include "systems/camera_system.h"
 
 #include <QEvent>
 
@@ -12,11 +13,14 @@
 #include <iostream>
 
 GameView::GameView(std::string sceneJson, QString inputPath, QString projectDir, MapCopies maps,
-                   std::map<std::string, bool> systems, QWidget* parent)
+                   std::map<std::string, bool> systems, sf::Vector2u screenSize, QWidget* parent)
     : SfmlWidget(parent), m_sceneJson(std::move(sceneJson)), m_inputPath(std::move(inputPath)),
       m_projectDir(std::move(projectDir)), m_maps(std::move(maps)), m_systemSettings(std::move(systems)) {
-    onInit = [this](sf::RenderWindow& target) {
+    onInit = [this, screenSize](sf::RenderWindow& target) {
         m_game = std::make_unique<Game>(target);   // Game dessine dans ce widget, sans fenêtre à lui
+        m_game->setAssetDir(m_projectDir.toUtf8().toStdString());
+        // Même zone que le cadre bleu de la vue scène, bandes noires si le format diffère du panneau
+        CameraSystem::setReferenceSize(screenSize);
         registerRpgSystems(*m_game);               // les systèmes sont du code (projects/rpg/rpg_scene.h)
         m_game->applySystemSettings(m_systemSettings);   // activés / désactivés (.angproj)
         reloadInput();
@@ -53,6 +57,7 @@ bool GameView::event(QEvent* e) {
 }
 
 GameView::~GameView() {
+    CameraSystem::setReferenceSize({ 0u, 0u });   // rpg.exe et les autres vues : la taille de la fenêtre
     if (m_game) m_game->stop();
     m_game.reset();
 }
@@ -64,6 +69,7 @@ void GameView::frame(sf::RenderWindow& target) {
 
     // La vue est réglée par le CameraSystem du jeu (entité avec Camera2d).
     // Sans caméra dans la scène : vue par défaut, à la taille du widget.
+    target.clear(sf::Color::Black);   // bandes autour de l'écran du jeu
     target.setView(target.getDefaultView());
     m_game->tick(m_paused ? 0.f : dt);   // en pause : on dessine sans faire avancer le jeu
 }

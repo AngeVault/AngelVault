@@ -23,8 +23,9 @@ public:
     // maps : copies des tilemaps de l'éditeur (par fichier .map), pour jouer aussi ce qui n'est pas enregistré
     using MapCopies = std::unordered_map<std::string, std::shared_ptr<TileMapData>>;
     // systems : systèmes activés / désactivés (Project::systems, Exécuter > Systèmes...)
+    // screenSize : écran du jeu (window.size du .angproj)
     GameView(std::string sceneJson, QString inputPath, QString projectDir, MapCopies maps,
-             std::map<std::string, bool> systems, QWidget* parent = nullptr);
+             std::map<std::string, bool> systems, sf::Vector2u screenSize, QWidget* parent = nullptr);
     ~GameView() override;
 
     void setPaused(bool paused) { m_paused = paused; }

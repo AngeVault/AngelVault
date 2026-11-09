@@ -30,6 +30,14 @@ public:
     static constexpr const char* kActionZoomWheel = "ZoomWheel";
 
     CameraSystem(sf::RenderWindow& window) : m_window(window) {priority = -10;} ;
+
+    // Écran de référence (0 x 0 = la taille de la fenêtre, le cas de rpg.exe).
+    // L'éditeur met la taille du projet : en jeu, la caméra montre la même zone que son cadre dans la vue scène,
+    // quelle que soit la taille du panneau (bandes sur les côtés si le format n'est pas le même).
+    static void setReferenceSize(sf::Vector2u size) { s_referenceSize = size; }
+    static sf::Vector2u referenceSize() { return s_referenceSize; }
+    // Zone de la fenêtre (en 0..1) qui garde le format de l'écran de référence, centrée
+    static sf::FloatRect letterbox(sf::Vector2u window, sf::Vector2u reference);
     sf::View makeView(Entity e,Registry& registry, Camera2d& camera,sf::Vector2u windowSize) const;
 
     void onUpdate(Registry& registry,float dt) override;;
@@ -38,5 +46,6 @@ public:
 
 private:
     sf::RenderWindow& m_window;
+    inline static sf::Vector2u s_referenceSize{ 0u, 0u };
 };
 

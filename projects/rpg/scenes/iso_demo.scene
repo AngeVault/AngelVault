@@ -91,10 +91,14 @@
           "zoom": 1.0,
           "minZoom": 0.25,
           "maxZoom": 4.0,
+          "zoomLocked": false,
           "panSpeedKeyboard": 1000.0,
           "panSpeedGamepad": 100.0,
           "zoomStep": 0.5,
           "zoomLerpSpeed": 12.0,
+          "shiftSpeed": 40.0,
+          "shiftSpeedMultiplicateur": 0.10000000149011612,
+          "additionalAdvancement": 200.0,
           "targetZoom": 1.0,
           "worldMin": [
             -3000.0,
@@ -109,10 +113,10 @@
       }
     },
     {
-      "id": 8365126126627568726,
+      "id": 4553394223319650582,
       "components": {
         "Name": {
-          "name": "Sol isométrique"
+          "name": "ground"
         },
         "Transform2D": {
           "position": [
@@ -127,16 +131,16 @@
           "depth": 0.0
         },
         "Tilemap": {
-          "file": "maps/iso_demo.map",
+          "file": "maps/tilemap_iso.map",
           "visible": true
         }
       }
     },
     {
-      "id": 6058421939409909243,
+      "id": 2642782657476251936,
       "components": {
         "Name": {
-          "name": "tilemap_iso_3"
+          "name": "wall"
         },
         "Transform2D": {
           "position": [
@@ -151,7 +155,7 @@
           "depth": 0.0
         },
         "Tilemap": {
-          "file": "maps/tilemap_iso_3.map",
+          "file": "maps/tilemap_iso.map",
           "visible": true
         }
       }
@@ -159,10 +163,13 @@
   ],
   "editor": {
     "categories": [
-      "entity"
+      "entity",
+      "maps"
     ],
     "entityCategory": {
-      "12808752909115651700": "entity"
+      "12808752909115651700": "entity",
+      "4553394223319650582": "maps",
+      "2642782657476251936": "maps"
     }
   }
 }

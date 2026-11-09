@@ -1,5 +1,6 @@
 #include "sfml_widget.h"
 
+#include <QEvent>
 #include <QImage>
 #include <SFML/Graphics/Image.hpp>
 #include <SFML/Graphics/Sprite.hpp>
@@ -70,11 +71,24 @@ void SfmlWidget::showEvent(QShowEvent* e) {
     QWidget::showEvent(e);
 
     if (!m_window) {
-        m_window.emplace(toNativeHandle<sf::WindowHandle>(winId()));
-        syncSize();
-
+        attachWindow();
         if (onInit) onInit(*m_window);
     }
+}
+
+// dock détaché ou rattaché : Qt peut recréer la fenêtre native, SFML doit suivre
+bool SfmlWidget::event(QEvent* e) {
+    if (e->type() == QEvent::WinIdChange && m_window && internalWinId()) attachWindow();
+    return QWidget::event(e);
+}
+
+void SfmlWidget::attachWindow() {
+    const auto handle = toNativeHandle<sf::WindowHandle>(winId());
+    if (m_window && m_window->getNativeHandle() == handle) return;
+    // même emplacement : les références gardées par Game et les systèmes restent valides,
+    // les textures aussi (contexte OpenGL partagé)
+    m_window.emplace(handle, m_context);
+    syncSize();
 }
 
 /**
@@ -125,6 +139,7 @@ void SfmlWidget::syncSize() {
  */
 void SfmlWidget::renderFrame() {
     if (!m_window || !isVisible()) return;   // hidden view (e.g., under the game view): nothing to draw
+    if (!internalWinId()) return;            // fenêtre native détruite, en attente de la nouvelle
 
     // Keep the internal SFML size synchronized and adjust the view when resized
     while (const std::optional event = m_window->pollEvent()) {
@@ -139,6 +154,16 @@ void SfmlWidget::renderFrame() {
 
     m_window->display();
 }
+std::optional<sf::Texture> loadTexture(const QString& path, bool smooth) {
+    const QImage image = QImage(path).convertToFormat(QImage::Format_RGBA8888);
+    if (image.isNull()) return std::nullopt;
+    const sf::Image pixels(sf::Vector2u(unsigned(image.width()), unsigned(image.height())), image.constBits());
+    sf::Texture texture;
+    if (!texture.loadFromImage(pixels)) return std::nullopt;
+    texture.setSmooth(smooth);
+    return texture;
+}
+
 void SfmlWidget::setBackgroundImage(const QString& path) {
     const QString p = path.trimmed() == "none" ? QString() : path.trimmed();
     if (p == m_backgroundPath) return;
@@ -152,17 +177,7 @@ void SfmlWidget::drawBackground() {
     if (m_backgroundDirty) {
         m_backgroundDirty = false;
         m_background.reset();
-        if (!m_backgroundPath.isEmpty()) {
-            const QImage image = QImage(m_backgroundPath).convertToFormat(QImage::Format_RGBA8888);
-            if (!image.isNull()) {
-                const sf::Image pixels(sf::Vector2u(unsigned(image.width()), unsigned(image.height())), image.constBits());
-                sf::Texture texture;
-                if (texture.loadFromImage(pixels)) {
-                    texture.setSmooth(true);
-                    m_background = std::move(texture);
-                }
-            }
-        }
+        if (!m_backgroundPath.isEmpty()) m_background = loadTexture(m_backgroundPath);
     }
     if (!m_background || m_backgroundOpacity <= 0.0) return;
 

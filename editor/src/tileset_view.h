@@ -57,6 +57,7 @@ private:
     bool m_hasTileset = false;
     QString m_imagePath;
     QPixmap m_pixmap;
+    QPixmap m_checker{ QStringLiteral(":/resources/textures/checker.png") };   // motif de assets/textures/
     Mode m_mode = Mode::Select;
     double m_zoom = 1.0;
     bool m_userZoomed = false;

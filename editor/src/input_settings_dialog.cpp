@@ -371,7 +371,7 @@ void InputSettingsDialog::rebuildBindings() {
 
         // Supprimer le lien
         auto* remove = new QToolButton;
-        remove->setText(QString::fromUtf8("✕"));
+        remove->setIcon(QIcon(":/resources/icons/buttons/remove.png"));
         remove->setToolTip(tr("Supprimer ce lien"));
         connect(remove, &QToolButton::clicked, this, [this, actionName, row, later] {
             InputAction* act = m_input.findAction(actionName);

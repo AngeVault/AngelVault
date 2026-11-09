@@ -8,6 +8,7 @@
         <file>style/sakura_cat.qss</file>
         <file>style/kindred_blossom.qss</file>
         <file>style/very_dark.qss</file>
+        <file>style/trans.qss</file>
         <file>backgrounds/sakura_cat.jpg</file>
         <file>backgrounds/kindred_blossom.jpg</file>
         <file>icons/close.png</file>
@@ -19,5 +20,38 @@
         <file>icons/default_size.png</file>
         <file>icons/branch_closed.png</file>
         <file>icons/branch_open.png</file>
+        <!-- boutons des panneaux (fermer, punaise, menu, réduire, détacher) ; @2x = écrans haute densité -->
+        <file>icons/dock/close.png</file>
+        <file>icons/dock/close@2x.png</file>
+        <file>icons/dock/pin.png</file>
+        <file>icons/dock/pin@2x.png</file>
+        <file>icons/dock/menu.png</file>
+        <file>icons/dock/menu@2x.png</file>
+        <file>icons/dock/minimize.png</file>
+        <file>icons/dock/minimize@2x.png</file>
+        <file>icons/dock/undock.png</file>
+        <file>icons/dock/undock@2x.png</file>
+        <!-- petits boutons des panneaux (ajouter, modifier, retirer, monter, descendre, dossier parent, forme du pinceau) -->
+        <file>icons/buttons/add.png</file>
+        <file>icons/buttons/add@2x.png</file>
+        <file>icons/buttons/edit.png</file>
+        <file>icons/buttons/edit@2x.png</file>
+        <file>icons/buttons/remove.png</file>
+        <file>icons/buttons/remove@2x.png</file>
+        <file>icons/buttons/move_up.png</file>
+        <file>icons/buttons/move_up@2x.png</file>
+        <file>icons/buttons/move_down.png</file>
+        <file>icons/buttons/move_down@2x.png</file>
+        <file>icons/buttons/parent_folder.png</file>
+        <file>icons/buttons/parent_folder@2x.png</file>
+        <file>icons/buttons/brush_square.png</file>
+        <file>icons/buttons/brush_square@2x.png</file>
+        <file>icons/buttons/brush_circle.png</file>
+        <file>icons/buttons/brush_circle@2x.png</file>
+        <!-- vue de scène (dessinées en double résolution) -->
+        <file>icons/scene/camera.png</file>
+        <file>icons/scene/lock.png</file>
+        <!-- motifs -->
+        <file>textures/checker.png</file>
     </qresource>
 </RCC>

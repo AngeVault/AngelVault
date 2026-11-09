@@ -75,6 +75,7 @@ bool Project::load(const std::string& path, std::string* error) {
     if (j.contains("paths") && j["paths"].is_object()) {
         p.assetsDir = j["paths"].value("assets", p.assetsDir);
         p.inputPath = j["paths"].value("input", p.inputPath);
+        p.settingsPath = j["paths"].value("settings", p.settingsPath);
     }
     if (j.contains("window") && j["window"].is_object()) {
         const auto& w = j["window"];
@@ -83,7 +84,6 @@ bool Project::load(const std::string& path, std::string* error) {
             p.window.width = w["size"][0].get<unsigned>();
             p.window.height = w["size"][1].get<unsigned>();
         }
-        p.window.vsync = w.value("vsync", p.window.vsync);
     }
     if (j.contains("systems") && j["systems"].is_object())
         for (auto it = j["systems"].begin(); it != j["systems"].end(); ++it)
@@ -103,8 +103,8 @@ bool Project::save(const std::string& path, std::string* error) {
     j["name"] = name;
     j["startScene"] = startScene;
     j["scenes"] = scenes;
-    j["paths"] = { { "assets", assetsDir }, { "input", inputPath } };
-    j["window"] = { { "title", window.title }, { "size", { window.width, window.height } }, { "vsync", window.vsync } };
+    j["paths"] = { { "assets", assetsDir }, { "input", inputPath }, { "settings", settingsPath } };
+    j["window"] = { { "title", window.title }, { "size", { window.width, window.height } } };
     nlohmann::ordered_json systemsJson = nlohmann::ordered_json::object();
     for (const auto& [name, enabled] : systems) systemsJson[name] = enabled;
     j["systems"] = systemsJson;
