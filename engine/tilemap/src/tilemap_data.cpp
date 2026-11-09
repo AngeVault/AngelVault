@@ -1,15 +1,25 @@
 #include "tilemap/tilemap.h"
-
-#include <nlohmann/json.hpp>
+#include "fstream"
+#include "scene/project.h"
+#include "components/name.h"
 
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <sstream>
+
+
+
+
+
+
 
 using Json = nlohmann::ordered_json;
 namespace fs = std::filesystem;
+
+
 
 namespace {
 fs::path toPath(const std::string& utf8) { return fs::path(std::u8string(utf8.begin(), utf8.end())); }
@@ -27,6 +37,71 @@ sf::Vector2f vec2(const Json& j, sf::Vector2f fallback) {
 } // namespace
 
 const char* toString(TileMapOrientation o) { return o == TileMapOrientation::Isometric ? "isometric" : "orthogonal"; }
+
+
+
+bool save_maps(Registry& scene, std::string path) {
+    scene.view<Tilemap>([&] (Entity& e, Tilemap& tileMap) {
+        save_map(*tileMap.data,path+"/maps/"+ scene.getComponent<NameComponent>(e).name +".map");
+    });
+    // load_map();
+    return true;
+}
+
+std::string cellToken(TileCell& cell) {
+    std::string token = std::to_string(cellSlot(cell));
+    if (cell == 0)return "0";
+    if (cellIsAuto(cell))
+        token+=":a";
+    else {
+        token += ":"+std::to_string(cellTile(cell));
+    }
+    return token;
+}
+
+nlohmann::ordered_json tilesToJson(TileMapData& tileMapData) {
+Json tiles = Json::array();
+    for (int i = 0; i < tileMapData.height(); ++i) {
+        std::string row;
+        int j = 0;
+        while (j < tileMapData.width() ) {
+            int count = 1;
+            TileCell cell = tileMapData.get(j,i);
+            while (j+count <= tileMapData.width() && cell == tileMapData.get(j+count, i)) {
+                count++;
+            }
+            if (!row.empty())row+=" ";
+            j+=count;
+            row += std::to_string(count)+"*";
+            row+= cellToken(cell);
+        }
+            tiles.push_back(row);
+    }
+    return tiles;
+}
+
+nlohmann::ordered_json tilesetsToJson(const TileMapData& tileMapData) {
+    Json tilesets = Json::array();
+    for (const auto & tileset : tileMapData.tilesets) {
+            tilesets.push_back(tileset->file );
+    }
+    return tilesets;
+}
+
+void save_map(TileMapData& tileMap, const std::string& path) {
+    Json map_save;
+    map_save["format"] = "angeVault.tilemap";
+    map_save["version"] = 2;
+    map_save["tileSize"] = {tileMap.tileSize.x,tileMap.tileSize.y};
+    map_save["size"] = {tileMap.width(),tileMap.height()};
+    map_save["orientation"] = toString(tileMap.orientation);
+    map_save["tilesets"] = tilesetsToJson(tileMap);
+    map_save["cells"] = tilesToJson(tileMap);
+    std::ofstream map_file(path);
+    map_file << map_save.dump();
+    map_file.close();
+}
+
 
 // ---- Cases -------------------------------------------------------------------------------------
 

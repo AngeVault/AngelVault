@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <iostream>
 
+
 namespace {
 quint64 entityKey(Entity e) { return (quint64(e.index) << 32) | e.generation; }
 }
@@ -79,6 +80,7 @@ void EditorContext::setCategory(Entity e, const QString& category) {
     else m_entityCategory.insert(entityKey(e), category);
     emit sceneChanged();
 }
+
 
 std::vector<Entity> EditorContext::entities() const {
     std::vector<Entity> list;
@@ -330,6 +332,8 @@ bool EditorContext::openScene(const QString& path, QString* error) {
 bool EditorContext::saveScene(QString* error) {
     if (m_scenePath.isEmpty()) { if (error) *error = tr("La scène n'a pas encore de fichier."); return false; }
     std::string err;
+    if (!::save_maps(m_scene, toUtf8(projectDir()))) { if (error) *error = fromUtf8(err); return false; }
+
     if (!::saveScene(m_scene, sceneMeta(), toUtf8(m_scenePath), &err)) { if (error) *error = fromUtf8(err); return false; }
     if (hasProject()) {   // scène connue du projet (liste de l'éditeur, scène de départ si c'est la première)
         const std::string rel = m_project.relative(toUtf8(m_scenePath));

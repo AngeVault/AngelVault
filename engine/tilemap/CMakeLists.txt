@@ -1,1 +1,1 @@
-av_module(Tilemap DEPS SFML::Graphics nlohmann_json::nlohmann_json)
+av_module(Tilemap DEPS SFML::Graphics nlohmann_json::nlohmann_json AngeVault::Scene)
