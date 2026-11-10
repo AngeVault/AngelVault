@@ -24,7 +24,19 @@ void steeringSeekSystem::onUpdate(Registry& registry, float dt)
             if (registry.hasComponent<Transform2D>(e))
             {
                 sf::Vector2f pos = registry.getComponent<Transform2D>(e).getPosition();
-                auto steeringCoponent = registry.getComponent<SteeringComponent>(e);
+                auto& steeringCoponent = registry.getComponent<SteeringComponent>(e);
+                pos.x = steeringCoponent.direction.x - pos.x;
+                pos.y = steeringCoponent.direction.y - pos.y;
+                float norme = pos.x*pos.x + pos.y*pos.y;
+                if (pos.x != 0 || pos.y != 0)
+                {
+                    norme = sqrt(norme);
+                    pos.x /= norme;
+                    pos.y /= norme;
+                }
+
+                steeringCoponent.direction.x = pos.x;
+                steeringCoponent.direction.y = pos.y;
 
             }else
             {
