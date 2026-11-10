@@ -7,6 +7,7 @@
 #include "components/rigid_body2d.h"
 #include "components/script_component.h"
 #include "components/transform2d.h"
+#include "components/steering_component.h"
 #include "tilemap/tilemap.h"
 #include "ecs/behavior_factory.h"
 #include "ecs/game_components.h"
@@ -213,6 +214,15 @@ void registerBuiltins(SerializerRegistry& reg) {
             t.file = value<std::string>(j, "file", t.file);
             t.visible = value(j, "visible", t.visible);
             t.data.reset();   // rechargée par loadTilemaps()
+        });
+
+    reg.add<SteeringComponent>("Steering",
+        [](SteeringComponent& s, const SaveContext&) {
+            return Json{ { "direction", vec2(s.direction) }, { "rapidite", s.rapidite } };
+        },
+        [](SteeringComponent& s, const Json& j, const LoadContext&) {
+            s.direction = vec2(j.value("direction", Json()), s.direction);
+            s.rapidite = value(j, "rapidite", s.rapidite);
         });
 
     // ---- Script : liste de comportements, chacun = son nom (BehaviorFactory) + ses PROPERTY

@@ -150,6 +150,13 @@
           "useGravity": false,
           "inertia": 0.0,
           "fixedRotation": false
+        },
+        "Steering": {
+          "direction": [
+            1.0,
+            10.0
+          ],
+          "rapidite": 1000000.0
         }
       }
     }
