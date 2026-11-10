@@ -261,6 +261,9 @@
             15.0
           ]
         },
+        "UIText": {
+          "text": "skill issue"
+        },
         "Script": {
           "behaviors": [
             {
@@ -386,6 +389,7 @@
       "colision",
       "jours nuit"
     ],
+    "categoryParent": {},
     "entityCategory": {
       "7647194933246917022": "colision",
       "15999493952223515466": "colision",

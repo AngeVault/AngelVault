@@ -3,6 +3,7 @@
 #include "systems/tilemap_render_system.h"
 #include "systems/render_collision_system.h"
 #include "systems/force_debug_system.h"
+#include "UI.h"
 #include "game_systems.h"
 #include <iostream>
 
@@ -30,6 +31,7 @@ void Game::init() {
     m_systems.addSystem<RenderSystem>(*m_window, m_textureLoader);
     m_systems.addSystem<RenderCollisionSystem>(*m_window);
     m_systems.addSystem<ForceDebugSystem>(*m_window);
+    m_systems.addSystem<SystemUI>(*m_window);
     // Systèmes de jeu du projet (REGISTER_SYSTEM, dossier systems/ du projet)
     for (const GameSystemInfo& info : GameSystemRegistry::get().all()) m_systems.add(info.create(*this, *m_window));
     m_systems.start(m_registry);

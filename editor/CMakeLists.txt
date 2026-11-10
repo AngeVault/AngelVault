@@ -46,8 +46,6 @@ add_executable(AngeVaultEditor WIN32
     src/panels/tile_palette_panel.h
     src/panels/tile_palette_panel.cpp
     assets/resources.qrc
-        ../engine/ui/UI.h
-        ../engine/ui/src/UI.cpp
         # icônes + QSS (accessibles via ":/resources/...")
 )
 
