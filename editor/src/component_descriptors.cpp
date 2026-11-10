@@ -1,6 +1,10 @@
 #include "component_descriptors.h"
 
 #include "components/camera2d.h"
+#include "components/camera_bounds.h"
+#include "components/camera_control.h"
+#include "components/camera_follow.h"
+#include "components/camera_shake.h"
 #include "components/collider2d.h"
 #include "components/geometry.h"
 #include "components/name.h"
@@ -401,8 +405,8 @@ std::vector<ComponentDesc> build() {
             std::vector<FieldDesc> f;
             FieldDesc pos{ QObject::tr("Position"), FieldKind::Vec2 };
             pos.get = [&r, e] { return v2(r.getComponent<Transform2D>(e).getPosition()); };
-            // Caméra qui suit une entité : position dictée par la cible -> lecture seule
-            const bool locked = r.hasComponent<Camera2d>(e) && r.isValid(r.getComponent<Camera2d>(e).targetLock);
+            // Entité qui suit une cible (CameraFollow) : position dictée par la cible -> lecture seule
+            const bool locked = r.hasComponent<CameraFollow>(e) && r.isValid(r.getComponent<CameraFollow>(e).target);
             if (!locked)
                 pos.set = [&r, e](const QVariant& v) { r.getComponent<Transform2D>(e).setPosition(toV2(v)); };
             f.push_back(pos);
@@ -594,45 +598,108 @@ std::vector<ComponentDesc> build() {
         list.push_back(d);
     }
 
-    // ---------------------------------------------------------------- Camera2d
+    // ---------------------------------------------------------------- Caméra
+    // Le CameraSystem lit la position dans Transform2D : ajouté si besoin
+    auto withTransform = [](Registry& r, Entity e) { if (!r.hasComponent<Transform2D>(e)) r.addComponent<Transform2D>(e); };
     {
         ComponentDesc d{ "Camera2d" };
         d.has = [](Registry& r, Entity e) { return r.hasComponent<Camera2d>(e); };
-        d.add = [](Registry& r, Entity e) {
-            // Le CameraSystem lit la position dans Transform2D : on l'ajoute si besoin
-            if (!r.hasComponent<Transform2D>(e)) r.addComponent<Transform2D>(e);
-            r.addComponent<Camera2d>(e);
-        };
+        d.add = [withTransform](Registry& r, Entity e) { withTransform(r, e); r.addComponent<Camera2d>(e); };
         d.remove = [](Registry& r, Entity e) { r.removeComponent<Camera2d>(e); };
         d.fields = [](Registry& r, Entity e) {
             using C = Camera2d;
             std::vector<FieldDesc> f;
             f.push_back(floatRef<C>(r, e, QObject::tr("Zoom"), [](C& c) -> float& { return c.zoom; }, 0.01, 100, 0.1));
-            f.push_back(floatRef<C>(r, e, QObject::tr("Zoom visé"), [](C& c) -> float& { return c.targetZoom; }, 0.01, 100, 0.1));
             f.push_back(floatRef<C>(r, e, QObject::tr("Zoom min"), [](C& c) -> float& { return c.minZoom; }, 0.01, 100, 0.05));
             f.push_back(floatRef<C>(r, e, QObject::tr("Zoom max"), [](C& c) -> float& { return c.maxZoom; }, 0.01, 100, 0.1));
-            f.push_back(floatRef<C>(r, e, QObject::tr("Pas de zoom"), [](C& c) -> float& { return c.zoomStep; }, 0, 100, 0.1));
-            f.push_back(floatRef<C>(r, e, QObject::tr("Lissage du zoom"), [](C& c) -> float& { return c.zoomLerpSpeed; }, 0, 1000, 1));
-            f.push_back(boolRef<C>(r, e, QObject::tr("Zoom bloqué"), [](C& c) -> bool& { return c.zoomLocked; }));
-            f.push_back(floatRef<C>(r, e, QObject::tr("Vitesse clavier"), [](C& c) -> float& { return c.panSpeedKeyboard; }, 0, 1e6, 10));
-            f.push_back(floatRef<C>(r, e, QObject::tr("Vitesse manette"), [](C& c) -> float& { return c.panSpeedGamepad; }, 0, 1e6, 10));
-            // suivi d'une entité
-            f.push_back(floatRef<C>(r, e, QObject::tr("Vitesse de suivi"), [](C& c) -> float& { return c.shiftSpeed; }, 0, 1e6, 5));
-            f.push_back(floatRef<C>(r, e, QObject::tr("Accélération de suivi"), [](C& c) -> float& { return c.shiftSpeedMultiplicateur; }, 0, 100, 0.01));
-            f.push_back(floatRef<C>(r, e, QObject::tr("Avance"), [](C& c) -> float& { return c.additionalAdvancement; }, 0, 1e6, 10));
-            f.push_back(vecRef<C>(r, e, QObject::tr("Limite min"), [](C& c) -> sf::Vector2f& { return c.worldMin; }, 10));
-            f.push_back(vecRef<C>(r, e, QObject::tr("Limite max"), [](C& c) -> sf::Vector2f& { return c.worldMax; }, 10));
-
-            // Entité suivie (targetLock)
+            f.push_back(floatRef<C>(r, e, QObject::tr("Rotation (°)"), [](C& c) -> float& { return c.rotation; }, -36000, 36000, 1));
+            f.push_back(intRef<C>(r, e, QObject::tr("Priorité"), [](C& c) -> int& { return c.priority; }));
+            f.push_back(boolRef<C>(r, e, QObject::tr("Active"), [](C& c) -> bool& { return c.active; }));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Fondu (s)"), [](C& c) -> float& { return c.blendTime; }, 0, 60, 0.1));
+            return f;
+        };
+        list.push_back(d);
+    }
+    {
+        ComponentDesc d{ "CameraFollow" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<CameraFollow>(e); };
+        d.add = [withTransform](Registry& r, Entity e) { withTransform(r, e); r.addComponent<CameraFollow>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<CameraFollow>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            using C = CameraFollow;
+            std::vector<FieldDesc> f;
+            // Cible : glisser la caméra sur une entité dans la Hierarchy (ou clic droit > Suivre)
             FieldDesc target{ QObject::tr("Suit"), FieldKind::Label };
             target.get = [&r, e] {
-                const Entity t = r.getComponent<Camera2d>(e).targetLock;
-                if (t == NULL_ENTITY || !r.isValid(t)) return QVariant(QObject::tr("(rien : caméra libre)"));
+                const Entity t = r.getComponent<CameraFollow>(e).target;
+                if (t == NULL_ENTITY || !r.isValid(t)) return QVariant(QObject::tr("(rien : glisser sur une entité)"));
                 if (r.hasComponent<NameComponent>(t) && !r.getComponent<NameComponent>(t).name.empty())
                     return QVariant(QString::fromStdString(r.getComponent<NameComponent>(t).name));
                 return QVariant(QObject::tr("Entité %1").arg(t.index));
             };
             f.push_back(target);
+            f.push_back(vecRef<C>(r, e, QObject::tr("Décalage"), [](C& c) -> sf::Vector2f& { return c.offset; }, 10));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Lissage (s)"), [](C& c) -> float& { return c.smoothTime; }, 0, 10, 0.05));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Vitesse max"), [](C& c) -> float& { return c.maxSpeed; }, 0, 1e6, 50));
+            f.push_back(vecRef<C>(r, e, QObject::tr("Zone morte"), [](C& c) -> sf::Vector2f& { return c.deadZone; }, 5));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Avance"), [](C& c) -> float& { return c.lookAhead; }, 0, 1e5, 10));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Lissage de l'avance (s)"), [](C& c) -> float& { return c.lookAheadTime; }, 0, 10, 0.05));
+            f.push_back(boolRef<C>(r, e, QObject::tr("Se caler au départ"), [](C& c) -> bool& { return c.snapOnStart; }));
+            return f;
+        };
+        list.push_back(d);
+    }
+    {
+        ComponentDesc d{ "CameraBounds" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<CameraBounds>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<CameraBounds>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<CameraBounds>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            using C = CameraBounds;
+            std::vector<FieldDesc> f;
+            f.push_back(vecRef<C>(r, e, QObject::tr("Min"), [](C& c) -> sf::Vector2f& { return c.min; }, 10));
+            f.push_back(vecRef<C>(r, e, QObject::tr("Max"), [](C& c) -> sf::Vector2f& { return c.max; }, 10));
+            f.push_back(boolRef<C>(r, e, QObject::tr("Limiter le zoom"), [](C& c) -> bool& { return c.limitZoom; }));
+            return f;
+        };
+        list.push_back(d);
+    }
+    {
+        ComponentDesc d{ "CameraControl" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<CameraControl>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<CameraControl>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<CameraControl>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            using C = CameraControl;
+            std::vector<FieldDesc> f;
+            f.push_back(boolRef<C>(r, e, QObject::tr("Déplacement"), [](C& c) -> bool& { return c.panEnabled; }));
+            f.push_back(boolRef<C>(r, e, QObject::tr("Zoom"), [](C& c) -> bool& { return c.zoomEnabled; }));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Vitesse"), [](C& c) -> float& { return c.panSpeed; }, 0, 1e6, 50));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Vitesse du zoom"), [](C& c) -> float& { return c.zoomSpeed; }, 0, 100, 0.1));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Cran de molette"), [](C& c) -> float& { return c.wheelStep; }, 0, 10, 0.05));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Lissage du zoom"), [](C& c) -> float& { return c.zoomSharpness; }, 0, 1000, 1));
+            f.push_back(stringRef<C>(r, e, QObject::tr("Action X"), [](C& c) -> std::string& { return c.actionX; }));
+            f.push_back(stringRef<C>(r, e, QObject::tr("Action Y"), [](C& c) -> std::string& { return c.actionY; }));
+            f.push_back(stringRef<C>(r, e, QObject::tr("Action zoom"), [](C& c) -> std::string& { return c.actionZoom; }));
+            f.push_back(stringRef<C>(r, e, QObject::tr("Action molette"), [](C& c) -> std::string& { return c.actionZoomWheel; }));
+            return f;
+        };
+        list.push_back(d);
+    }
+    {
+        ComponentDesc d{ "CameraShake" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<CameraShake>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<CameraShake>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<CameraShake>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            using C = CameraShake;
+            std::vector<FieldDesc> f;
+            f.push_back(floatRef<C>(r, e, QObject::tr("Trauma"), [](C& c) -> float& { return c.trauma; }, 0, 1, 0.05));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Atténuation (/s)"), [](C& c) -> float& { return c.decay; }, 0, 100, 0.1));
+            f.push_back(vecRef<C>(r, e, QObject::tr("Amplitude"), [](C& c) -> sf::Vector2f& { return c.maxOffset; }, 1));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Rotation max (°)"), [](C& c) -> float& { return c.maxRotation; }, 0, 180, 0.5));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Fréquence (Hz)"), [](C& c) -> float& { return c.frequency; }, 0, 200, 1));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Exposant"), [](C& c) -> float& { return c.exponent; }, 0.1, 10, 0.1));
             return f;
         };
         list.push_back(d);

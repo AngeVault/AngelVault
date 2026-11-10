@@ -1,6 +1,10 @@
 #include "scene/component_serializer.h"
 
 #include "components/camera2d.h"
+#include "components/camera_bounds.h"
+#include "components/camera_control.h"
+#include "components/camera_follow.h"
+#include "components/camera_shake.h"
 #include "components/collider2d.h"
 #include "components/geometry.h"
 #include "components/name.h"
@@ -102,6 +106,35 @@ std::vector<sf::Vector2f> pointsFromJson(const Json& j) {
     return points;
 }
 
+// Entity sauvegardée par son PersistentId (null = aucune)
+Entity entityRef(const Json& j, const char* key, const LoadContext& ctx, const char* component) {
+    const auto it = j.find(key);
+    if (it == j.end() || !it->is_number_unsigned()) return NULL_ENTITY;
+    const uint64_t id = it->get<uint64_t>();
+    const Entity e = ctx.entityOf ? ctx.entityOf(id) : NULL_ENTITY;
+    if (e == NULL_ENTITY && ctx.warn)
+        ctx.warn(std::string(component) + " : l'entité suivie (" + std::to_string(id) + ") n'existe plus, la caméra devient libre");
+    return e;
+}
+
+// Ancien Camera2d (tout dans un composant) -> CameraFollow / CameraBounds / CameraControl
+void migrateOldCamera(Registry& r, Entity e, const Json& j, const LoadContext& ctx) {
+    if (j.contains("targetLock")) {
+        const Entity target = entityRef(j, "targetLock", ctx, "Camera2d");
+        if (target != NULL_ENTITY && !r.hasComponent<CameraFollow>(e)) r.addComponent<CameraFollow>(e).setTarget(target);
+    }
+    if (j.contains("worldMin") || j.contains("worldMax")) {
+        CameraBounds b;
+        b.set(vec2(j.value("worldMin", Json()), b.min), vec2(j.value("worldMax", Json()), b.max));
+        if (b.valid() && !r.hasComponent<CameraBounds>(e)) r.addComponent<CameraBounds>(e, b);
+    }
+    if (j.contains("panSpeedKeyboard") && !r.hasComponent<CameraControl>(e)) {
+        CameraControl& c = r.addComponent<CameraControl>(e);
+        c.zoomEnabled = !value(j, "zoomLocked", false);
+        c.targetZoom = value(j, "targetZoom", 0.f);
+    }
+}
+
 void registerBuiltins(SerializerRegistry& reg) {
     // ---- Name
     reg.add<NameComponent>("Name",
@@ -180,31 +213,43 @@ void registerBuiltins(SerializerRegistry& reg) {
             else c.shape = Collider2D::Box{ vec2(j.value("halfSize", Json()), { 16.f, 16.f }) };
         });
 
-    // ---- Camera2d (targetLock est une Entity : passe par les PersistentId)
-    reg.add<Camera2d>("Camera2d",
-        [](Camera2d& c, const SaveContext& ctx) {
+    // ---- Caméra : Camera2d + composants optionnels
+    {
+        ComponentSerializer s;
+        s.name = "Camera2d";
+        s.has = [](Registry& r, Entity e) { return r.hasComponent<Camera2d>(e); };
+        s.save = [](Registry& r, Entity e, const SaveContext&) {
             Json j = Json::object();
-            for (const PropertyInfo& p : reflectComponent<Camera2d>(c).fields) j[p.name] = property(p);
-            j["worldMin"] = vec2(c.worldMin);
-            j["worldMax"] = vec2(c.worldMax);
-            const uint64_t target = ctx.idOf ? ctx.idOf(c.targetLock) : 0;
-            j["targetLock"] = target ? Json(target) : Json(nullptr);
+            for (const PropertyInfo& p : reflectComponent<Camera2d>(r.getComponent<Camera2d>(e)).fields) j[p.name] = property(p);
             return j;
-        },
-        [](Camera2d& c, const Json& j, const LoadContext& ctx) {
+        };
+        s.load = [](Registry& r, Entity e, const Json& j, const LoadContext& ctx) {
+            Camera2d& c = r.hasComponent<Camera2d>(e) ? r.getComponent<Camera2d>(e) : r.addComponent<Camera2d>(e);
             for (PropertyInfo& p : reflectComponent<Camera2d>(c).fields)
                 if (j.contains(p.name)) readProperty(j[p.name], p);
-            c.worldMin = vec2(j.value("worldMin", Json()), c.worldMin);
-            c.worldMax = vec2(j.value("worldMax", Json()), c.worldMax);
-            c.targetLock = NULL_ENTITY;
-            const auto it = j.find("targetLock");
-            if (it != j.end() && it->is_number_unsigned()) {
-                const uint64_t id = it->get<uint64_t>();
-                c.targetLock = ctx.entityOf ? ctx.entityOf(id) : NULL_ENTITY;
-                if (c.targetLock == NULL_ENTITY && ctx.warn)
-                    ctx.warn("Camera2d : l'entité suivie (" + std::to_string(id) + ") n'existe plus, la caméra devient libre");
-            }
+            migrateOldCamera(r, e, j, ctx);
+        };
+        reg.addSerializer(std::move(s));
+    }
+
+    // CameraFollow : target est une Entity, passe par les PersistentId
+    reg.add<CameraFollow>("CameraFollow",
+        [](CameraFollow& c, const SaveContext& ctx) {
+            Json j = Json::object();
+            const uint64_t target = ctx.idOf ? ctx.idOf(c.target) : 0;
+            j["target"] = target ? Json(target) : Json(nullptr);
+            for (const PropertyInfo& p : reflectComponent<CameraFollow>(c).fields) j[p.name] = property(p);
+            return j;
+        },
+        [](CameraFollow& c, const Json& j, const LoadContext& ctx) {
+            for (PropertyInfo& p : reflectComponent<CameraFollow>(c).fields)
+                if (j.contains(p.name)) readProperty(j[p.name], p);
+            c.setTarget(entityRef(j, "target", ctx, "CameraFollow"));
         });
+
+    reg.addReflected<CameraBounds>("CameraBounds");
+    reg.addReflected<CameraControl>("CameraControl");
+    reg.addReflected<CameraShake>("CameraShake");
 
     // ---- Tilemap : seulement le fichier .map (les cases sont dedans) et « visible »
     reg.add<Tilemap>("Tilemap",

@@ -4,7 +4,7 @@
 // Entity { index, generation } est un numéro de place dans le Registry : il change d'une session
 // à l'autre (ordre de création, cases recyclées). PersistentId, lui, est donné une fois à la
 // création de l'entité et écrit dans le fichier .scene : les liens entre entités
-// (ex. Camera2d::targetLock) sont sauvegardés avec lui, puis retraduits au chargement.
+// (ex. CameraFollow::target) sont sauvegardés avec lui, puis retraduits au chargement.
 //
 // 0 = pas d'identifiant. Les entités créées en jeu (balles, particules) n'en ont pas besoin.
 #include <chrono>

@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
         for (Entity e : ctx.entities()) {
             Registry& reg = ctx.scene();
             if (reg.hasComponent<Camera2d>(e)) {
-                if (reg.isValid(reg.getComponent<Camera2d>(e).targetLock)) continue;
+                if (reg.hasComponent<CameraFollow>(e) && reg.isValid(reg.getComponent<CameraFollow>(e).target)) continue;
                 if (cameras.isEmpty()) cameras = ctx.addCategory("Caméras");
                 ctx.setCategory(e, cameras);
             } else if (reg.hasComponent<Script>(e)) {

@@ -7,11 +7,13 @@
 #include "input/input.h"
 #include "ecs/behavior_factory.h"
 #include "components/geometry.h"
+#include "utils/camera_utils.h"
 #pragma once
 
 class PlayerBehavior : public IBehavior {
 public:
     PROPERTY(float, speed, 250.f)
+    PROPERTY(float, shakeOnJump, 0.4f)
 
         void onUpdate(Entity self, Registry& registry, float dt) override
         {
@@ -26,6 +28,8 @@ public:
 
         rb.velocity.x = moveX * speed;
         rb.velocity.y = moveY * speed;
+
+        if (Input::getButtonDown("saute")) Camera::shake(registry, shakeOnJump);   // démo CameraShake
     }
 
 private:

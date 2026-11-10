@@ -84,7 +84,7 @@ public:
     QString categoryOf(Entity e) const;                                    // "" = aucune catégorie
     void setCategory(Entity e, const QString& category);                   // "" = racine
 
-    // --- Caméras liées (Camera2d::targetLock) ---
+    // --- Caméras liées (CameraFollow::target) ---
     // Une caméra qui suit une entité est placée sur elle et ne peut plus être déplacée à la main :
     // sa position est dictée par la cible (c'est ce que fait le CameraSystem en jeu).
     Entity followTarget(Entity camera);                       // NULL_ENTITY si libre (ou pas une caméra)

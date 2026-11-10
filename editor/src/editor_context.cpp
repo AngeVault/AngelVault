@@ -1,6 +1,7 @@
 #include "editor_context.h"
 
 #include "components/camera2d.h"
+#include "components/camera_follow.h"
 #include "components/name.h"
 #include "components/persistent_id.h"
 #include "components/script_component.h"
@@ -185,17 +186,21 @@ void EditorContext::notifyEntityModified(Entity e, QObject* source) {
 }
 
 Entity EditorContext::followTarget(Entity camera) {
-    if (!isValid(camera) || !m_scene.hasComponent<Camera2d>(camera)) return NULL_ENTITY;
-    const Entity target = m_scene.getComponent<Camera2d>(camera).targetLock;
+    if (!isValid(camera) || !m_scene.hasComponent<CameraFollow>(camera)) return NULL_ENTITY;
+    const Entity target = m_scene.getComponent<CameraFollow>(camera).target;
     return (target != camera && isValid(target)) ? target : NULL_ENTITY;
 }
 
 void EditorContext::setFollowTarget(Entity camera, Entity target) {
     if (!isValid(camera) || !m_scene.hasComponent<Camera2d>(camera)) return;
-    if (m_scene.getComponent<Camera2d>(camera).targetLock == target) return;
-    m_scene.getComponent<Camera2d>(camera).targetLock = target;   // même donnée que Camera2d::setTarget()
+    if (followTarget(camera) == target) return;
+    if (target == NULL_ENTITY && !m_scene.hasComponent<CameraFollow>(camera)) return;
+    // CameraFollow ajouté au besoin ; libérer garde ses réglages (cible vide)
+    if (!m_scene.hasComponent<CameraFollow>(camera)) m_scene.addComponent<CameraFollow>(camera);
+    CameraFollow& follow = m_scene.getComponent<CameraFollow>(camera);
+    follow.setTarget(target);
     if (isValid(target) && m_scene.hasComponent<Transform2D>(target) && m_scene.hasComponent<Transform2D>(camera))
-        m_scene.getComponent<Transform2D>(camera).setPosition(m_scene.getComponent<Transform2D>(target).getPosition());
+        m_scene.getComponent<Transform2D>(camera).setPosition(m_scene.getComponent<Transform2D>(target).getPosition() + follow.offset);
     emit followTargetChanged(camera);
     emit entityModified(camera, nullptr);
     snapFollowers(camera);
@@ -204,10 +209,11 @@ void EditorContext::setFollowTarget(Entity camera, Entity target) {
 
 void EditorContext::snapFollowers(Entity target, int depth) {
     if (depth > 8 || !m_scene.hasComponent<Transform2D>(target)) return;   // garde-fou : chaîne/boucle de caméras
-    const sf::Vector2f pos = m_scene.getComponent<Transform2D>(target).getPosition();
+    const sf::Vector2f targetPos = m_scene.getComponent<Transform2D>(target).getPosition();
     std::vector<Entity> moved;
-    m_scene.view<Camera2d, Transform2D>([&](Entity cam, Camera2d& c, Transform2D& t) {
-        if (cam == target || c.targetLock != target || t.getPosition() == pos) return;
+    m_scene.view<CameraFollow, Transform2D>([&](Entity cam, CameraFollow& c, Transform2D& t) {
+        const sf::Vector2f pos = targetPos + c.offset;
+        if (cam == target || c.target != target || t.getPosition() == pos) return;
         t.setPosition(pos);
         moved.push_back(cam);
     });

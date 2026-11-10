@@ -1,77 +1,41 @@
 #pragma once
-#include <numbers>
-
-#include "ecs/entity.h"
+// Caméra 2D : ce que voit le jeu. Position = Transform2D de l'entité.
+// Le reste est fait par des composants optionnels, chacun avec son système :
+//   CameraFollow  suivre une entité          CameraBounds  rester dans une zone
+//   CameraControl pan / zoom à la manette    CameraShake   tremblement
+// Plusieurs caméras : la plus prioritaire (active) est affichée, avec un fondu de `blendTime` s.
 #include "ecs/reflect.h"
 #include <SFML/System/Vector2.hpp>
 
+#include <algorithm>
 
 struct Camera2d
 {
-	// state
+	float zoom = 1.f;          // 2 = deux fois plus près
+	float minZoom = 0.25f;
+	float maxZoom = 4.f;
+	float rotation = 0.f;      // degrés
+	int priority = 0;          // la plus grande est affichée
+	bool active = true;        // false = jamais affichée
+	float blendTime = 0.f;     // fondu (s) quand elle devient la caméra affichée
 
-	Entity targetLock = NULL_ENTITY;
-	bool zoomLocked = false;
-	int priority = 0; // plus c'est grand, plus la caméra est prioritaire (si plusieurs caméras dans la scène)
+	// Effets de la frame (CameraShake...) : ajoutés à la vue puis remis à zéro par le CameraSystem
+	sf::Vector2f effectOffset{ 0.f, 0.f };
+	float effectRotation = 0.f;
+	float effectZoom = 1.f;
 
-	// speed 
-	float panSpeedKeyboard = 1000.f;
-	float panSpeedGamepad = 100.f;
-	float zoomStep = 0.5f;
-	float zoomLerpSpeed = 1.f;
-	float shiftSpeed = 40.f;
-	float shiftSpeedMultiplicateur = 0.1f;
-	float additionalAdvancement = 200.f;
-
-	// border
-	sf::Vector2f worldMin{ 0.f , 0.f };
-	sf::Vector2f worldMax{ 0.f , 0.f };
-
-	float targetZoom = 1.f;
-
-	// helper 
-	void setWorldBorder(sf::Vector2f min, sf::Vector2f max)
-	{
-		worldMin = min;
-		worldMax = max;
-	}
-
-	void setTarget(Entity e)
-	{
-		targetLock = e;
-	};
-
-	void setZoomLoked(bool locked)
-	{
-		zoomLocked = locked;
-	};
-
-	void setZoomLerpSpeed(float speed)
-	{
-		zoomLerpSpeed = speed;
-	}
-
-	void setTargetZoom(float _targetZoom)
-	{
-		targetZoom = _targetZoom;
-	};
-
+	void setZoom(float z) { zoom = std::clamp(z, minZoom, maxZoom); }
 };
 
 template<>
-inline ReflectedComponent reflectComponent<Camera2d>(Camera2d& rb) {
+inline ReflectedComponent reflectComponent<Camera2d>(Camera2d& c) {
 	return { "Camera2d", {
-	        { "zoom",       PropertyInfo::Type::Float, &rb.zoom       },
-			{ "minZoom", PropertyInfo::Type::Float, &rb.minZoom },
-			{ "maxZoom",   PropertyInfo::Type::Float, &rb.maxZoom   },
-			{ "zoomLocked",   PropertyInfo::Type::Bool, &rb.zoomLocked   },
-			{ "panSpeedKeyboard",    PropertyInfo::Type::Float, &rb.panSpeedKeyboard    },
-			{ "panSpeedGamepad",    PropertyInfo::Type::Float, &rb.panSpeedGamepad    },
-			{ "zoomStep",    PropertyInfo::Type::Float, &rb.zoomStep    },
-			{ "zoomLerpSpeed",    PropertyInfo::Type::Float, &rb.zoomLerpSpeed    },
-			{ "shiftSpeed",    PropertyInfo::Type::Float, &rb.shiftSpeed    },
-			{ "shiftSpeedMultiplicateur",    PropertyInfo::Type::Float, &rb.shiftSpeedMultiplicateur    },
-			{ "additionalAdvancement",    PropertyInfo::Type::Float, &rb.additionalAdvancement    },
-			{ "targetZoom",    PropertyInfo::Type::Float, &rb.targetZoom    },
+		{ "zoom",      PropertyInfo::Type::Float, &c.zoom      },
+		{ "minZoom",   PropertyInfo::Type::Float, &c.minZoom   },
+		{ "maxZoom",   PropertyInfo::Type::Float, &c.maxZoom   },
+		{ "rotation",  PropertyInfo::Type::Float, &c.rotation  },
+		{ "priority",  PropertyInfo::Type::Int,   &c.priority  },
+		{ "active",    PropertyInfo::Type::Bool,  &c.active    },
+		{ "blendTime", PropertyInfo::Type::Float, &c.blendTime },
 	} };
-}""
+}

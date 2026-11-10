@@ -1,6 +1,7 @@
 #include "tilemap_view.h"
 
 #include "components/camera2d.h"
+#include "components/camera_bounds.h"
 #include "components/collider2d.h"
 #include "components/geometry.h"
 #include "components/transform2d.h"
@@ -169,12 +170,24 @@ void TilemapView::drawGrid(sf::RenderTarget& target) {
 void TilemapView::drawCameras(sf::RenderTarget& target) {
     Registry& reg = m_ctx.scene();
     const float px = 1.f / m_camera.zoom;   // 1 pixel écran en unités monde
-    reg.view<Camera2d, Transform2D>([&](Entity, Camera2d& cam, Transform2D& t) {
+    reg.view<Camera2d, Transform2D>([&](Entity e, Camera2d& cam, Transform2D& t) {
+        // Zone de CameraBounds (orange)
+        if (reg.hasComponent<CameraBounds>(e) && reg.getComponent<CameraBounds>(e).valid()) {
+            const CameraBounds& b = reg.getComponent<CameraBounds>(e);
+            sf::RectangleShape zone(b.max - b.min);
+            zone.setPosition(b.min);
+            zone.setFillColor(sf::Color::Transparent);
+            zone.setOutlineColor(sf::Color(255, 170, 60, 140));
+            zone.setOutlineThickness(1.5f * px);
+            target.draw(zone);
+        }
+
         const float zoom = cam.zoom > 0.f ? cam.zoom : 1.f;
         const sf::Vector2f size = sf::Vector2f(m_ctx.gameScreenSize()) / zoom;
         sf::RectangleShape frame(size);
         frame.setOrigin(size / 2.f);
         frame.setPosition(t.getPosition());
+        frame.setRotation(sf::degrees(cam.rotation));
         frame.setFillColor(sf::Color(120, 200, 255, 12));
         frame.setOutlineColor(sf::Color(120, 200, 255, 170));
         frame.setOutlineThickness(1.5f * px);

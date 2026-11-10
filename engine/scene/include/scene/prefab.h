@@ -21,7 +21,7 @@
 inline constexpr int kPrefabFormatVersion = 1;
 inline constexpr const char* kPrefabExtension = ".prefab";
 
-// L'entité + les caméras qui la suivent (Camera2d::targetLock), récursivement : ce qu'on met dans un prefab
+// L'entité + les caméras qui la suivent (CameraFollow::target), récursivement : ce qu'on met dans un prefab
 std::vector<Entity> prefabGroup(Registry& registry, Entity root);
 
 // La première entité de la liste est la racine (celle placée à la position voulue à l'instanciation)

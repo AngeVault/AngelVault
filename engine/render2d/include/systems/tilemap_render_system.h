@@ -336,11 +336,11 @@ private:
     YSortQueue* m_queue = nullptr;
 };
 
-// Système ECS : dessine toutes les entités qui ont un composant Tilemap (sous les entités : priorité 5)
+// Système ECS : dessine toutes les entités qui ont un composant Tilemap (sous les entités : priorité 8, après les caméras)
 class TilemapRenderSystem : public ISystem {
 public:
     TilemapRenderSystem(sf::RenderTarget& target, IResourceLoader& loader) : m_target(target), m_renderer(loader) {
-        priority = 5;
+        priority = 8;
     }
 
     void onUpdate(Registry& registry, float dt) override {

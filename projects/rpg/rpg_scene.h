@@ -11,8 +11,12 @@
 #include "systems/script_system.h"
 #include "components/name.h"
 #include "components/geometry.h"
-#include "systems/camera_system.h"
+#include "systems/camera_systems.h"
 #include "components/camera2d.h"
+#include "components/camera_bounds.h"
+#include "components/camera_control.h"
+#include "components/camera_follow.h"
+#include "components/camera_shake.h"
 #include "rpg_game_code.h"   // tous les .h de components/, behaviors/, systems/ (généré par CMake)
 #include "input/input_manager.h"
 
@@ -21,8 +25,10 @@
 inline void loadRpgEntities(Registry& registry) {
     Entity cameraEntity = registry.createEntity();
     registry.addComponent<Transform2D>(cameraEntity).setPosition({ 200.f, 100.f });
-    auto& camera = registry.addComponent<Camera2d>(cameraEntity);
-    camera.setWorldBorder({ 0.f, 0.f }, { 3000.f, 3000.f });
+    registry.addComponent<Camera2d>(cameraEntity);
+    registry.addComponent<CameraBounds>(cameraEntity).set({ 0.f, 0.f }, { 3000.f, 3000.f });
+    registry.addComponent<CameraControl>(cameraEntity).panEnabled = false;   // zoom seulement
+    registry.addComponent<CameraShake>(cameraEntity);
     registry.addComponent<NameComponent>(cameraEntity, "CameraEntity");
 
     Entity player = registry.createEntity();
@@ -32,10 +38,10 @@ inline void loadRpgEntities(Registry& registry) {
     registry.addComponent<Collider2D>(player, Collider2D::makeBox({ 16.f, 32.f }));
     registry.addComponent<NameComponent>(player, "Player");
 
-    // La caméra suit le joueur definit et lock le zoom
-    registry.getComponent<Camera2d>(cameraEntity).setTarget(player);
-    //camera.setZoomLoked(true);
-    //camera.setTargetZoom(0.25f);  
+    // La caméra suit le joueur, avec un peu d'avance dans le sens de la marche
+    auto& follow = registry.addComponent<CameraFollow>(cameraEntity);
+    follow.setTarget(player);
+    follow.lookAhead = 80.f;
 
     // Attache le script PlayerBehavior
     registry.addComponent<Script>(player).add<PlayerBehavior>();
@@ -79,7 +85,7 @@ inline void registerRpgSystems(Game& game) {
     game.systems().addSystem<PhysicsSystem>();
     game.systems().addSystem<CollisionSystem>();
     game.systems().addSystem<ScriptSystem>();
-    game.systems().addSystem<CameraSystem>(game.target());
+    registerCameraSystems(game.systems(), game.target());
 }
 
 // Ancienne scène écrite en C++ : systèmes + entités de loadRpgEntities().
