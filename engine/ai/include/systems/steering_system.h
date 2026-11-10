@@ -5,11 +5,9 @@
 #pragma once
 #include "ecs/system.h"
 
-
-class steeringSystem : public ISystem
+class SteeringSystem : public ISystem
 {
 public:
-    steeringSystem(){priority = -10;};
-    void onStart(Registry& registry) override;
-private:
+    SteeringSystem() { priority = 3; }
+    void onUpdate(Registry& registry, float dt) override;
 };

@@ -1,1 +1,1 @@
-av_module(Ai DEPS SFML::System)
+av_module(Ai DEPS AngeVault::Core)
