@@ -15,6 +15,7 @@
 #include "components/camera2d.h"
 #include "rpg_game_code.h"   // tous les .h de components/, behaviors/, systems/ (généré par CMake)
 #include "input/input_manager.h"
+#include "components/steering_component.h"
 
 // Entités de la scène. Séparé des systèmes pour que l'éditeur puisse charger
 // la scène dans son propre Registry (Hierarchy / Inspector) sans lancer le jeu.
@@ -31,6 +32,13 @@ inline void loadRpgEntities(Registry& registry) {
     registry.addComponent<RigidBody2D>(player).useGravity = false;
     registry.addComponent<Collider2D>(player, Collider2D::makeBox({ 16.f, 32.f }));
     registry.addComponent<NameComponent>(player, "Player");
+
+    Entity ennemy = registry.createEntity();
+    registry.addComponent<Transform2D>(ennemy).setPosition({ 200.f, 100.f });
+    registry.addComponent<RigidBody2D>(ennemy).useGravity = false;
+    registry.addComponent<Geometry>(ennemy, Geometry::SpriteData{ "player", sf::IntRect({ 0, 0 }, { 64, 64 }), sf::Color::White }, 1);
+    registry.addComponent<NameComponent>(ennemy, "Ennemy");
+    registry.addComponent<SteeringComponent>(ennemy);
 
     // La caméra suit le joueur definit et lock le zoom
     registry.getComponent<Camera2d>(cameraEntity).setTarget(player);

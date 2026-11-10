@@ -1,1 +1,1 @@
-av_module(Core DEPS SFML::System)
+av_module(Ai DEPS AngeVault::Core AngeVault::Physics2D  SFML::System)
