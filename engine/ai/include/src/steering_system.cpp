@@ -9,7 +9,7 @@
 #include "components/transform2d.h"
 #include <iostream>
 
-void CameraSystem::onUpdate(Registry& registry, float dt)
+void steeringSystem::onStart(Registry& registry)
 {
     registry.view<SteeringComponent>([&](Entity e, SteeringComponent& steeringComponent)
     {

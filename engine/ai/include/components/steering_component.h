@@ -14,7 +14,7 @@ struct SteeringComponent
 template<>
 inline ReflectedComponent reflectComponent<SteeringComponent>(SteeringComponent& rb) {
     return { "SteeringComponent", {
-            { "mass",       PropertyInfo::Type::Vec2f, &rb.direction       },
-            { "linearDrag", PropertyInfo::Type::Float, &rb.rapidite }
+            { "direction",       PropertyInfo::Type::Vec2f, &rb.direction       },
+            { "rapidite", PropertyInfo::Type::Float, &rb.rapidite }
     } };
 }

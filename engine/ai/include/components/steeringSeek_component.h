@@ -15,7 +15,7 @@ struct SteeringSeekComponent
 template<>
 inline ReflectedComponent reflectComponent<SteeringSeekComponent>(SteeringSeekComponent& rb) {
     return { "SteeringSeekComponent", {
-                { "mass",       PropertyInfo::Type::Bool, &rb.isActif       },
-                { "linearDrag", PropertyInfo::Type::Vec2f, &rb.positionCible }
+                { "isActif",       PropertyInfo::Type::Bool, &rb.isActif       },
+                { "positionCible", PropertyInfo::Type::Vec2f, &rb.positionCible }
     } };
 }

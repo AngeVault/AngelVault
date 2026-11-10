@@ -6,10 +6,10 @@
 #include "ecs/system.h"
 
 
-class CameraSystem : public ISystem
+class steeringSystem : public ISystem
 {
 public:
-    CameraSystem(){priority = -10;};
-    void onUpdate(Registry& registry,float dt) override;
+    steeringSystem(){priority = -10;};
+    void onStart(Registry& registry) override;
 private:
 };
