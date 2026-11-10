@@ -11,5 +11,6 @@ class steeringSeekSystem : public ISystem
 public:
     steeringSeekSystem(){priority = -10;};
     void onStart(Registry& registry) override;
+    void onUpdate(Registry& registry, float dt) override;
 private:
 };
