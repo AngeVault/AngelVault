@@ -7,7 +7,7 @@
 #include "utils/texture_factory.h"
 #include "components/geometry.h"
 
-void shootBall(Registry& registry, int ballId, Entity self)
+inline void shootBall(Registry& registry, int ballId, Entity self)
 {
     auto& playerTrans = registry.getComponent<Transform2D>(self);
     auto& rbPlayer = registry.getComponent<RigidBody2D>(self);

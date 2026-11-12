@@ -1,0 +1,15 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Pavés",
+  "image": "assets/tilesets/demo/paves.png",
+  "tileSize": [
+    16,
+    16
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 16,
+  "count": 128,
+  "autotile": "corners16"
+}

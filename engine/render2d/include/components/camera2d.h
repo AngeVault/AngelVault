@@ -1,20 +1,28 @@
 #pragma once
-#include <SFML/Graphics.hpp>
+#include <numbers>
+
+#include "ecs/entity.h"
+#include "ecs/reflect.h"
+#include <SFML/System/Vector2.hpp>
 
 
 struct Camera2d
 {
 	// state
-	sf::Vector2f position{ 0.f ,0.f };
 	float zoom = 1.f;
 	float minZoom = 0.25f;
 	float maxZoom = 4.f;
+	Entity targetLock = NULL_ENTITY;
+	bool zoomLocked = false;
 
 	// speed 
-	float panSpeedKeyboard = 100.f;
+	float panSpeedKeyboard = 1000.f;
 	float panSpeedGamepad = 100.f;
-	float zoomStep = 0.2f;
-	float zoomLerpSpeed = 12.f;
+	float zoomStep = 0.5f;
+	float zoomLerpSpeed = 1.f;
+	float shiftSpeed = 40.f;
+	float shiftSpeedMultiplicateur = 0.1f;
+	float additionalAdvancement = 200.f;
 
 	// border
 	sf::Vector2f worldMin{ 0.f , 0.f };
@@ -29,35 +37,42 @@ struct Camera2d
 		worldMax = max;
 	}
 
-	//
-	sf::View makeView(sf::Vector2u windowSize) const {
-		sf::Vector2f half =
-		{
-			windowSize.x * 0.5f / zoom,
-			windowSize.y * 0.5f / zoom
-		};
-		return sf::View(sf::FloatRect(
-			{ position.x - half.x, position.y - half.y },
-			{ half.x * 2.f, half.y * 2.f }
-		));
+	void setTarget(Entity e)
+	{
+		targetLock = e;
 	};
 
-	void clampPosition(sf::Vector2u windowSize)
+	void setZoomLoked(bool locked)
 	{
-		if (worldMax.x <= worldMin.x || worldMax.y <= worldMin.y) return;
+		zoomLocked = locked;
+	};
 
-		float halfW = (windowSize.x * 0.5f) /zoom;
-		float halfH = (windowSize.y * 0.5f) /zoom;
+	void setZoomLerpSpeed(float speed)
+	{
+		zoomLerpSpeed = speed;
+	}
 
-		float minX = worldMin.x + halfW;
-		float maxX = worldMax.x - halfW;
-		float minY = worldMin.y + halfH;
-		float maxY = worldMax.y - halfH;
-
-		if (minX > maxX) position.x = (worldMin.x + worldMax.x) * 0.5f;
-		else position.x = std::clamp(position.x, minX, maxX);
-		if (minY > maxY) position.y = (worldMin.y + worldMax.y) * 0.5f;
-		else position.y = std::clamp(position.y, minY, maxY);
+	void setTargetZoom(float _targetZoom)
+	{
+		targetZoom = _targetZoom;
 	};
 
 };
+
+template<>
+inline ReflectedComponent reflectComponent<Camera2d>(Camera2d& rb) {
+	return { "Camera2d", {
+	        { "zoom",       PropertyInfo::Type::Float, &rb.zoom       },
+			{ "minZoom", PropertyInfo::Type::Float, &rb.minZoom },
+			{ "maxZoom",   PropertyInfo::Type::Float, &rb.maxZoom   },
+			{ "zoomLocked",   PropertyInfo::Type::Bool, &rb.zoomLocked   },
+			{ "panSpeedKeyboard",    PropertyInfo::Type::Float, &rb.panSpeedKeyboard    },
+			{ "panSpeedGamepad",    PropertyInfo::Type::Float, &rb.panSpeedGamepad    },
+			{ "zoomStep",    PropertyInfo::Type::Float, &rb.zoomStep    },
+			{ "zoomLerpSpeed",    PropertyInfo::Type::Float, &rb.zoomLerpSpeed    },
+			{ "shiftSpeed",    PropertyInfo::Type::Float, &rb.shiftSpeed    },
+			{ "shiftSpeedMultiplicateur",    PropertyInfo::Type::Float, &rb.shiftSpeedMultiplicateur    },
+			{ "additionalAdvancement",    PropertyInfo::Type::Float, &rb.additionalAdvancement    },
+			{ "targetZoom",    PropertyInfo::Type::Float, &rb.targetZoom    },
+	} };
+}

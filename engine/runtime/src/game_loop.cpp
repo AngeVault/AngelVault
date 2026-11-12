@@ -1,46 +1,80 @@
 #include "game_loop.h"
 #include "systems/render_system.h"
+#include "systems/tilemap_render_system.h"
 #include "systems/render_collision_system.h"
 #include "systems/force_debug_system.h"
+#include "game_systems.h"
 #include <iostream>
 
-Game::Game() : m_isRunning(true) {
-    m_window = sf::RenderWindow(sf::VideoMode({ 1920, 1080 }), "AngeVault", sf::Style::Default, sf::State::Windowed);
-    m_window.setVerticalSyncEnabled(true);
-    
-    m_systems.addSystem<RenderSystem>(m_window, m_textureLoader);
-    m_systems.addSystem<RenderCollisionSystem>(m_window);
-    m_systems.addSystem<ForceDebugSystem>(m_window);
+Game::Game() {
+    m_ownWindow.emplace(sf::VideoMode({ 1920, 1080 }), "AngeVault", sf::Style::Default, sf::State::Windowed);
+    m_ownWindow->setVerticalSyncEnabled(true);
+    m_window = &*m_ownWindow;
+    init();
+}
+
+Game::Game(sf::Vector2u size, const std::string& title, bool vsync) {
+    m_ownWindow.emplace(sf::VideoMode(size), title, sf::Style::Default, sf::State::Windowed);
+    m_ownWindow->setVerticalSyncEnabled(vsync);
+    m_window = &*m_ownWindow;
+    init();
+}
+
+Game::Game(sf::RenderWindow& target) : m_window(&target) {
+    init();
+}
+
+Game::~Game() {
+    if (InputManager::current() == &m_input) InputManager::setCurrent(nullptr);
+}
+
+void Game::init() {
+    InputManager::setCurrent(&m_input);   // Input::getAxis(...) lit ce Game
+    m_systems.addSystem<TilemapRenderSystem>(*m_window, m_textureLoader);   // cartes (composant Tilemap), sous les entités
+    m_systems.addSystem<RenderSystem>(*m_window, m_textureLoader);
+    m_systems.addSystem<RenderCollisionSystem>(*m_window);
+    m_systems.addSystem<ForceDebugSystem>(*m_window);
+    // Systèmes de jeu du projet (REGISTER_SYSTEM, dossier systems/ du projet)
+    for (const GameSystemInfo& info : GameSystemRegistry::get().all()) m_systems.add(info.create(*this, *m_window));
     m_systems.start(m_registry);
 }
 
+void Game::applySystemSettings(const std::map<std::string, bool>& enabledByName) {
+    for (const auto& [name, enabled] : enabledByName) m_systems.setEnabled(name, enabled);
+}
+
 void Game::handleEvents() {
-    while (const auto event = m_window.pollEvent()) {
+    while (const auto event = m_window->pollEvent()) {
+        m_input.handleEvent(*event);
         if (event->is<sf::Event::Closed>()) m_isRunning = false;
         if (const auto* key = event->getIf<sf::Event::KeyPressed>())
             if (key->scancode == sf::Keyboard::Scancode::Escape) m_isRunning = false;
     }
 }
 
-void Game::update(float dt) {
+void Game::tick(float dt) {
+    InputManager::setCurrent(&m_input);
+    m_input.update();                 // état des actions pour cette frame
     m_systems.update(m_registry, dt); // tous les systems, dont RenderSystem
     m_registry.flushPendingDestroys();
+    m_input.endFrame();               // oublie les « Down / Up » et la molette de cette frame
 }
 
-void Game::render() {
-    m_window.display();
+void Game::stop() {
+    if (m_stopped) return;
+    m_stopped = true;
+    m_systems.stop(m_registry);
 }
-
 
 void Game::run() {
     m_clock.restart();
     while (m_isRunning) {
         float dt = m_clock.restart().asSeconds();
         handleEvents();
-        m_window.clear(sf::Color::Black); 
-        update(dt);
-        render();                     
+        m_window->clear(sf::Color::Black);
+        tick(dt);
+        m_window->display();
     }
-    m_systems.stop(m_registry);
+    stop();
     std::cout << "[GAME LOOP] Termine.\n";
 }

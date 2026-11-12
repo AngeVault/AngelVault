@@ -1,0 +1,15 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Sable",
+  "image": "assets/tilesets/demo/sable.png",
+  "tileSize": [
+    16,
+    16
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 16,
+  "count": 128,
+  "autotile": "corners16"
+}

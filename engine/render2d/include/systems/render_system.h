@@ -7,6 +7,7 @@
 #include "components/camera2d.h"
 #include "utils/texture_factory.h"
 #include "utils/loose_file_loader.h"
+#include "utils/ysort_queue.h"
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <algorithm>
@@ -14,14 +15,32 @@
 #include <unordered_map>
 #include <string>
 
+// Dessine les entités (Transform2D + Geometry), triées par calque (Geometry::layer) puis par Y :
+// sur un même calque, ce qui est plus bas à l'écran (les « pieds ») passe devant.
+// Les tiles « tri en Y » des tilemaps (YSortQueue) sont mélangées à ce tri.
 class RenderSystem : public ISystem {
 public:
     explicit RenderSystem(sf::RenderTarget& target, LooseFileLoader& textureLoader) : m_target(target), m_textureLoader(textureLoader) {
         priority = 10; // s'exécute en dernier, après physique et script
+        ++YSortQueue::of(m_target).consumers;
+    }
+    ~RenderSystem() override { --YSortQueue::of(m_target).consumers; }
+
+    // Point de tri d'une entité : le bas de sa forme (ses pieds), dans le monde
+    static float sortY(const Transform2D& t, const Geometry& g) {
+        float bottom = 0.f;
+        std::visit([&](const auto& d) {
+            using T = std::decay_t<decltype(d)>;
+            if constexpr (std::is_same_v<T, Geometry::SpriteData>) bottom = d.rect.size.y * 0.5f;
+            else if constexpr (std::is_same_v<T, Geometry::BoxData>) bottom = d.halfSize.y;
+            else if constexpr (std::is_same_v<T, Geometry::CircleData>) bottom = d.radius;
+            else for (const sf::Vector2f& p : d.points) bottom = std::max(bottom, p.y);
+        }, g.data);
+        return t.getPosition().y + bottom * std::abs(t.getScale().y);
     }
 
     void onUpdate(Registry& registry, float dt) override {
-        struct Entry { int layer; Geometry* geo; sf::Transform transform; };
+        struct Entry { int layer; float y; Geometry* geo; sf::Transform transform; const sf::Sprite* tile; };
         std::vector<Entry> drawList;
 
         registry.view<Transform2D, Geometry>([&](Entity e, Transform2D& t, Geometry& g) {
@@ -29,12 +48,20 @@ public:
                 const ECS::Unit& unit = registry.getComponent<ECS::Unit>(e);
                 if (unit.team == ECS::Unit::Team::Enemy && !unit.visibleToPlayer) return;
             }
-            drawList.push_back({ g.layer, &g, t.getLocalMatrix() });
+            drawList.push_back({ g.layer, sortY(t, g), &g, t.getLocalMatrix(), nullptr });
             });
 
-        std::sort(drawList.begin(), drawList.end(), [](const Entry& a, const Entry& b) { return a.layer < b.layer; });
+        // Tiles « tri en Y » déposées par le TilemapRenderSystem (arbres, murs...)
+        YSortQueue& queue = YSortQueue::of(m_target);
+        for (const YSortQueue::Item& item : queue.items)
+            drawList.push_back({ YSortQueue::kEntityLayer, item.y, nullptr, sf::Transform::Identity, &item.sprite });
+
+        std::stable_sort(drawList.begin(), drawList.end(), [](const Entry& a, const Entry& b) {
+            return a.layer != b.layer ? a.layer < b.layer : a.y < b.y;
+        });
 
         for (auto& entry : drawList) {
+            if (entry.tile) { m_target.draw(*entry.tile); continue; }
             std::visit([&](auto& shapeData) {
                 using T = std::decay_t<decltype(shapeData)>;
 				if constexpr (std::is_same_v<T, Geometry::SpriteData>) 
@@ -102,6 +129,7 @@ public:
 				}
             }, entry.geo->data);
         }
+        queue.items.clear();
     }
 
 private:
@@ -114,7 +142,7 @@ private:
 	LooseFileLoader& m_textureLoader;
 };
 
-void test(Camera2d& cam)
+inline void test(Camera2d& cam)   // inline : ce header est inclus par plusieurs .cpp
 {
 	return;
 }

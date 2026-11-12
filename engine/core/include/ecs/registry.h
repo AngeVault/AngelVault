@@ -24,6 +24,8 @@ public:
             entity.index = static_cast<uint32_t>(m_generations.size());
             m_generations.push_back(0);
         }
+        if (m_alive.size() <= entity.index) m_alive.resize(entity.index + 1, 0);
+        m_alive[entity.index] = 1;
         return entity;
     }
 
@@ -39,6 +41,7 @@ public:
             for (auto& [_, pool] : m_pools)
                 pool->onEntityDestroyed(entity.index);
             m_generations[entity.index]++;
+            m_alive[entity.index] = 0;
             m_freeEntities.push(entity.index);
         }
         m_pendingDestroy.clear();
@@ -47,6 +50,13 @@ public:
     bool isValid(Entity entity) const {
         if (entity.index >= m_generations.size()) return false;
         return m_generations[entity.index] == entity.generation;
+    }
+
+    // Parcourt toutes les entités vivantes, par index croissant (utilisé par l'éditeur : Hierarchy)
+    template<typename Func>
+    void forEachEntity(Func&& func) const {
+        for (uint32_t i = 0; i < static_cast<uint32_t>(m_alive.size()); ++i)
+            if (m_alive[i]) func(Entity{ i, m_generations[i] });
     }
 
     // --- Composants ---
@@ -120,6 +130,7 @@ public:
 private:
 
     std::vector<uint32_t> m_generations;
+    std::vector<uint8_t>  m_alive;          // 1 = entité vivante (pour forEachEntity)
     std::queue<uint32_t>  m_freeEntities;
 	std::vector<Entity> m_pendingDestroy;
     std::unordered_map<std::type_index, std::unique_ptr<IComponentPool>> m_pools;

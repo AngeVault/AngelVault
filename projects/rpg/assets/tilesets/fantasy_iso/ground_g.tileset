@@ -1,0 +1,19 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Ground G",
+  "image": "assets/tilesets/fantasy_iso/ground_g.png",
+  "tileSize": [
+    256,
+    228
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 88,
+  "anchor": [
+    128,
+    193
+  ],
+  "autotile": "none"
+}

@@ -1,0 +1,20 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Flora A",
+  "image": "assets/tilesets/fantasy_iso/flora_a.png",
+  "tileSize": [
+    129,
+    73
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 4,
+  "count": 28,
+  "anchor": [
+    64,
+    41
+  ],
+  "autotile": "none",
+  "ySort": true
+}

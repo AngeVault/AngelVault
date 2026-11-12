@@ -1,0 +1,17 @@
+Icônes des fichiers du panneau Project
+======================================
+
+Déposez ici des images PNG (64x64, fond transparent conseillé), puis recompilez.
+CMake les ajoute tout seul aux ressources de l'éditeur.
+
+Nom du fichier = ce qu'il remplace :
+
+  folder.png      dossiers
+  file.png        tout fichier sans icône dédiée
+  h.png           en-têtes C++ (.h, et aussi .hpp .hh .hxx .inl si pas d'icône dédiée)
+  cpp.png         sources C++ (.cpp, et aussi .cc .cxx .c)
+  cmake.png       CMakeLists.txt
+  <extension>.png n'importe quelle extension : txt.png, json.png, qss.png, wav.png...
+
+Les images (.png, .jpg...) gardent leur aperçu au lieu d'une icône.
+Sans icône trouvée, l'éditeur utilise celle du système.
