@@ -94,6 +94,7 @@ private:
         m_target = &target;
         m_map = &map;
         m_offset = offset;
+        m_tilesetTextures.clear();   // vidé à chaque dessin : un tileset modifié ou détruit n'y reste pas
     }
 
     static uint32_t hash3(int x, int y, int t) {
@@ -102,12 +103,19 @@ private:
         return h;
     }
 
+    // appelée pour chaque tile : resolve() (fs::path) n'est fait qu'une fois par tileset et par dessin
     const sf::Texture* texture(const Tileset& ts) {
-        if (ts.image.empty()) return nullptr;
-        const std::string full = m_map->resolve(ts.image);
-        auto it = m_textures.find(full);
-        if (it == m_textures.end()) it = m_textures.emplace(full, &m_loader.loadTexture(full)).first;
-        return it->second;
+        for (const auto& [tileset, tex] : m_tilesetTextures)
+            if (tileset == &ts) return tex;
+        const sf::Texture* tex = nullptr;
+        if (!ts.image.empty()) {
+            const std::string full = m_map->resolve(ts.image);
+            auto it = m_textures.find(full);
+            if (it == m_textures.end()) it = m_textures.emplace(full, &m_loader.loadTexture(full)).first;
+            tex = it->second;
+        }
+        m_tilesetTextures.emplace_back(&ts, tex);
+        return tex;
     }
 
     // ---- batches ----
@@ -327,6 +335,7 @@ private:
 
     IResourceLoader& m_loader;
     std::unordered_map<std::string, const sf::Texture*> m_textures;
+    std::vector<std::pair<const Tileset*, const sf::Texture*>> m_tilesetTextures;   // peu de tilesets : une liste suffit
     sf::RenderTarget* m_target = nullptr;
     const TileMapData* m_map = nullptr;
     sf::Vector2f m_offset;
