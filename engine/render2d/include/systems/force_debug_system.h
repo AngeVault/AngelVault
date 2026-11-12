@@ -9,7 +9,7 @@
 
 class ForceDebugSystem : public ISystem {
 public:
-    explicit ForceDebugSystem(sf::RenderWindow& window) : m_window(window) {
+    explicit ForceDebugSystem(sf::RenderTarget& target) : m_target(target) {
         priority = 13;
     }
 

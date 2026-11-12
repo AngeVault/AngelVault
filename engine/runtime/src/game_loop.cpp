@@ -30,11 +30,11 @@ Game::~Game() {
 void Game::init() {
     InputManager::setCurrent(&m_input);   // Input::getAxis(...) lit ce Game
     syncScene();                          // taille valide dès onStart
-    m_systems.addSystem<TilemapRenderSystem>(*m_window, m_textureLoader);   // cartes (composant Tilemap), sous les entités
-    m_systems.addSystem<RenderSystem>(*m_window, m_textureLoader);
-    m_systems.addSystem<DayNightSystem>(*m_window);   // composant DayNightCycle : heure + teinte de l'écran
-    m_systems.addSystem<RenderCollisionSystem>(*m_window);
-    m_systems.addSystem<ForceDebugSystem>(*m_window);
+    m_systems.addSystem<TilemapRenderSystem>(m_scene, m_textureLoader);   // cartes (composant Tilemap), sous les entités
+    m_systems.addSystem<RenderSystem>(m_scene, m_textureLoader);
+    m_systems.addSystem<DayNightSystem>(m_scene);   // composant DayNightCycle : heure + teinte de l'écran
+    m_systems.addSystem<RenderCollisionSystem>(m_scene);
+    m_systems.addSystem<ForceDebugSystem>(m_scene);
     // Systèmes de jeu du projet (REGISTER_SYSTEM, dossier systems/ du projet)
     for (const GameSystemInfo& info : GameSystemRegistry::get().all()) m_systems.add(info.create(*this, m_scene));
     m_systems.start(m_registry);
