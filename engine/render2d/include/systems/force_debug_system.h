@@ -9,8 +9,8 @@
 
 class ForceDebugSystem : public ISystem {
 public:
-    explicit ForceDebugSystem(sf::RenderTarget& target) : m_target(target) {
-        priority = 12;
+    explicit ForceDebugSystem(sf::RenderWindow& window) : m_window(window) {
+        priority = 13;
     }
 
     float scale = 0.12f; // pixels par unité de force — plus grand = flèches plus longues

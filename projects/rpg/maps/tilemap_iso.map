@@ -13,7 +13,9 @@
   "tilesets": [
     "assets/tilesets/iso_demo/terre.tileset",
     "assets/tilesets/iso_demo/herbe.tileset",
-    "assets/tilesets/iso_demo/herbe_seche.tileset"
+    "assets/tilesets/iso_demo/herbe_seche.tileset",
+    "assets/tilesets/fantasy_iso/ground_j.tileset",
+    "assets/tilesets/fantasy_iso/ground_h.tileset"
   ],
   "cells": [
     "32*1:a",

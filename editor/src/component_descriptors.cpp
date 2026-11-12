@@ -6,6 +6,7 @@
 #include "components/camera_follow.h"
 #include "components/camera_shake.h"
 #include "components/collider2d.h"
+#include "components/day_night_cycle.h"
 #include "components/geometry.h"
 #include "components/name.h"
 #include "components/rigid_body2d.h"
@@ -700,6 +701,33 @@ std::vector<ComponentDesc> build() {
             f.push_back(floatRef<C>(r, e, QObject::tr("Rotation max (°)"), [](C& c) -> float& { return c.maxRotation; }, 0, 180, 0.5));
             f.push_back(floatRef<C>(r, e, QObject::tr("Fréquence (Hz)"), [](C& c) -> float& { return c.frequency; }, 0, 200, 1));
             f.push_back(floatRef<C>(r, e, QObject::tr("Exposant"), [](C& c) -> float& { return c.exponent; }, 0.1, 10, 0.1));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- DayNightCycle
+    {
+        ComponentDesc d{ "DayNightCycle" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<DayNightCycle>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<DayNightCycle>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<DayNightCycle>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            using C = DayNightCycle;
+            std::vector<FieldDesc> f;
+            f.push_back(floatRef<C>(r, e, QObject::tr("Heure"), [](C& c) -> float& { return c.hour; }, 0, 24, 0.5));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Min. réelles / heure"), [](C& c) -> float& { return c.minutesPerGameHour; }, 0.01, 1e4, 1));
+            f.push_back(boolRef<C>(r, e, QObject::tr("En pause"), [](C& c) -> bool& { return c.paused; }));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Aube"), [](C& c) -> float& { return c.dawnHour; }, 0, 24, 0.5));
+            f.push_back(colorRef<C>(r, e, QObject::tr("Couleur aube"), [](C& c) -> sf::Color& { return c.dawnColor; }));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Jour"), [](C& c) -> float& { return c.dayHour; }, 0, 24, 0.5));
+            f.push_back(colorRef<C>(r, e, QObject::tr("Couleur jour"), [](C& c) -> sf::Color& { return c.dayColor; }));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Soir"), [](C& c) -> float& { return c.duskHour; }, 0, 24, 0.5));
+            f.push_back(colorRef<C>(r, e, QObject::tr("Couleur soir"), [](C& c) -> sf::Color& { return c.duskColor; }));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Nuit"), [](C& c) -> float& { return c.nightHour; }, 0, 24, 0.5));
+            f.push_back(colorRef<C>(r, e, QObject::tr("Couleur nuit"), [](C& c) -> sf::Color& { return c.nightColor; }));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Transition (h)"), [](C& c) -> float& { return c.transitionHours; }, 0, 12, 0.25));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Vignettage"), [](C& c) -> float& { return c.vignette; }, 0, 1, 0.05));
             return f;
         };
         list.push_back(d);

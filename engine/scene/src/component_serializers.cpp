@@ -6,6 +6,7 @@
 #include "components/camera_follow.h"
 #include "components/camera_shake.h"
 #include "components/collider2d.h"
+#include "components/day_night_cycle.h"
 #include "components/geometry.h"
 #include "components/name.h"
 #include "components/rigid_body2d.h"
@@ -250,6 +251,26 @@ void registerBuiltins(SerializerRegistry& reg) {
     reg.addReflected<CameraBounds>("CameraBounds");
     reg.addReflected<CameraControl>("CameraControl");
     reg.addReflected<CameraShake>("CameraShake");
+
+    // ---- DayNightCycle
+    reg.add<DayNightCycle>("DayNightCycle",
+        [](DayNightCycle& c, const SaveContext&) {
+            Json j = Json::object();
+            for (const PropertyInfo& p : reflectComponent<DayNightCycle>(c).fields) j[p.name] = property(p);
+            j["dawnColor"] = color(c.dawnColor);
+            j["dayColor"] = color(c.dayColor);
+            j["duskColor"] = color(c.duskColor);
+            j["nightColor"] = color(c.nightColor);
+            return j;
+        },
+        [](DayNightCycle& c, const Json& j, const LoadContext&) {
+            for (PropertyInfo& p : reflectComponent<DayNightCycle>(c).fields)
+                if (j.contains(p.name)) readProperty(j[p.name], p);
+            c.dawnColor = color(j.value("dawnColor", Json()), c.dawnColor);
+            c.dayColor = color(j.value("dayColor", Json()), c.dayColor);
+            c.duskColor = color(j.value("duskColor", Json()), c.duskColor);
+            c.nightColor = color(j.value("nightColor", Json()), c.nightColor);
+        });
 
     // ---- Tilemap : seulement le fichier .map (les cases sont dedans) et « visible »
     reg.add<Tilemap>("Tilemap",

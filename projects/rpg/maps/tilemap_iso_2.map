@@ -12,7 +12,11 @@
   "orientation": "isometric",
   "tilesets": [
     "assets/tilesets/fantasy_iso/tree_a.tileset",
-    "assets/tilesets/fantasy_iso/tree_b.tileset"
+    "assets/tilesets/fantasy_iso/tree_b.tileset",
+    "assets/tilesets/fantasy_iso/ground_f.tileset",
+    "assets/tilesets/fantasy_iso/ground_h.tileset",
+    "assets/tilesets/fantasy_iso/ground_i.tileset",
+    "assets/tilesets/fantasy_iso/wall_f.tileset"
   ],
   "cells": [
     "1*1:19 30*1:12 1*1:16",
@@ -37,15 +41,15 @@
     "1*1:15 30*0 1*1:13",
     "1*1:15 30*0 1*1:13",
     "1*1:15 30*0 1*1:13",
+    "1*1:15 2*0 1*0:2 27*0 1*1:13",
     "1*1:15 30*0 1*1:13",
+    "1*1:15 3*0 1*0:9 26*0 1*1:13",
     "1*1:15 30*0 1*1:13",
+    "1*1:15 2*0 1*0:0 27*0 1*1:13",
+    "1*1:15 1*0 1*0:3 3*0 1*0:11 24*0 1*1:13",
     "1*1:15 30*0 1*1:13",
-    "1*1:15 30*0 1*1:13",
-    "1*1:15 30*0 1*1:13",
-    "1*1:15 30*0 1*1:13",
-    "1*1:15 30*0 1*1:13",
-    "1*1:15 30*0 1*1:13",
-    "1*1:15 30*0 1*1:13",
+    "1*1:15 1*0 1*0:10 1*0 1*0:5 1*0 1*0:0 24*0 1*1:13",
+    "1*1:15 1*0 1*0:10 28*0 1*1:13",
     "1*1:18 30*1:14 1*1:17"
   ]
 }
