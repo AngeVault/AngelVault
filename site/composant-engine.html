@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Créer un composant (côté engine) — AngeVault Engine</title>
+<meta name="description" content="Comment créer un composant dans le moteur AngeVault : struct, reflectComponent, PropertyInfo, SerializerRegistry (add, addReflected, liens entre entités avec PersistentId), ComponentDesc dans l&#x27;éditeur, tests et liste de contrôle.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html" class="current" aria-current="page">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Créer un composant (côté engine)</div><span class="eyebrow">Documentation</span><h1>Créer un composant (côté engine)</h1><p class="lead">Ajouter un composant au moteur : la structure de données, sa réflexion (reflectComponent), sa sauvegarde dans les scènes, son affichage dans l'Inspector de l'éditeur et ses tests. Le pendant « données » de la page sur les systèmes.</p></div></section>
+<div class="wrap doc"><article class="prose"><h2 id="un-composant-quatre-branchements">Un composant, quatre branchements</h2>
+<p>Un composant est une simple structure de données posée sur des entités. Côté moteur, il faut ensuite le « présenter » à trois endroits qui ne connaissent pas son type : la réflexion, la sauvegarde et l'éditeur. Dans un projet, <code>REGISTER_COMPONENT</code> fait tout d'un coup ; dans le moteur, on le fait <strong>à la main</strong>, une fois par endroit :</p>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Étape</th><th>Fichier</th><th>Sans elle…</th></tr>
+<tr><td>1</td><td>La structure</td><td><code>engine/&lt;module&gt;/include/components/mon_composant.h</code></td><td>rien n'existe</td></tr>
+<tr><td>2</td><td>La réflexion : <code>reflectComponent&lt;T&gt;</code></td><td>le même en-tête</td><td>ni sauvegarde automatique, ni liste de champs</td></tr>
+<tr><td>3</td><td>La sauvegarde (<code>SerializerRegistry</code>)</td><td><code>engine/scene/src/component_serializers.cpp</code></td><td>le composant disparaît à l'enregistrement de la scène</td></tr>
+<tr><td>4</td><td>L'Inspector (<code>ComponentDesc</code>)</td><td><code>editor/src/component_descriptors.cpp</code></td><td>invisible dans l'éditeur, impossible à ajouter ou à régler</td></tr>
+</table></div>
+<p>Le composant fictif de cette page est <code>Lifetime</code>, celui qui alimente <code>LifetimeSystem</code> (voir <a href="systeme-engine.html">Créer un système (côté engine)</a>). Pour un cas réel complet, suivez en parallèle <code>CameraShake</code> (champs simples) et <code>CameraFollow</code> (lien vers une autre entité).</p>
+
+<h2 id="moteur-ou-projet">Moteur ou projet ?</h2>
+<div class="table-wrap"><table>
+<tr><th></th><th>Composant de jeu (projet)</th><th>Composant du moteur</th></tr>
+<tr><td>Déclaration</td><td><code>REGISTER_COMPONENT</code> + <code>FIELD</code> dans <code>components/</code></td><td><code>struct</code> + <code>reflectComponent</code> à la main</td></tr>
+<tr><td>Sauvegarde</td><td>automatique (champ par champ)</td><td>une ligne dans <code>registerBuiltins</code></td></tr>
+<tr><td>Inspector</td><td>automatique</td><td>un bloc <code>ComponentDesc</code> dans l'éditeur</td></tr>
+<tr><td>Types de champs</td><td><code>float, int, bool, sf::Vector2f, std::string</code></td><td>tout ce que vous savez écrire en JSON et en widget</td></tr>
+<tr><td>Guide</td><td><a href="codejeu.html">Code de jeu</a></td><td>cette page</td></tr>
+</table></div>
+
+<h2 id="etape-1-la-structure">Étape 1 : la structure</h2>
+<p>Un en-tête par composant, dans <code>include/components/</code> du module qui le possède (<code>Core</code> pour les composants de base, <code>Render2D</code> pour la caméra…). Une <code>struct</code> avec des valeurs par défaut sensées :</p>
+<div class="code"><div class="code-head"><span class="file">engine/core/include/components/lifetime.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#pragma</span> once
+<span class="c">// Durée de vie : l'entité est détruite quand `remaining` atteint 0 (LifetimeSystem).</span>
+<span class="p">#include</span> <span class="s">"ecs/reflect.h"</span>
+
+<span class="k">struct</span> <span class="t">Lifetime</span> {
+    <span class="k">float</span> remaining = <span class="n">5</span>.f;   <span class="c">// secondes avant destruction</span>
+    <span class="k">bool</span>  fade = <span class="k">false</span>;      <span class="c">// (pour le rendu) s'estomper pendant la dernière seconde</span>
+};</code></pre></div>
+<ul>
+<li><strong>Des données, pas de logique.</strong> Quelques petites méthodes utilitaires sont acceptables (<code>CameraShake::add(amount)</code>, <code>CameraFollow::setTarget</code>) ; la logique d'ensemble va dans un système.</li>
+<li><strong>Une valeur par défaut à chaque champ</strong> : le composant est créé sans arguments par <code>registry.addComponent&lt;T&gt;(e)</code> et par l'éditeur.</li>
+<li><strong>Séparez réglage et état.</strong> <code>CameraFollow</code> a des champs réglables (<code>smoothTime</code>, <code>deadZone</code>…) et des champs d'état (<code>velocity</code>, <code>started</code>). Seuls les premiers sont réfléchis : l'état ne doit pas être sauvegardé.</li>
+<li><strong>Un lien vers une autre entité</strong> se déclare <code>Entity target = NULL_ENTITY;</code>. Jamais <code>Entity{}</code> : c'est l'entité d'index 0.</li>
+</ul>
+
+<h2 id="etape-2-la-reflexion">Étape 2 : la réflexion</h2>
+<p><code>reflectComponent&lt;T&gt;</code> renvoie la liste des champs réglables, avec un pointeur vers chacun. C'est ce que lisent la sauvegarde générique et les outils qui ne connaissent pas le type. Une spécialisation de fonction, dans le même en-tête, juste sous la structure :</p>
+<div class="code"><div class="code-head"><span class="file">engine/core/include/components/lifetime.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">template</span>&lt;&gt;
+<span class="k">inline</span> <span class="t">ReflectedComponent</span> reflectComponent&lt;<span class="t">Lifetime</span>&gt;(<span class="t">Lifetime</span>&amp; c) {
+    <span class="k">return</span> { <span class="s">"Lifetime"</span>, {
+        { <span class="s">"remaining"</span>, <span class="t">PropertyInfo</span>::<span class="t">Type</span>::<span class="t">Float</span>, &amp;c.remaining },
+        { <span class="s">"fade"</span>,      <span class="t">PropertyInfo</span>::<span class="t">Type</span>::<span class="t">Bool</span>,  &amp;c.fade      },
+    } };
+}</code></pre></div>
+<div class="table-wrap"><table>
+<tr><th><code>PropertyInfo::Type</code></th><th>Type C++</th></tr>
+<tr><td><code>Float</code></td><td><code>float</code></td></tr>
+<tr><td><code>Int</code></td><td><code>int</code></td></tr>
+<tr><td><code>Bool</code></td><td><code>bool</code></td></tr>
+<tr><td><code>Vec2f</code></td><td><code>sf::Vector2f</code></td></tr>
+<tr><td><code>String</code></td><td><code>std::string</code></td></tr>
+</table></div>
+<div class="callout warn"><i class="fa-solid fa-triangle-exclamation"></i><div><p><strong>Le nom compte.</strong> La chaîne de <code>{ "remaining", … }</code> est la clé écrite dans le fichier <code>.scene</code>. La renommer casse les scènes existantes (la valeur est ignorée au chargement, sans erreur). Ne réfléchissez ni les couleurs, ni les énumérations, ni les <code>Entity</code> : ces types ne sont pas dans <code>PropertyInfo</code> ; ils passent par un serializer écrit à la main (étape 3, variante B).</p></div></div>
+<p><code>ComponentRegistry::registerComponent&lt;T&gt;()</code> existe aussi (il sert à <code>reflectEntity</code>), mais il n'est appelé nulle part aujourd'hui : l'éditeur passe par ses propres <code>ComponentDesc</code> (étape 4). Vous n'avez rien à y ajouter.</p>
+
+<h2 id="etape-3-la-sauvegarde">Étape 3 : la sauvegarde</h2>
+<p>Le <code>SerializerRegistry</code> associe un <strong>nom de composant</strong> à une fonction « écrire en JSON » et une fonction « relire ». Les composants du moteur sont enregistrés dans <code>registerBuiltins</code>, dans <code>engine/scene/src/component_serializers.cpp</code>. Deux cas.</p>
+<h3 id="a-tous-les-champs-reflechis-suffisent-addreflected">A. Tous les champs réfléchis suffisent : <code>addReflected</code></h3>
+<div class="code"><div class="code-head"><span class="file">engine/scene/src/component_serializers.cpp</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#include</span> <span class="s">"components/lifetime.h"</span>        <span class="c">// avec les autres #include du fichier</span>
+
+<span class="c">// ... dans registerBuiltins(SerializerRegistry&amp; reg) :</span>
+reg.addReflected&lt;<span class="t">Lifetime</span>&gt;(<span class="s">"Lifetime"</span>);
+reg.addReflected&lt;<span class="t">CameraShake</span>&gt;(<span class="s">"CameraShake"</span>);   <span class="c">// un exemple existant</span></code></pre></div>
+<p>Une ligne. Tous les champs de <code>reflectComponent</code> sont écrits dans un objet JSON ; au chargement, les clés absentes gardent leur valeur par défaut. Les <strong>anciennes scènes</strong> sans le composant continuent donc de se charger, et une nouvelle clé dans un composant existant n'invalide aucun fichier.</p>
+<h3 id="b-le-composant-contient-une-entity-add-avec-deux-fonctions">B. Le composant contient une Entity : <code>add</code> avec deux fonctions</h3>
+<p>Un index d'entité n'a aucun sens d'une session à l'autre (cases recyclées, ordre de création). Les liens passent par le <code>PersistentId</code> : <code>ctx.idOf(entité)</code> à l'écriture, <code>ctx.entityOf(id)</code> à la lecture. Voici le vrai code de <code>CameraFollow</code> :</p>
+<div class="code"><div class="code-head"><span class="file">engine/scene/src/component_serializers.cpp</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code>reg.add&lt;<span class="t">CameraFollow</span>&gt;(<span class="s">"CameraFollow"</span>,
+    [](<span class="t">CameraFollow</span>&amp; c, <span class="k">const</span> <span class="t">SaveContext</span>&amp; ctx) {          <span class="c">// sauvegarde</span>
+        <span class="t">Json</span> j = <span class="t">Json</span>::object();
+        <span class="k">const</span> <span class="k">uint64_t</span> target = ctx.idOf ? ctx.idOf(c.target) : <span class="n">0</span>;
+        j[<span class="s">"target"</span>] = target ? <span class="t">Json</span>(target) : <span class="t">Json</span>(<span class="k">nullptr</span>);   <span class="c">// 0 = aucune entité</span>
+        <span class="k">for</span> (<span class="k">const</span> <span class="t">PropertyInfo</span>&amp; p : reflectComponent&lt;<span class="t">CameraFollow</span>&gt;(c).fields) j[p.name] = property(p);
+        <span class="k">return</span> j;
+    },
+    [](<span class="t">CameraFollow</span>&amp; c, <span class="k">const</span> <span class="t">Json</span>&amp; j, <span class="k">const</span> <span class="t">LoadContext</span>&amp; ctx) {   <span class="c">// chargement</span>
+        <span class="k">for</span> (<span class="t">PropertyInfo</span>&amp; p : reflectComponent&lt;<span class="t">CameraFollow</span>&gt;(c).fields)
+            <span class="k">if</span> (j.contains(p.name)) readProperty(j[p.name], p);
+        c.setTarget(entityRef(j, <span class="s">"target"</span>, ctx, <span class="s">"CameraFollow"</span>));  <span class="c">// PersistentId -&gt; Entity (avec un avertissement si introuvable)</span>
+    });</code></pre></div>
+<p>Les aides de l'espace de noms <code>SceneJson</code> (<code>property</code>, <code>readProperty</code>, <code>value&lt;T&gt;(j, "clé", défaut)</code>, <code>color(...)</code>) évitent d'écrire le JSON à la main ; <code>Json</code> est un <code>nlohmann::ordered_json</code> (l'ordre des clés est conservé : les fichiers restent lisibles et se comparent bien dans git).</p>
+<div class="callout"><i class="fa-solid fa-circle-info"></i><div><p><strong>Le serializer sait aussi migrer.</strong> Quand la caméra a été découpée en <code>Camera2d</code> + <code>CameraFollow</code> + <code>CameraBounds</code> + <code>CameraControl</code>, le chargement de <code>Camera2d</code> a gagné une fonction <code>migrateOldCamera</code> : un ancien fichier recrée les nouveaux composants. Si vous changez la forme d'un composant existant, faites de même dans sa fonction de chargement plutôt que de casser les scènes.</p></div></div>
+
+<h2 id="etape-4-linspector-de-lediteur">Étape 4 : l'Inspector de l'éditeur</h2>
+<p>L'Inspector (Qt) n'utilise pas <code>reflectComponent</code> : il a une description à lui, <code>ComponentDesc</code>, qui sait <em>tester</em>, <em>ajouter</em>, <em>retirer</em> le composant et construire la liste de ses champs <strong>avec un getter et un setter pour chacun</strong> (ça marche donc aussi pour des champs privés ou des variantes). On ajoute un bloc dans <code>build()</code>, dans <code>editor/src/component_descriptors.cpp</code>, à côté des autres :</p>
+<div class="code"><div class="code-head"><span class="file">editor/src/component_descriptors.cpp</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#include</span> <span class="s">"components/lifetime.h"</span>        <span class="c">// avec les autres #include du fichier</span>
+
+<span class="c">// ... dans build(), avant « return list; » :</span>
+{
+    <span class="t">ComponentDesc</span> d{ <span class="s">"Lifetime"</span> };
+    d.has    = [](<span class="t">Registry</span>&amp; r, <span class="t">Entity</span> e) { <span class="k">return</span> r.hasComponent&lt;<span class="t">Lifetime</span>&gt;(e); };
+    d.add    = [](<span class="t">Registry</span>&amp; r, <span class="t">Entity</span> e) { r.addComponent&lt;<span class="t">Lifetime</span>&gt;(e); };      <span class="c">// vide = « pas ajoutable depuis l'éditeur »</span>
+    d.remove = [](<span class="t">Registry</span>&amp; r, <span class="t">Entity</span> e) { r.removeComponent&lt;<span class="t">Lifetime</span>&gt;(e); };
+    d.fields = [](<span class="t">Registry</span>&amp; r, <span class="t">Entity</span> e) {
+        <span class="k">using</span> C = <span class="t">Lifetime</span>;
+        <span class="k">std</span>::vector&lt;<span class="t">FieldDesc</span>&gt; f;
+        f.push_back(floatRef&lt;C&gt;(r, e, <span class="t">QObject</span>::tr(<span class="s">"Durée restante (s)"</span>), [](C&amp; c) -&gt; <span class="k">float</span>&amp; { <span class="k">return</span> c.remaining; }, <span class="n">0</span>, <span class="n">3600</span>, <span class="n">0.5</span>));
+        f.push_back(boolRef&lt;C&gt;(r, e, <span class="t">QObject</span>::tr(<span class="s">"S'estomper"</span>), [](C&amp; c) -&gt; <span class="k">bool</span>&amp; { <span class="k">return</span> c.fade; }));
+        <span class="k">return</span> f;
+    };
+    list.push_back(d);
+}</code></pre></div>
+<p>Les aides déjà écrites dans ce fichier couvrent les types usuels :</p>
+<div class="table-wrap"><table>
+<tr><th>Aide</th><th>Champ</th><th>Paramètres utiles</th></tr>
+<tr><td><code>floatRef&lt;C&gt;</code></td><td>nombre décimal</td><td><code>min, max, step</code></td></tr>
+<tr><td><code>intRef&lt;C&gt;</code></td><td>entier</td><td></td></tr>
+<tr><td><code>boolRef&lt;C&gt;</code></td><td>case à cocher</td><td><code>readOnly</code></td></tr>
+<tr><td><code>vecRef&lt;C&gt;</code></td><td><code>sf::Vector2f</code> (deux cases X / Y)</td><td><code>step</code></td></tr>
+<tr><td><code>colorRef&lt;C&gt;</code></td><td><code>sf::Color</code> (sélecteur)</td><td></td></tr>
+<tr><td><code>stringRef&lt;C&gt;</code></td><td>texte</td><td></td></tr>
+<tr><td><code>label(nom, texte)</code></td><td>texte en lecture seule</td><td>pour une <code>Entity</code> : afficher le nom de la cible (voir <code>CameraFollow</code>)</td></tr>
+<tr><td><code>FieldDesc</code> <code>Choice</code></td><td>liste déroulante (valeur = index)</td><td><code>choices</code>, <code>rebuildOnChange</code> si le choix change les champs affichés (forme de <code>Geometry</code>)</td></tr>
+</table></div>
+<ul>
+<li>Le <code>QObject::tr(…)</code> rend les libellés traduisibles. Le texte est celui que voit l'utilisateur ; le nom du composant (<code>ComponentDesc d{ "Lifetime" }</code>) est celui du menu <em>Ajouter un composant</em>.</li>
+<li>Si votre composant <strong>exige</strong> un autre composant (<code>CameraFollow</code> a besoin d'un <code>Transform2D</code>), faites-le dans <code>d.add</code> : <code>withTransform(r, e); r.addComponent&lt;CameraFollow&gt;(e);</code>.</li>
+<li>Un champ en lecture seule se fait en laissant <code>set</code> vide, ou avec <code>boolRef(..., true)</code>.</li>
+<li>L'éditeur met à jour l'Inspector depuis les getters : il reflète donc aussi les changements faits <em>pendant</em> l'exécution (F5), par exemple un <code>remaining</code> qui descend.</li>
+</ul>
+
+<h2 id="etape-5-tester">Étape 5 : tester</h2>
+<p>Pour la structure et la réflexion, un test sans éditeur ni fenêtre suffit ; pour la sauvegarde, <code>tests/test_scene.cpp</code> montre comment écrire une scène puis la relire. Un test de réflexion :</p>
+<div class="code"><div class="code-head"><span class="file">tests/test_lifetime.cpp</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#include</span> <span class="s">"components/lifetime.h"</span>
+<span class="p">#include</span> <span class="s">"ecs/registry.h"</span>
+<span class="p">#include</span> &lt;cstdio&gt;
+
+<span class="k">static</span> <span class="k">int</span> g_failures = <span class="n">0</span>;
+<span class="p">#define</span> <span class="t">CHECK</span>(cond) <span class="k">do</span> { <span class="k">if</span> (!(cond)) { <span class="k">std</span>::printf(<span class="s">"ECHEC ligne %d : %s\n"</span>, __LINE__, #cond); ++g_failures; } } <span class="k">while</span> (<span class="n">0</span>)
+
+<span class="k">int</span> main() {
+    <span class="t">Registry</span> r;
+    <span class="k">const</span> <span class="t">Entity</span> e = r.createEntity();
+    r.addComponent&lt;<span class="t">Lifetime</span>&gt;(e);
+
+    <span class="t">ReflectedComponent</span> info = reflectComponent&lt;<span class="t">Lifetime</span>&gt;(r.getComponent&lt;<span class="t">Lifetime</span>&gt;(e));
+    <span class="t">CHECK</span>(info.name == <span class="s">"Lifetime"</span>);
+    <span class="t">CHECK</span>(info.fields.size() == <span class="n">2</span>);
+    <span class="t">CHECK</span>(info.fields[<span class="n">0</span>].name == <span class="s">"remaining"</span>);
+    info.fields[<span class="n">0</span>].as&lt;<span class="k">float</span>&gt;() = <span class="n">2</span>.f;                        <span class="c">// écrit dans le composant</span>
+    <span class="t">CHECK</span>(r.getComponent&lt;<span class="t">Lifetime</span>&gt;(e).remaining == <span class="n">2</span>.f);
+
+    <span class="k">return</span> g_failures == <span class="n">0</span> ? <span class="n">0</span> : <span class="n">1</span>;
+}</code></pre></div>
+<p>Même <code>CMakeLists.txt</code> que pour un système (<code>add_executable</code> + <code>target_link_libraries(… AngeVault::Core)</code> + <code>add_test</code>). Un champ qui n'est pas dans <code>reflectComponent</code> n'est pas sauvegardé : ce test attrape l'oubli le plus courant.</p>
+
+<h2 id="liste-de-controle">Liste de contrôle</h2>
+<ul>
+<li>□ <code>include/components/mon_composant.h</code> : <code>struct</code>, valeurs par défaut, état séparé du réglage.</li>
+<li>□ <code>reflectComponent&lt;T&gt;</code> dans le même en-tête, noms de champs stables.</li>
+<li>□ <code>registerBuiltins</code> : <code>addReflected&lt;T&gt;("Nom")</code>, ou <code>add&lt;T&gt;</code> avec <code>idOf</code> / <code>entityOf</code> pour les liens entre entités.</li>
+<li>□ <code>component_descriptors.cpp</code> : un bloc <code>ComponentDesc</code> avec <code>has</code>, <code>add</code>, <code>remove</code>, <code>fields</code>.</li>
+<li>□ Le module du composant est une dépendance de <code>Scene</code> (<code>av_module(Scene DEPS …)</code> dans <code>engine/scene/CMakeLists.txt</code>). L'éditeur lie <code>AngeVault::Engine</code> : il voit déjà tous les modules.</li>
+<li>□ Un système l'utilise (ou un comportement) : <a href="systeme-engine.html">Créer un système (côté engine)</a>.</li>
+<li>□ Test dans <code>tests/</code>, puis dans l'éditeur : ajouter, régler, enregistrer, rouvrir la scène.</li>
+<li>□ Documenté dans <a href="composants.html">Référence des composants</a>.</li>
+</ul>
+<div class="callout warn"><i class="fa-solid fa-triangle-exclamation"></i><div><p><strong>Le plus fréquent : oublier une étape.</strong> Sans l'étape 3, le composant semble fonctionner puis disparaît à la sauvegarde. Sans l'étape 4, il marche en jeu mais reste invisible dans l'éditeur. Sans l'étape 2, ni l'une ni l'autre ne compile ou ne fonctionne.</p></div></div>
+<div class="pager"><a class="prev" href="systeme-engine.html"><small>Précédent</small>← Créer un système (engine)</a><a class="next" href="comportements.html"><small>Suivant</small>Comportements C++ →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#un-composant-quatre-branchements">Un composant, quatre branchements</a><a href="#moteur-ou-projet">Moteur ou projet ?</a><a href="#etape-1-la-structure">Étape 1 : la structure</a><a href="#etape-2-la-reflexion">Étape 2 : la réflexion</a><a href="#etape-3-la-sauvegarde">Étape 3 : la sauvegarde</a><a href="#a-tous-les-champs-reflechis-suffisent-addreflected" class="sub">A. Tous les champs réfléchis suffisent : addReflected</a><a href="#b-le-composant-contient-une-entity-add-avec-deux-fonctions" class="sub">B. Le composant contient une Entity : add avec deux fonctions</a><a href="#etape-4-linspector-de-lediteur">Étape 4 : l&#x27;Inspector de l&#x27;éditeur</a><a href="#etape-5-tester">Étape 5 : tester</a><a href="#liste-de-controle">Liste de contrôle</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div>
+ <div><h4>Documentation</h4><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tilemaps &amp; tilesets — AngeVault Engine</title>
+<meta name="description" content="Guide des tilemaps d&#x27;AngeVault : format .map et .tileset, cases TileCell, orthogonal et isométrique, autotile Edges16 et Corners16, tri en Y, composant Tilemap et outil convert_tilemaps.py.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html" class="current" aria-current="page">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Tilemaps &amp; tilesets</div><span class="eyebrow">Documentation</span><h1>Tilemaps &amp; tilesets</h1><p class="lead">Comment AngeVault décrit et dessine les cartes : fichiers .map et .tileset, autotile, isométrique, tri en Y, et l'outil de conversion.</p></div></section>
+<div class="wrap doc"><article class="prose"><h2 id="le-principe-la-carte-ne-contient-que-des-numeros">Le principe : la carte ne contient que des numéros</h2>
+<p>Une carte ne sait pas à quoi ressemblent ses cases. Elle contient seulement, pour chaque case, <em>« tel tileset, telle tile »</em>. L'apparence vient des <strong>tilesets</strong> : des feuilles d'images (PNG) découpées en grille. Changer d'herbe, c'est changer de tileset, sans toucher à la carte.</p>
+<figure class="diagram">
+<svg viewBox="0 0 900 200" role="img" aria-label="Une entité porte un composant Tilemap qui désigne un fichier .map ; le .map liste des fichiers .tileset ; chaque tileset désigne une image PNG">
+  <defs><marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ar"/></marker></defs>
+  <rect class="a" x="20" y="60" width="190" height="80" rx="12"/><text class="h" x="40" y="92">Entité</text><text class="m" x="40" y="112">Transform2D + Tilemap</text><text class="m" x="40" y="128">position de la carte</text>
+  <rect class="b" x="260" y="60" width="190" height="80" rx="12"/><text class="h" x="280" y="92">fichier .map</text><text class="m" x="280" y="112">taille, orientation,</text><text class="m" x="280" y="128">cases (tileset, tile)</text>
+  <rect class="b" x="500" y="20" width="170" height="64" rx="12"/><text class="h" x="518" y="48">herbe.tileset</text><text class="m" x="518" y="68">autotile</text>
+  <rect class="b" x="500" y="116" width="170" height="64" rx="12"/><text class="h" x="518" y="144">arbres.tileset</text><text class="m" x="518" y="164">tri en Y</text>
+  <rect class="b" x="720" y="20" width="160" height="64" rx="12"/><text class="h" x="738" y="48">herbe.png</text><text class="m" x="738" y="68">feuille de tiles</text>
+  <rect class="b" x="720" y="116" width="160" height="64" rx="12"/><text class="h" x="738" y="144">arbres.png</text><text class="m" x="738" y="164">feuille de tiles</text>
+  <path class="ln" marker-end="url(#arr2)" d="M210 100 H258"/>
+  <path class="ln" marker-end="url(#arr2)" d="M450 90 L498 60"/>
+  <path class="ln" marker-end="url(#arr2)" d="M450 110 L498 140"/>
+  <path class="ln" marker-end="url(#arr2)" d="M670 52 H718"/>
+  <path class="ln" marker-end="url(#arr2)" d="M670 148 H718"/>
+</svg>
+<figcaption>De l'entité à l'image : chaque flèche est un chemin écrit dans un fichier, relatif au dossier du projet.</figcaption>
+</figure>
+
+<h2 id="le-composant-tilemap">Le composant <code>Tilemap</code></h2>
+<p>Une tilemap est un <strong>composant</strong>, pas un objet à part : on le pose sur une entité. Pas de composant, pas de carte. Le <code>Transform2D</code> de l'entité donne la position de la carte dans le monde, et une scène peut en contenir zéro, une ou plusieurs (une par étage, par exemple).</p>
+<div class="code"><div class="code-head"><span class="file">tilemap/tilemap.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">struct</span> <span class="t">Tilemap</span> {
+    <span class="k">std</span>::string file;                      <span class="c">// .map, relatif au projet (ex. "maps/village.map")</span>
+    <span class="k">bool</span> visible = <span class="k">true</span>;                   <span class="c">// décocher pour la masquer sans la supprimer</span>
+    <span class="k">std</span>::shared_ptr&lt;<span class="t">TileMapData</span>&gt; data;     <span class="c">// chargée depuis `file` par loadTilemaps()</span>
+};</code></pre></div>
+<p>Dans la scène on n'enregistre que <code>file</code> et <code>visible</code>. Les cases restent dans le fichier <code>.map</code>, que l'éditeur écrit quand on enregistre.</p>
+
+<h2 id="cases-tilecell">Cases : <code>TileCell</code></h2>
+<p>Une case est un entier de 32 bits : les 16 bits du haut désignent le tileset (compté <em>+ 1</em>, 0 = case vide), les 16 bits du bas la tile dans la feuille, ou la valeur spéciale <code>kAutoTile</code> (0xFFFF) pour « autotile ».</p>
+<div class="code"><div class="code-head"><span class="file">tilemap/tilemap.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="t">TileCell</span> c = makeCell(<span class="n">2</span>, <span class="n">15</span>);     <span class="c">// tileset n°2, tile 15</span>
+cellSlot(c);                      <span class="c">// 2     (-1 si la case est vide)</span>
+cellTile(c);                      <span class="c">// 15</span>
+cellIsAuto(makeCell(<span class="n">2</span>, kAutoTile));   <span class="c">// vrai : le terrain du tileset n°2, pièce choisie selon les voisines</span></code></pre></div>
+<p>Les méthodes de <code>TileMapData</code> : <code>get(x, y)</code>, <code>set(x, y, cellule)</code> (renvoie faux si hors carte ou inchangé), <code>fill</code>, <code>resize</code> (garde le coin haut-gauche), et la gestion des tilesets (<code>addTileset</code>, <code>removeTileset</code>, <code>moveTileset</code>, <code>tilesetSlot</code>). <code>version</code> est incrémenté à chaque modification : le rendu et l'éditeur s'en servent pour ne refaire que ce qui a changé.</p>
+
+<h2 id="le-fichier-map">Le fichier <code>.map</code></h2>
+<p>Format <code>angeVault.tilemap</code>, version 2. Les cases sont écrites <strong>une ligne de texte par rangée</strong>, compressées : <code>0</code> = vide, <code>2:15</code> = tileset 2 (compté depuis 0), tile 15, <code>2:a</code> = tileset 2 en autotile, <code>12*2:a</code> = 12 fois la même case.</p>
+<div class="code"><div class="code-head"><span class="file">maps/exemple.map</span><span class="lang">JSON</span><button class="copy" type="button">Copier</button></div><pre><code>{
+  <span class="t">"format"</span>: <span class="s">"angeVault.tilemap"</span>,
+  <span class="t">"version"</span>: <span class="n">2</span>,
+  <span class="t">"orientation"</span>: <span class="s">"isometric"</span>,
+  <span class="t">"tileSize"</span>: [<span class="n">128</span>, <span class="n">64</span>],
+  <span class="t">"size"</span>: [<span class="n">6</span>, <span class="n">4</span>],
+  <span class="t">"tilesets"</span>: [
+    <span class="s">"assets/tilesets/iso_demo/herbe.tileset"</span>,
+    <span class="s">"assets/tilesets/iso_demo/arbres.tileset"</span>
+  ],
+  <span class="t">"cells"</span>: [
+    <span class="s">"6*0:a"</span>,
+    <span class="s">"0:a 0:a 0:a 0:a 0:a 0:a"</span>,
+    <span class="s">"0:a 0:a 1:3 0:a 0:a 0:a"</span>,
+    <span class="s">"6*0:a"</span>
+  ]
+}</code></pre></div>
+<div class="callout warn"><i class="fa-solid fa-triangle-exclamation"></i><div><p><strong>Anciennes cartes.</strong> Les cartes de version 1 (« une image par tile », 8 types de terrain codés en dur) ne sont plus lues : le chargement s'arrête avec « ancien format ». Convertissez-les avec l'outil décrit plus bas.</p></div></div>
+<p>Un tileset introuvable n'empêche pas de charger la carte : il est gardé avec l'indicateur <code>missing</code>, ses cases restent dans le fichier, et un avertissement est ajouté. On ne perd donc rien si un fichier est déplacé par erreur.</p>
+
+<h2 id="orthogonal-ou-isometrique">Orthogonal ou isométrique</h2>
+<div class="table-wrap"><table>
+<tr><th></th><th>Orthogonal</th><th>Isométrique</th></tr>
+<tr><td><code>orientation</code></td><td><code>"orthogonal"</code></td><td><code>"isometric"</code></td></tr>
+<tr><td>Forme d'une case</td><td>rectangle <code>tileSize.x × tileSize.y</code></td><td>losange de largeur <code>tileSize.x</code> et de hauteur <code>tileSize.y</code></td></tr>
+<tr><td>Position écran de la case (x, y)</td><td>(x · w, y · h)</td><td>((x − y) · w/2, (x + y) · h/2)</td></tr>
+<tr><td>Taille par défaut</td><td>32 × 32</td><td>128 × 64 (<code>makeTileMap</code>)</td></tr>
+<tr><td>Directions des bords (autotile)</td><td>0 haut, 1 droite, 2 bas, 3 gauche</td><td>0 nord-est, 1 sud-est, 2 sud-ouest, 3 nord-ouest</td></tr>
+<tr><td>Ordre de dessin</td><td>rangée par rangée</td><td>de l'arrière vers l'avant (somme x + y croissante)</td></tr>
+</table></div>
+<p><code>cellCenter(x, y)</code>, <code>cellAt(point)</code> et <code>cellCorners(x, y)</code> convertissent entre cases et coordonnées de la carte dans les deux orientations. <code>localSize()</code> et <code>localOrigin()</code> donnent la boîte englobante (en isométrique, la carte s'étend aussi vers les x négatifs : <code>localOrigin()</code> vaut <code>(−hauteur · w/2, 0)</code>). Ce sont des coordonnées <em>locales</em> : ajoutez le <code>Transform2D</code> de l'entité pour le monde.</p>
+
+<h2 id="le-fichier-tileset">Le fichier <code>.tileset</code></h2>
+<div class="code"><div class="code-head"><span class="file">assets/tilesets/iso_demo/herbe.tileset</span><span class="lang">JSON</span><button class="copy" type="button">Copier</button></div><pre><code>{
+  <span class="t">"format"</span>: <span class="s">"angeVault.tileset"</span>,
+  <span class="t">"version"</span>: <span class="n">1</span>,
+  <span class="t">"name"</span>: <span class="s">"Herbe"</span>,
+  <span class="t">"image"</span>: <span class="s">"assets/tilesets/iso_demo/herbe.png"</span>,
+  <span class="t">"tileSize"</span>: [<span class="n">133</span>, <span class="n">87</span>],
+  <span class="t">"margin"</span>: <span class="n">0</span>, <span class="t">"spacing"</span>: <span class="n">0</span>,
+  <span class="t">"columns"</span>: <span class="n">4</span>, <span class="t">"count"</span>: <span class="n">20</span>,
+  <span class="t">"anchor"</span>: [<span class="n">67.0</span>, <span class="n">39.0</span>],
+  <span class="t">"autotile"</span>: <span class="s">"edges16"</span>,
+  <span class="t">"full"</span>:   [<span class="n">0</span>, <span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>],
+  <span class="t">"edge"</span>:   [<span class="n">4</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">7</span>],
+  <span class="t">"corner"</span>: [<span class="n">8</span>, <span class="n">9</span>, <span class="n">10</span>, <span class="n">11</span>],
+  <span class="t">"ring"</span>:   [<span class="n">12</span>, <span class="n">13</span>, <span class="n">14</span>, <span class="n">15</span>],
+  <span class="t">"under"</span>:  [<span class="n">16</span>, <span class="n">17</span>, <span class="n">18</span>, <span class="n">19</span>]
+}</code></pre></div>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Rôle</th></tr>
+<tr><td><code>image</code>, <code>tileSize</code>, <code>margin</code>, <code>spacing</code></td><td>Comment découper la feuille. <code>columns</code> et <code>count</code> se calculent d'après la taille de l'image (<code>computeGrid</code>)</td></tr>
+<tr><td><code>anchor</code></td><td>Le point de la tile (en pixels de la feuille) posé sur le centre de la case. <code>[-1, -1]</code> = automatique : centre de la tile, étirée à la case en orthogonal. Indispensable pour les tiles iso plus hautes que le losange (arbres, murs)</td></tr>
+<tr><td><code>scale</code></td><td>Échelle d'affichage de la tile</td></tr>
+<tr><td><code>solid</code></td><td>Marque la tile comme bloquante (prévu pour la physique et l'IA ; pas encore utilisé)</td></tr>
+<tr><td><code>ySort</code>, <code>sortOffset</code></td><td>Tri en Y (voir plus bas)</td></tr>
+<tr><td><code>autotile</code></td><td><code>none</code>, <code>corners16</code> ou <code>edges16</code>, et les champs qui vont avec</td></tr>
+</table></div>
+
+<h2 id="autotile-trois-facons-dutiliser-un-tileset">Autotile : trois façons d'utiliser un tileset</h2>
+<h3 id="tileset-simple-none">Tileset simple (<code>none</code>)</h3>
+<p>On choisit une tile dans la grille (ou un <em>bloc</em> de tiles, qu'on pose d'un coup comme un tampon) et on la pose telle quelle. Rien d'automatique.</p>
+<h3 id="edges16-des-pieces-sur-les-cases-voisines"><code>edges16</code> : des pièces sur les cases voisines</h3>
+<p>Format des packs isométriques : l'herbe « déborde » sur la terre voisine. Le fichier indique, pour chaque <em>rôle</em>, les numéros de tile de la feuille :</p>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Quand la pièce est utilisée</th></tr>
+<tr><td><code>full</code></td><td>Case entourée de terrain : pièce pleine. Plusieurs numéros = variantes, choisies au hasard mais de façon <strong>stable</strong> (la même case donne toujours la même variante)</td></tr>
+<tr><td><code>edge[4]</code></td><td>Un bord libre (un par direction)</td></tr>
+<tr><td><code>corner[4]</code></td><td>Deux bords libres adjacents (le bord <em>i</em> et le bord <em>i + 1</em>)</td></tr>
+<tr><td><code>ring</code></td><td>Les quatre bords libres (facultatif : sinon deux « coins »)</td></tr>
+<tr><td><code>under</code></td><td>Dessinée <em>sous</em> la case pleine, par exemple le bloc de terre sous l'herbe</td></tr>
+</table></div>
+<p>Un autotile plus bas dans la liste des tilesets de la carte <strong>déborde sur les cases des tilesets précédents</strong> : l'ordre des tilesets est l'ordre d'empilement. Dans la fenêtre Tileset de l'éditeur, le bouton « Disposition standard » remplit tous ces rôles d'un coup pour une feuille rangée dans l'ordre habituel.</p>
+<h3 id="corners16-le-dual-grid"><code>corners16</code> : le « dual-grid »</h3>
+<p>Une feuille de <strong>16 colonnes</strong> : une colonne par combinaison des quatre coins (0 à 15), et une ligne par variante. Le visuel est posé sur les <em>sommets</em> entre quatre cases, ce qui donne des transitions propres avec très peu d'images. Avec <code>frameTime</code> &gt; 0, les lignes sont les images d'une <strong>animation</strong> (eau qui bouge). Ce mode est pensé pour l'orthogonal ; en isométrique, seule la pièce pleine (colonne 15) est utilisée.</p>
+
+<h2 id="tri-en-y-arbres-murs-et-personnages">Tri en Y : arbres, murs et personnages</h2>
+<p>Un tileset marqué <code>"ySort": true</code> n'est pas dessiné avec le sol. Ses tiles sont triées avec les personnages selon leur <strong>point de tri</strong> : un personnage dont les pieds sont plus haut que ce point passe <em>derrière</em> la tile, plus bas il passe <em>devant</em>.</p>
+<ul>
+  <li>Point de tri : le centre de la case en isométrique, le bas de la case en orthogonal, plus <code>sortOffset</code> (en unités du monde).</li>
+  <li>Le <code>TilemapRenderSystem</code> (priorité 5) dépose ces tiles dans la <code>YSortQueue</code> ; le <code>RenderSystem</code> (priorité 10) les mélange aux entités de la couche <code>YSortQueue::kEntityLayer</code> (<strong>1</strong>) : donnez <code>layer = 1</code> à la <code>Geometry</code> de vos personnages, comme le joueur du RPG.</li>
+  <li>Pour une entité, le point de tri est le <strong>bas de sa forme</strong> (ses pieds).</li>
+</ul>
+
+<h2 id="dessiner-une-carte-soi-meme">Dessiner une carte soi-même</h2>
+<p>Le <code>TilemapRenderSystem</code> dessine toutes les entités qui portent un <code>Tilemap</code> visible, avec les cases visibles seulement (<em>culling</em>). L'éditeur utilise le même code (<code>TilemapRenderer::draw</code>, et <code>drawGhost</code> pour l'aperçu translucide du pinceau) : ce que l'on voit en éditant est ce que le jeu dessine.</p>
+<div class="code"><div class="code-head"><span class="file">usage</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#include</span> <span class="s">"scene/tilemaps.h"</span>
+
+<span class="c">// Après loadScene : lire les .map des entités Tilemap</span>
+<span class="k">std</span>::vector&lt;<span class="k">std</span>::string&gt; warnings;
+loadTilemaps(game.registry(), project.directory(), &amp;warnings);
+
+<span class="c">// Retrouver la case sous un point du monde</span>
+registry.view&lt;<span class="t">Tilemap</span>, <span class="t">Transform2D</span>&gt;([&amp;](<span class="t">Entity</span>, <span class="t">Tilemap</span>&amp; tm, <span class="t">Transform2D</span>&amp; t) {
+    <span class="k">if</span> (!tm.data) <span class="k">return</span>;
+    sf::<span class="t">Vector2i</span> cell = tm.data-&gt;cellAt(worldPoint - t.getPosition());
+    <span class="t">TileCell</span> c = tm.data-&gt;get(cell.x, cell.y);
+    <span class="k">if</span> (c != <span class="n">0</span>) { <span class="c">/* il y a quelque chose ici : tm.data-&gt;tilesetOf(c) donne le tileset */</span> }
+});</code></pre></div>
+
+<h2 id="convertir-et-ranger-des-images-tools-convert-tilemaps-py">Convertir et ranger des images : <code>tools/convert_tilemaps.py</code></h2>
+<p>Un script Python (<code>pip install pillow</code>) fait deux choses.</p>
+<ol>
+  <li><strong>Convertir d'anciennes cartes</strong> (<code>.map</code> version 1) en tilesets :
+<div class="code"><div class="code-head"><span class="file">terminal</span><span class="lang">Shell</span><button class="copy" type="button">Copier</button></div><pre><code>python tools/convert_tilemaps.py maps projects/rpg</code></pre></div>
+  Chaque ancienne tile devient un tileset (feuille PNG + <code>.tileset</code>) dans <code>assets/tilesets/&lt;carte&gt;/</code>, et l'ancien fichier est gardé à côté en <code>.map.v1</code>.</li>
+  <li><strong>Assembler un pack isométrique</strong> « une PNG par tile » en feuilles :
+<div class="code"><div class="code-head"><span class="file">terminal</span><span class="lang">Shell</span><button class="copy" type="button">Copier</button></div><pre><code>python tools/convert_tilemaps.py pack-iso <span class="s">"&lt;dossier Environment&gt;"</span> projects/rpg assets/tilesets/fantasy_iso</code></pre></div>
+  Une feuille par famille (« Ground A », « Wall F »…), avec 4 colonnes pour les rotations N, E, S, O, une ligne par numéro. Le vide commun est rogné et l'ancre recalculée (option <code>--anchor</code>, 128 208 par défaut).</li>
+</ol>
+<p>L'éditeur sait faire cet assemblage lui-même : le bouton d'import de la fenêtre Tileset (<code>packTilesetImages</code>) regroupe des images séparées en une feuille, range les rotations nommées <code>_N</code>, <code>_E</code>, <code>_S</code>, <code>_W</code> sur une ligne et peut rogner le vide commun.</p>
+
+<h2 id="dans-lediteur">Dans l'éditeur</h2>
+<p>Le panneau <strong>Tile Palette</strong> montre les tilesets de la carte active (celle de l'entité sélectionnée, sinon la première de la scène) et ses outils. La marche à suivre complète est dans le <a href="guide.html">guide de l'éditeur</a>. Rappel des outils :</p>
+<div class="table-wrap"><table>
+<tr><th>Touche</th><th>Outil</th><th>Effet</th></tr>
+<tr><td><kbd>V</kbd></td><td>Sélection</td><td>Sélectionner et déplacer les entités</td></tr>
+<tr><td><kbd>B</kbd></td><td>Pinceau</td><td>Peindre la tile ou le bloc choisi, ou le terrain (autotile)</td></tr>
+<tr><td><kbd>E</kbd></td><td>Gomme</td><td>Vider des cases</td></tr>
+<tr><td><kbd>G</kbd></td><td>Remplir</td><td>Remplir une zone</td></tr>
+<tr><td><kbd>I</kbd></td><td>Pipette</td><td>Reprendre la case sous la souris (aussi <kbd>Alt</kbd> + clic)</td></tr>
+<tr><td><kbd>R</kbd></td><td>Taille</td><td>Poignées pour agrandir la forme et/ou la collision de l'entité sélectionnée</td></tr>
+</table></div>
+<div class="pager"><a class="prev" href="projet.html"><small>Précédent</small>← Projet &amp; sauvegarde</a><a class="next" href="codejeu.html"><small>Suivant</small>Code de jeu →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#le-principe-la-carte-ne-contient-que-des-numeros">Le principe : la carte ne contient que des numéros</a><a href="#le-composant-tilemap">Le composant Tilemap</a><a href="#cases-tilecell">Cases : TileCell</a><a href="#le-fichier-map">Le fichier .map</a><a href="#orthogonal-ou-isometrique">Orthogonal ou isométrique</a><a href="#le-fichier-tileset">Le fichier .tileset</a><a href="#autotile-trois-facons-dutiliser-un-tileset">Autotile : trois façons d&#x27;utiliser un tileset</a><a href="#tileset-simple-none" class="sub">Tileset simple (none)</a><a href="#edges16-des-pieces-sur-les-cases-voisines" class="sub">edges16 : des pièces sur les cases voisines</a><a href="#corners16-le-dual-grid" class="sub">corners16 : le « dual-grid »</a><a href="#tri-en-y-arbres-murs-et-personnages">Tri en Y : arbres, murs et personnages</a><a href="#dessiner-une-carte-soi-meme">Dessiner une carte soi-même</a><a href="#convertir-et-ranger-des-images-tools-convert-tilemaps-py">Convertir et ranger des images : tools/convert_tilemaps.py</a><a href="#dans-lediteur">Dans l&#x27;éditeur</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div>
+ <div><h4>Documentation</h4><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>

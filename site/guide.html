@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide de l&#x27;éditeur — AngeVault Engine</title>
+<meta name="description" content="Guide d&#x27;utilisation de l&#x27;éditeur AngeVault : nouveau projet, tilemap orthogonale ou isométrique, tilesets et autotile, entités et prefabs, comportements, mode Jouer F5, annulation, raccourcis clavier.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html" class="current" aria-current="page">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Guide de l&#x27;éditeur</div><span class="eyebrow">Documentation</span><h1>Guide de l&#x27;éditeur</h1><p class="lead">Le mode d'emploi de l'éditeur, pas à pas : créer un projet, construire une carte, placer des entités, écrire du code, jouer, enregistrer. Avec tous les raccourcis.</p></div></section>
+<div class="wrap doc"><article class="prose"><div class="callout"><i class="fa-solid fa-circle-info"></i><div><p>Cette page explique <em>comment s'en servir</em>. Pour comprendre <em>comment c'est construit</em>, voir <a href="editeur.html">Éditeur Qt</a>. Les formats de fichiers sont dans <a href="projet.html">Projet &amp; sauvegarde</a>.</p></div></div>
+
+<h2 id="la-fenetre-en-un-coup-d-il">La fenêtre en un coup d'œil</h2>
+<figure class="diagram">
+<svg viewBox="0 0 900 360" role="img" aria-label="Disposition par défaut : Hierarchy et Tile Palette à gauche, vue scène au centre, Inspector à droite, Project et Console en bas">
+  <rect class="d" x="10" y="10" width="880" height="340" rx="14"/>
+  <rect class="a" x="24" y="40" width="190" height="96" rx="10"/><text class="h" x="40" y="68">Hierarchy</text><text class="m" x="40" y="88">entités, catégories</text><text class="m" x="40" y="104">bouton + : créer</text>
+  <rect class="a" x="24" y="146" width="190" height="130" rx="10"/><text class="h" x="40" y="174">Tile Palette</text><text class="m" x="40" y="194">outils V B E G I</text><text class="m" x="40" y="210">tilesets, pinceau</text>
+  <rect class="b" x="226" y="40" width="440" height="236" rx="10"/><text class="h" x="446" y="150" text-anchor="middle">Vue scène</text><text class="m" x="446" y="172" text-anchor="middle">carte + entités · molette : zoom</text><text class="m" x="446" y="190" text-anchor="middle">F5 : le jeu remplace cette vue</text>
+  <rect class="a" x="678" y="40" width="198" height="236" rx="10"/><text class="h" x="694" y="68">Inspector</text><text class="m" x="694" y="88">composants de l'entité</text><text class="m" x="694" y="104">Ajouter un composant</text>
+  <rect class="b" x="24" y="288" width="852" height="48" rx="10"/><text class="h" x="40" y="318">Project · Console</text><text class="m" x="200" y="318">fichiers du projet, aperçus d'images · journal du jeu</text>
+  <text class="m" x="226" y="28">menus : Fichier · Édition · Affichage · Exécuter · Aide</text>
+</svg>
+<figcaption>La disposition par défaut. Tous les panneaux se déplacent, s'empilent en onglets ou flottent ; <em>Affichage → Fenêtres → Réinitialiser la disposition</em> remet tout en place.</figcaption>
+</figure>
+
+<h2 id="1-ouvrir-ou-creer-un-projet">1. Ouvrir ou créer un projet</h2>
+<ol>
+  <li>Au démarrage, l'éditeur rouvre le <strong>dernier projet</strong> (Fichier → Récents), sinon le projet RPG.</li>
+  <li><em>Fichier → Nouveau projet…</em> : choisissez un dossier, donnez un nom. L'éditeur crée <code>nom.angproj</code>, <code>assets/</code>, <code>scenes/</code> et une scène vide, puis l'ouvre.</li>
+  <li><em>Fichier → Ouvrir…</em> (<kbd>Ctrl</kbd>+<kbd>O</kbd>) ouvre un <code>.angproj</code> (avec sa scène de départ) ou directement un <code>.scene</code>.</li>
+</ol>
+<p>Le titre de la fenêtre affiche <em>Projet — scène — AngeVault Editor</em>, avec une étoile <code>*</code> quand il y a des modifications non enregistrées.</p>
+
+<h2 id="2-creer-une-carte">2. Créer une carte</h2>
+<p>Dans la Hierarchy, le bouton <strong>+</strong> propose : <em>Entité vide</em>, <em>Catégorie</em>, <em>Tilemap orthogonale</em> et <em>Tilemap isométrique</em>. Choisir une tilemap crée une entité avec les composants <code>Transform2D</code> et <code>Tilemap</code> et une carte de 32 × 32 cases (orthogonale : cases de 32 px ; isométrique : losanges de 128 × 64). La carte est enregistrée dans un fichier <code>.map</code> du projet quand on enregistre la scène.</p>
+<p>Une scène peut avoir plusieurs cartes : le panneau Tile Palette travaille sur la <strong>carte active</strong>, c'est-à-dire l'entité sélectionnée si c'est une tilemap, sinon la première de la scène. Sa ligne d'information indique son orientation, sa taille et la taille de ses cases.</p>
+
+<h2 id="3-ajouter-des-tilesets">3. Ajouter des tilesets</h2>
+<p>Une carte vide n'a aucune image : il lui faut des <strong>tilesets</strong> (voir <a href="tilemaps.html">Tilemaps &amp; tilesets</a>). Dans la Tile Palette, le bouton <strong>+</strong> de la section <em>Tilesets</em> propose :</p>
+<div class="table-wrap"><table>
+<tr><th>Entrée</th><th>Quand l'utiliser</th></tr>
+<tr><td>Nouveau tileset depuis une feuille (PNG)…</td><td>Vous avez <em>une</em> image qui contient toutes les tiles en grille</td></tr>
+<tr><td>Nouveau tileset depuis des images séparées…</td><td>Vous avez une PNG par tile (packs isométriques). L'éditeur les assemble en une feuille ; option pour ranger les rotations <code>_N _E _S _W</code> sur une ligne et rogner le vide commun</td></tr>
+<tr><td>Ajouter un tileset existant (.tileset)…</td><td>Le tileset existe déjà dans le projet : on le réutilise</td></tr>
+</table></div>
+<p>La fenêtre <strong>Tileset</strong> s'ouvre alors (elle s'ouvre aussi avec le bouton <em>Modifier</em> d'un tileset existant) :</p>
+<ol>
+  <li><strong>Image</strong> et <strong>taille d'une tile</strong>, marge et espacement : la grille est calculée seule et son nombre de tiles s'affiche.</li>
+  <li><strong>Type</strong> : <em>simple</em> (on choisit la tile à la main), <em>autotile 4 bords</em> ou <em>autotile 16 coins</em>.</li>
+  <li>En autotile 4 bords, cliquez sur les tiles de la feuille pour leur donner un <strong>rôle</strong> (case pleine, 1 bord, 2 bords, 4 bords, dessous) : le rôle s'affiche en petit sur la tile. <em>Disposition standard</em> remplit tout d'un coup pour une feuille rangée dans l'ordre habituel.</li>
+  <li><strong>Placement</strong> : ancre (point de la tile posé au centre de la case, automatique par défaut), échelle.</li>
+  <li><strong>Tri en Y</strong> et décalage du point de tri, pour les arbres et les murs ; <strong>solide</strong> pour le futur blocage.</li>
+  <li>OK : le <code>.tileset</code> est enregistré (chemins relatifs au projet) et ajouté à la carte. Les autres cartes de la scène qui utilisent ce tileset se mettent à jour.</li>
+</ol>
+<p>Les boutons suivants gèrent la liste : <em>Retirer</em> (les cases peintes avec ce tileset deviennent vides ; le fichier n'est pas supprimé), <em>Monter</em> / <em>Descendre</em> pour l'ordre d'empilement. <strong>Un autotile plus bas dans la liste déborde sur les tilesets au-dessus.</strong></p>
+
+<h2 id="4-peindre">4. Peindre</h2>
+<div class="table-wrap"><table>
+<tr><th>Outil</th><th>Touche</th><th>Détails</th></tr>
+<tr><td>Pinceau</td><td><kbd>B</kbd></td><td>Glisser trace un trait continu sans case sautée. <kbd>Maj</kbd> + clic : ligne droite depuis le dernier point. <kbd>Alt</kbd> + clic : pipette</td></tr>
+<tr><td>Gomme</td><td><kbd>E</kbd></td><td>Vide les cases (mêmes tailles de pinceau)</td></tr>
+<tr><td>Remplir</td><td><kbd>G</kbd></td><td>Remplit une zone de cases identiques</td></tr>
+<tr><td>Pipette</td><td><kbd>I</kbd></td><td>Reprend la tile d'une case (le tileset et la tile deviennent le pinceau)</td></tr>
+</table></div>
+<ul>
+  <li><strong>Que peindre ?</strong> Cliquez une tile de la grille (ou glissez pour un <em>bloc</em> de tiles posé d'un coup, comme un tampon), ou cochez <em>Autotile : peindre le terrain</em> pour que les transitions soient choisies d'après les cases voisines.</li>
+  <li><strong>Taille du pinceau</strong> : boutons rapides, curseur, <kbd>Ctrl</kbd> + molette dans la vue, <kbd>[</kbd> <kbd>]</kbd> ou <kbd>-</kbd> <kbd>+</kbd>. De 1 à 32 cases, <strong>carré ou rond</strong>.</li>
+  <li>Un <strong>aperçu translucide</strong> du pinceau suit la souris (la même fonction de rendu que le jeu).</li>
+  <li>Chaque trait de pinceau compte pour <strong>une seule étape</strong> d'annulation.</li>
+</ul>
+
+<h2 id="5-naviguer-dans-la-vue">5. Naviguer dans la vue</h2>
+<div class="table-wrap"><table>
+<tr><th>Geste</th><th>Effet</th></tr>
+<tr><td>Molette</td><td>Zoom centré sur la souris</td></tr>
+<tr><td>Clic droit ou clic molette + glisser</td><td>Déplacer la vue</td></tr>
+<tr><td><kbd>F</kbd> ou <kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Recadrer la carte</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>G</kbd></td><td>Afficher / masquer la grille</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>C</kbd></td><td>Afficher / masquer les contours des collisions (vert ; déclencheurs en jaune)</td></tr>
+<tr><td><kbd>F11</kbd></td><td>Plein écran</td></tr>
+</table></div>
+<p>La caméra de cette vue est celle de l'<em>éditeur</em> : elle n'est jamais enregistrée dans la scène et n'a rien à voir avec les entités <code>Camera2d</code> du jeu.</p>
+
+<h2 id="6-placer-et-regler-des-entites">6. Placer et régler des entités</h2>
+<ol>
+  <li><strong>Créer</strong> : bouton + de la Hierarchy → <em>Entité vide</em>. Double-clic ou <kbd>F2</kbd> pour la renommer.</li>
+  <li><strong>Ajouter des composants</strong> : Inspector → <em>Ajouter un composant</em> (<code>Transform2D</code>, <code>Geometry</code>, <code>RigidBody2D</code>, <code>Collider2D</code>, <code>Camera2d</code> et ses options <code>CameraFollow</code>, <code>CameraBounds</code>, <code>CameraControl</code>, <code>CameraShake</code>, vos propres composants, <em>Comportement</em>…). Les champs se modifient directement ; les sections se replient.</li>
+  <li><strong>Déplacer</strong> avec l'outil Sélection (<kbd>V</kbd>) : clic pour sélectionner, glisser pour déplacer (<kbd>Ctrl</kbd> = aligner sur la grille), ou via le gizmo (flèche rouge : X seul, verte : Y seul, carré : libre).</li>
+  <li><strong>Redimensionner</strong> avec l'outil Taille (<kbd>R</kbd>, barre d'outils au-dessus de la vue) : des poignées apparaissent sur l'entité sélectionnée. Choisissez ce qui change : la <em>forme et la collision</em>, la <em>forme seule</em> ou la <em>collision seule</em>. <kbd>Maj</kbd> garde les proportions, <kbd>Ctrl</kbd> arrondit à la demi-case.</li>
+  <li><strong>Ranger</strong> : bouton + → <em>Catégorie</em>, puis glissez des entités dessus (clic droit → <em>Déplacer vers</em> fonctionne aussi). Les catégories sont enregistrées dans la scène mais n'existent pas dans le jeu.</li>
+  <li><strong>Caméra qui suit une entité</strong> : glissez la caméra sur sa cible dans la Hierarchy, ou clic droit sur la caméra → <em>Suivre</em>. Cela ajoute un composant <code>CameraFollow</code> : la caméra s'affiche sous sa cible, est placée sur elle et ne peut plus être déplacée à la main. <em>(Personne : caméra libre)</em> la libère. Lissage, zone morte, avance et limites du monde se règlent dans les composants <code>CameraFollow</code> et <code>CameraBounds</code>.</li>
+  <li><strong>Supprimer</strong> : <kbd>Suppr</kbd> (aussi dans la vue). <kbd>Échap</kbd> désélectionne.</li>
+</ol>
+
+<h2 id="7-prefabs-reutiliser-une-entite">7. Prefabs : réutiliser une entité</h2>
+<ul>
+  <li><strong>Créer</strong> : clic droit sur une entité → <em>Créer un prefab</em>, ou glissez-la de la Hierarchy vers le panneau Project. Le fichier <code>.prefab</code> contient l'entité et les caméras qui la suivent.</li>
+  <li><strong>Placer</strong> : glissez le <code>.prefab</code> depuis Project vers la vue scène (à l'endroit du lâcher). Chaque instance a de nouveaux identifiants ; la caméra d'un prefab suit la <em>nouvelle</em> instance.</li>
+</ul>
+
+<h2 id="8-ecrire-du-code-et-lattacher">8. Écrire du code et l'attacher</h2>
+<ol>
+  <li>Panneau Project → clic droit → <em>Créer (C++)</em> → <em>Behavior…</em>, <em>Composant de jeu…</em> ou <em>Système de jeu…</em>. Donnez le nom de la classe.</li>
+  <li>Double-clic sur le fichier : il s'ouvre dans votre éditeur de code (VS Code ou CLion, au choix via clic droit → <em>Éditeur des scripts</em>).</li>
+  <li><strong>Recompilez</strong> l'éditeur : le code de jeu est du C++ lié à l'éditeur.</li>
+  <li>Attachez un comportement : glissez son fichier <code>.h</code> sur une entité (Hierarchy, Inspector ou vue), ou Inspector → <em>Ajouter un composant → Comportement</em>. Un composant de jeu s'ajoute de la même façon. Une entité peut porter plusieurs comportements : ils s'ajoutent dans le même composant <code>Script</code> et s'exécutent dans l'ordre.</li>
+</ol>
+<p>Tout est détaillé dans <a href="codejeu.html">Code de jeu</a> et <a href="comportements.html">Comportements C++</a>.</p>
+
+<h2 id="9-jouer-mettre-en-pause-arreter">9. Jouer, mettre en pause, arrêter</h2>
+<div class="table-wrap"><table>
+<tr><th>Raccourci</th><th>Action</th><th>Détails</th></tr>
+<tr><td><kbd>F5</kbd></td><td>Jouer</td><td>Le jeu tourne <em>dans</em> l'éditeur, à la place de la vue scène, sur une <strong>copie</strong> de la scène (même non enregistrée, cartes comprises). Ce qui bouge pendant le jeu ne modifie pas la scène éditée</td></tr>
+<tr><td><kbd>F6</kbd></td><td>Pause / reprise</td><td>Le jeu se fige, on peut le reprendre</td></tr>
+<tr><td><kbd>Maj</kbd>+<kbd>F5</kbd></td><td>Arrêter</td><td>Retour à la vue scène (arrête aussi <code>rpg.exe</code>)</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>F5</kbd></td><td>Lancer rpg.exe</td><td>Enregistre la scène si elle a changé, puis lance <code>rpg.exe projet.angproj scène.scene</code> dans sa propre fenêtre. Si <code>rpg.exe</code> est introuvable, un message demande de compiler la cible <code>rpg</code></td></tr>
+</table></div>
+<ul>
+  <li>Les touches du jeu passent par l'<strong>Input Manager</strong> (<em>Édition → Input Manager…</em>) ; un changement est pris en compte tout de suite, même en plein jeu.</li>
+  <li><em>Exécuter → Systèmes…</em> active ou désactive les systèmes (par exemple masquer les tracés de debug). Enregistré dans le <code>.angproj</code>.</li>
+  <li><em>Édition → Paramètres du jeu…</em> règle plein écran, VSync, antialiasing, limite de FPS et shader de post-process (avec ses curseurs). Enregistré dans <code>assets/settings.cfg</code> ; la fenêtre reste ouverte et le jeu lancé suit les curseurs en direct.</li>
+  <li>En jeu, la caméra montre la même zone que son cadre dans la vue scène (taille d'écran du projet), avec des bandes noires si le panneau n'a pas le même format.</li>
+  <li>Les messages du jeu (<code>std::cout</code>, <code>std::cerr</code>, avertissements de chargement) apparaissent dans la <strong>Console</strong>.</li>
+</ul>
+
+<h2 id="10-annuler-enregistrer-quitter">10. Annuler, enregistrer, quitter</h2>
+<ul>
+  <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> annule, <kbd>Ctrl</kbd>+<kbd>Y</kbd> (ou <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>Z</kbd>) rétablit. L'historique couvre les entités, les composants, la Hierarchy et les cases peintes.</li>
+  <li>Plusieurs modifications rapprochées (taper dans un champ de l'Inspector) sont regroupées en <strong>une étape</strong> ; un geste à la souris (un trait de pinceau, un déplacement) aussi.</li>
+  <li><kbd>Ctrl</kbd>+<kbd>S</kbd> enregistre la scène (et les cartes modifiées) ; <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>S</kbd> enregistre sous un autre nom.</li>
+  <li>En quittant, ou en ouvrant un autre projet ou une nouvelle scène, l'éditeur propose d'enregistrer les modifications.</li>
+</ul>
+
+<h2 id="11-themes-et-disposition">11. Thèmes et disposition</h2>
+<p><em>Édition → Thème</em> propose 8 thèmes : <strong>Sombre</strong> (par défaut), <strong>Néon rose</strong>, <strong>Néon clair</strong>, <strong>Sakura clair</strong>, <strong>Sakura sombre</strong>, <strong>Sakura chat</strong> (image de fond), <strong>Kindred fleur spirituelle</strong> (image de fond) et <strong>Très sombre</strong>, ainsi que le chargement d'un fichier <code>.qss</code> de votre choix. Le thème et la disposition des panneaux sont mémorisés.</p>
+
+<h2 id="tous-les-raccourcis">Tous les raccourcis</h2>
+<div class="table-wrap"><table>
+<tr><th>Raccourci</th><th>Action</th></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>N</kbd> · <kbd>O</kbd> · <kbd>S</kbd> · <kbd>Maj</kbd>+<kbd>S</kbd></td><td>Nouvelle scène · Ouvrir · Enregistrer · Enregistrer sous</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> · <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Annuler · Rétablir</td></tr>
+<tr><td><kbd>V</kbd> · <kbd>R</kbd></td><td>Sélection · Taille</td></tr>
+<tr><td><kbd>B</kbd> · <kbd>E</kbd> · <kbd>G</kbd> · <kbd>I</kbd></td><td>Pinceau · Gomme · Remplir · Pipette</td></tr>
+<tr><td><kbd>[</kbd> <kbd>]</kbd> · <kbd>-</kbd> <kbd>+</kbd> · <kbd>Ctrl</kbd>+molette</td><td>Taille du pinceau</td></tr>
+<tr><td><kbd>Maj</kbd>+clic · <kbd>Alt</kbd>+clic</td><td>Ligne droite · Pipette</td></tr>
+<tr><td><kbd>F</kbd> · <kbd>Ctrl</kbd>+<kbd>0</kbd></td><td>Recadrer la carte</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>G</kbd> · <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>C</kbd></td><td>Grille · Collisions</td></tr>
+<tr><td><kbd>F2</kbd> · <kbd>Suppr</kbd> · <kbd>Échap</kbd></td><td>Renommer · Supprimer · Désélectionner</td></tr>
+<tr><td><kbd>F5</kbd> · <kbd>F6</kbd> · <kbd>Maj</kbd>+<kbd>F5</kbd> · <kbd>Ctrl</kbd>+<kbd>F5</kbd></td><td>Jouer · Pause · Arrêter · Lancer rpg.exe</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>1</kbd>…<kbd>5</kbd></td><td>Afficher / masquer les panneaux</td></tr>
+<tr><td><kbd>F11</kbd></td><td>Plein écran</td></tr>
+</table></div>
+<p>Les raccourcis des outils (<kbd>V</kbd> <kbd>B</kbd> <kbd>E</kbd> <kbd>G</kbd> <kbd>I</kbd> <kbd>R</kbd>) fonctionnent partout dans la fenêtre, même quand le panneau qui les porte est caché.</p>
+<div class="pager"><a class="prev" href="demarrage.html"><small>Précédent</small>← Démarrage &amp; build</a><a class="next" href="projet.html"><small>Suivant</small>Projet &amp; sauvegarde →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#la-fenetre-en-un-coup-d-il">La fenêtre en un coup d&#x27;œil</a><a href="#1-ouvrir-ou-creer-un-projet">1. Ouvrir ou créer un projet</a><a href="#2-creer-une-carte">2. Créer une carte</a><a href="#3-ajouter-des-tilesets">3. Ajouter des tilesets</a><a href="#4-peindre">4. Peindre</a><a href="#5-naviguer-dans-la-vue">5. Naviguer dans la vue</a><a href="#6-placer-et-regler-des-entites">6. Placer et régler des entités</a><a href="#7-prefabs-reutiliser-une-entite">7. Prefabs : réutiliser une entité</a><a href="#8-ecrire-du-code-et-lattacher">8. Écrire du code et l&#x27;attacher</a><a href="#9-jouer-mettre-en-pause-arreter">9. Jouer, mettre en pause, arrêter</a><a href="#10-annuler-enregistrer-quitter">10. Annuler, enregistrer, quitter</a><a href="#11-themes-et-disposition">11. Thèmes et disposition</a><a href="#tous-les-raccourcis">Tous les raccourcis</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div>
+ <div><h4>Documentation</h4><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Centre de documentation — AngeVault Engine</title>
+<meta name="description" content="Centre de documentation AngeVault : guides, recettes (entité, comportement, composant, système, prefab, scène, tilemap, module, action d&#x27;entrée, caméra, collisions) et glossaire.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html" class="current" aria-current="page">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Centre de documentation</div><span class="eyebrow">Documentation</span><h1>Centre de documentation</h1><p class="lead">Les guides, les recettes pas à pas et un petit glossaire pour travailler efficacement avec AngeVault.</p></div></section>
+<div class="wrap doc"><article class="prose"><h2 id="les-guides">Les guides</h2>
+<div class="grid g3" style="margin:20px 0 8px">
+  <a class="card" href="guide.html"><div class="ico"><i class="fa-solid fa-compass"></i></div><h3 id="guide-de-lediteur">Guide de l'éditeur</h3><p>Pas à pas : projet, carte, tilesets, entités, prefabs, jouer, raccourcis.</p></a>
+  <a class="card" href="projet.html"><div class="ico"><i class="fa-solid fa-floppy-disk"></i></div><h3 id="projet-sauvegarde">Projet &amp; sauvegarde</h3><p><code>.angproj</code>, <code>.scene</code>, <code>.prefab</code>, <code>PersistentId</code>, sérialiseurs.</p></a>
+  <a class="card" href="tilemaps.html"><div class="ico"><i class="fa-solid fa-border-all"></i></div><h3 id="tilemaps-tilesets">Tilemaps &amp; tilesets</h3><p>Formats, autotile, isométrique, tri en Y, outil de conversion.</p></a>
+  <a class="card" href="codejeu.html"><div class="ico"><i class="fa-solid fa-code"></i></div><h3 id="code-de-jeu">Code de jeu</h3><p><code>REGISTER_BEHAVIOR</code>, <code>REGISTER_COMPONENT</code>, <code>REGISTER_SYSTEM</code>.</p></a>
+  <a class="card" href="demarrage.html"><div class="ico"><i class="fa-solid fa-rocket"></i></div><h3 id="demarrage-build">Démarrage &amp; build</h3><p>Prérequis, presets CMake, compiler et lancer l'éditeur, le RPG ou le Sandbox.</p></a>
+  <a class="card" href="systeme-engine.html"><div class="ico"><i class="fa-solid fa-gears"></i></div><h3 id="creer-un-systeme-engine">Créer un système (engine)</h3><p>Un <code>ISystem</code> dans <code>engine/</code> : module, priorité, branchement, tests.</p></a>
+  <a class="card" href="composant-engine.html"><div class="ico"><i class="fa-solid fa-puzzle-piece"></i></div><h3 id="creer-un-composant-engine">Créer un composant (engine)</h3><p>Structure, <code>reflectComponent</code>, sauvegarde, Inspector de l'éditeur.</p></a>
+  <a class="card" href="comportements.html"><div class="ico"><i class="fa-solid fa-gamepad"></i></div><h3 id="comportements-c">Comportements C++</h3><p><code>IBehavior</code>, <code>Script</code>, <code>PROPERTY</code>, <code>Input::getAxis</code> et les exemples de joueur.</p></a>
+  <a class="card" href="composants.html"><div class="ico"><i class="fa-solid fa-table-list"></i></div><h3 id="reference-des-composants">Référence des composants</h3><p>Chaque champ, chaque valeur par défaut.</p></a>
+  <a class="card" href="ecs.html"><div class="ico"><i class="fa-solid fa-cubes"></i></div><h3 id="ecs-registry">ECS &amp; Registry</h3><p>Entités, pools, vues, règles d'or.</p></a>
+  <a class="card" href="editeur.html"><div class="ico"><i class="fa-solid fa-window-maximize"></i></div><h3 id="editeur-qt">Éditeur Qt</h3><p>Panneaux, <code>EditorContext</code>, Input Manager, thèmes.</p></a>
+  <a class="card" href="faq.html"><div class="ico"><i class="fa-solid fa-circle-question"></i></div><h3 id="faq-depannage">FAQ &amp; dépannage</h3><p>Compilation, éditeur, scènes, cartes, entrées.</p></a>
+  <a class="card" href="roadmap.html"><div class="ico"><i class="fa-solid fa-road"></i></div><h3 id="feuille-de-route">Feuille de route</h3><p>État actuel, prochains modules, points d'attention.</p></a>
+</div>
+
+<h2 id="recettes">Recettes</h2>
+<p>Des gestes courants, chacun appuyé sur le code existant du dépôt.</p>
+
+<details open><summary>Créer une entité</summary><div class="body">
+<p>Une entité est un identifiant auquel on attache des composants. Exemple du sol dans <code>sandbox_scene.h</code> :</p>
+<div class="code"><div class="code-head"><span class="file">sandbox_scene.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="t">Entity</span> ground = registry.createEntity();
+registry.addComponent&lt;<span class="t">Transform2D</span>&gt;(ground).setPosition({ <span class="n">960</span>.f, <span class="n">550</span>.f });
+registry.addComponent&lt;<span class="t">Geometry</span>&gt;(ground,
+    <span class="t">Geometry</span>::<span class="t">BoxData</span>{ { <span class="n">960</span>.f, <span class="n">8</span>.f }, { sf::<span class="t">Color</span>(<span class="n">100</span>, <span class="n">100</span>, <span class="n">100</span>), sf::<span class="t">Color</span>::<span class="t">Transparent</span>, <span class="n">0</span>.f, <span class="s">""</span> } }, <span class="n">0</span>);
+registry.addComponent&lt;<span class="t">RigidBody2D</span>&gt;(ground).isStatic = <span class="k">true</span>;
+registry.addComponent&lt;<span class="t">Collider2D</span>&gt;(ground, <span class="t">Collider2D</span>::makeBox({ <span class="n">960</span>.f, <span class="n">8</span>.f }));
+registry.addComponent&lt;<span class="t">NameComponent</span>&gt;(ground, <span class="s">"Ground"</span>);</code></pre></div>
+<p>Ajoutez toujours un <code>NameComponent</code> : c'est lui qui donne un nom lisible à l'entité dans la Hierarchy de l'éditeur.</p>
+</div></details>
+
+<details><summary>Détruire une entité</summary><div class="body">
+<p>Appelez <code>registry.destroyEntity(e)</code>. La destruction est <strong>différée</strong> : elle est exécutée par <code>flushPendingDestroys()</code> à la fin de <code>Game::tick</code>, donc sans risque pendant un <code>view</code>. Après le flush, <code>registry.isValid(e)</code> renvoie faux pour l'ancien identifiant.</p>
+</div></details>
+
+<details><summary>Ajouter un composant (propre à un jeu)</summary><div class="body">
+<p>Un composant de jeu va dans le dossier <code>components/</code> du projet. Une ligne <code>REGISTER_COMPONENT</code> le rend visible dans l'Inspector et le fait enregistrer dans les scènes et les prefabs :</p>
+<div class="code"><div class="code-head"><span class="file">projects/rpg/components/health.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#pragma</span> once
+<span class="p">#include</span> <span class="s">"ecs/game_components.h"</span>
+
+<span class="k">struct</span> <span class="t">Health</span> {
+    <span class="k">float</span> current = <span class="n">100</span>.f;
+    <span class="k">float</span> max     = <span class="n">100</span>.f;
+};
+<span class="t">REGISTER_COMPONENT</span>(<span class="t">Health</span>, <span class="t">FIELD</span>(current), <span class="t">FIELD</span>(max))</code></pre></div>
+<p>Recompilez, puis <em>Inspector → Ajouter un composant → Health</em>. Détails dans <a href="codejeu.html">Code de jeu</a>.</p>
+</div></details>
+
+<details><summary>Ajouter un composant au moteur</summary><div class="body">
+<ol>
+  <li>Créez une structure de données dans <code>include/components/</code> du module concerné (par exemple <code>engine/core/include/components/health.h</code>).</li>
+  <li>Ajoutez-la avec <code>registry.addComponent&lt;Health&gt;(e)</code>. Aucun enregistrement n'est nécessaire : le pool est créé à la première utilisation.</li>
+  <li>(Pour l'éditeur) ajoutez une entrée à <code>componentDescriptors()</code> dans <code>editor/src/component_descriptors.cpp</code> pour l'afficher dans l'Inspector.</li>
+  <li>(Pour la sauvegarde) enregistrez un sérialiseur : <code>SerializerRegistry::get().add&lt;Health&gt;(…)</code> (voir <a href="projet.html">Projet &amp; sauvegarde</a>).</li>
+</ol>
+</div></details>
+
+<details><summary>Écrire un comportement et l'attacher à une entité</summary><div class="body">
+<ol>
+  <li>Panneau Project → clic droit → <em>Créer (C++) → Behavior…</em>, ou un fichier dans <code>behaviors/</code>.</li>
+  <li>Héritez de <code>IBehavior</code>, déclarez vos réglages avec <code>PROPERTY</code>, ajoutez <code>REGISTER_BEHAVIOR(MaClasse)</code>.</li>
+  <li>Recompilez, puis glissez le fichier <code>.h</code> sur une entité (ou <em>Ajouter un composant → Comportement</em>).</li>
+</ol>
+<div class="code"><div class="code-head"><span class="file">projects/rpg/behaviors/saut.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">class</span> <span class="t">Saut</span> : <span class="k">public</span> <span class="t">IBehavior</span> {
+<span class="k">public</span>:
+    <span class="t">PROPERTY</span>(<span class="k">float</span>, force, <span class="n">500</span>.f)
+    <span class="k">void</span> onUpdate(<span class="t">Entity</span> self, <span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) <span class="k">override</span> {
+        <span class="k">if</span> (<span class="t">Input</span>::getButtonDown(<span class="s">"Jump"</span>))
+            registry.getComponent&lt;<span class="t">RigidBody2D</span>&gt;(self).applyImpulse({ <span class="n">0</span>.f, -force });
+    }
+};
+<span class="t">REGISTER_BEHAVIOR</span>(<span class="t">Saut</span>)</code></pre></div>
+</div></details>
+
+<details><summary>Ajouter un système</summary><div class="body">
+<p>Héritez de <code>ISystem</code>, choisissez une priorité (voir <a href="architecture.html">l'ordre d'exécution</a>) et ajoutez <code>REGISTER_SYSTEM</code> : le système est ajouté tout seul à chaque <code>Game</code>. Placez-le dans <code>systems/</code> du projet :</p>
+<div class="code"><div class="code-head"><span class="file">projects/rpg/systems/health_system.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#include</span> <span class="s">"game_systems.h"</span>
+<span class="p">#include</span> <span class="s">"../components/health.h"</span>
+
+<span class="k">class</span> <span class="t">HealthSystem</span> : <span class="k">public</span> <span class="t">ISystem</span> {
+<span class="k">public</span>:
+    <span class="t">HealthSystem</span>() { priority = <span class="n">4</span>; }   <span class="c">// après les scripts (2) et les particules (3), avant le rendu</span>
+
+    <span class="k">void</span> onUpdate(<span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) <span class="k">override</span> {
+        registry.view&lt;<span class="t">Health</span>&gt;([&amp;](<span class="t">Entity</span> e, <span class="t">Health</span>&amp; h) {
+            <span class="k">if</span> (h.current &lt;= <span class="n">0</span>.f)
+                registry.destroyEntity(e);   <span class="c">// différé : sans danger dans un view</span>
+        });
+    }
+};
+
+<span class="t">REGISTER_SYSTEM</span>(<span class="t">HealthSystem</span>)</code></pre></div>
+<p>Pour un système du <em>moteur</em> (ou un test), on l'ajoute à la main : <code>game.systems().addSystem&lt;HealthSystem&gt;()</code>. On peut désactiver n'importe quel système sans le retirer : <em>Exécuter → Systèmes…</em> dans l'éditeur, ou <code>game.systems().setEnabled("HealthSystem", false)</code>.</p>
+</div></details>
+
+<details><summary>Enregistrer et charger une scène</summary><div class="body">
+<div class="code"><div class="code-head"><span class="file">scène</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="t">SceneMeta</span> meta;
+saveScene(registry, meta, <span class="s">"scenes/niveau1.scene"</span>, &amp;error);            <span class="c">// éditeur : Ctrl+S</span>
+
+clearRegistry(registry);                                              <span class="c">// vider avant de charger</span>
+<span class="t">SceneLoadResult</span> r = loadScene(registry, meta, <span class="s">"scenes/niveau1.scene"</span>);
+<span class="k">for</span> (<span class="k">const</span> <span class="k">std</span>::string&amp; w : r.warnings) <span class="k">std</span>::cerr &lt;&lt; w &lt;&lt; <span class="s">"\n"</span>;</code></pre></div>
+<p>Les liens entre entités survivent grâce aux <code>PersistentId</code>. Voir <a href="projet.html">Projet &amp; sauvegarde</a>.</p>
+</div></details>
+
+<details><summary>Faire apparaître un prefab depuis le code</summary><div class="body">
+<p>Créez le prefab dans l'éditeur (clic droit sur une entité → <em>Créer un prefab</em>), puis, dans un comportement :</p>
+<div class="code"><div class="code-head"><span class="file">comportement</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="t">SceneLoadResult</span> r = instantiatePrefabFile(registry, <span class="s">"prefab/Ennemi.prefab"</span>, sf::<span class="t">Vector2f</span>{ <span class="n">400</span>.f, <span class="n">200</span>.f });
+<span class="k">if</span> (r.ok) <span class="t">Entity</span> ennemi = r.entities.front();   <span class="c">// la racine du prefab</span></code></pre></div>
+<p>Chaque instance reçoit de nouveaux identifiants ; les liens internes au prefab sont conservés. Le chemin est relatif au dossier de lancement de l'exécutable (passez-le avec <code>project.resolve(…)</code> pour qu'il soit relatif au projet).</p>
+</div></details>
+
+<details><summary>Créer une carte et lui donner des images</summary><div class="body">
+<ol>
+  <li>Hierarchy → <strong>+</strong> → <em>Tilemap orthogonale</em> ou <em>isométrique</em>.</li>
+  <li>Tile Palette → <strong>+</strong> → <em>Nouveau tileset depuis une feuille (PNG)…</em> : réglez la taille d'une tile, le type (simple ou autotile) et l'ancre.</li>
+  <li>Choisissez une tile (ou cochez <em>Autotile</em>) et peignez avec <kbd>B</kbd>.</li>
+  <li><kbd>Ctrl</kbd>+<kbd>S</kbd> : le <code>.map</code> et le <code>.tileset</code> sont enregistrés, la scène référence la carte.</li>
+</ol>
+<p>Détails et formats : <a href="tilemaps.html">Tilemaps &amp; tilesets</a>.</p>
+</div></details>
+
+<details><summary>Réagir aux collisions</summary><div class="body">
+<p><code>addSystem</code> renvoie une référence au système : on peut y brancher le callback <code>onCollision</code> tout de suite.</p>
+<div class="code"><div class="code-head"><span class="file">scène</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">auto</span>&amp; collisions = game.systems().addSystem&lt;<span class="t">CollisionSystem</span>&gt;();
+collisions.onCollision = [&amp;](<span class="k">const</span> <span class="t">CollisionInfo</span>&amp; info) {
+    <span class="k">if</span> (info.isTrigger) {
+        <span class="c">// zone de détection : entityA et entityB se chevauchent, sans réponse physique</span>
+    }
+};</code></pre></div>
+<p><code>CollisionInfo</code> fournit <code>entityA</code>, <code>entityB</code>, <code>normal</code> (de A vers B), <code>depth</code>, <code>point</code> et <code>isTrigger</code>.</p>
+</div></details>
+
+<details><summary>Ajouter un module au moteur</summary><div class="body">
+<ol>
+  <li>Créez <code>engine/&lt;nom&gt;/</code> avec un dossier <code>include/</code> (en-têtes publics) et, si besoin, <code>src/</code> (fichiers <code>.cpp</code>).</li>
+  <li>Dans <code>engine/&lt;nom&gt;/CMakeLists.txt</code> :</li>
+</ol>
+<div class="code"><div class="code-head"><span class="file">engine/scene/CMakeLists.txt</span><span class="lang">CMake</span><button class="copy" type="button">Copier</button></div><pre><code>av_module(Scene <span class="t">DEPS</span> AngeVault::Core AngeVault::Physics2D AngeVault::Render2D nlohmann_json::nlohmann_json)</code></pre></div>
+<ol start="3">
+  <li>Ajoutez <code>add_subdirectory(scene)</code> dans <code>engine/CMakeLists.txt</code> (c'est le cas du module <code>scene</code>, donné ici en exemple).</li>
+  <li>Ajoutez <code>AngeVault::Scene</code> à la liste de <code>target_link_libraries(av_engine INTERFACE …)</code> pour que l'éditeur et les projets le voient.</li>
+</ol>
+<p>Sans fichier <code>.cpp</code> dans <code>src/</code>, le module est de type <code>INTERFACE</code> (100 % en-têtes) ; avec des sources, c'est une bibliothèque statique. C'est la fonction <code>av_module</code> qui décide.</p>
+</div></details>
+
+<details><summary>Ajouter une action d'entrée</summary><div class="body">
+<p>Une action est un nom (« Jump », « Horizontal ») relié à des touches par le fichier <code>assets/input.cfg</code> du projet. Deux façons de l'ajouter :</p>
+<ol>
+  <li><strong>Dans l'éditeur</strong> : <em>Édition → Input Manager…</em>, ajoutez l'action, choisissez son type (<em>Button</em> ou <em>Axis</em>) et ses liens. Le fichier est enregistré à chaque modification.</li>
+  <li><strong>À la main</strong> dans <code>input.cfg</code> :</li>
+</ol>
+<div class="code"><div class="code-head"><span class="file">assets/input.cfg</span><span class="lang">Shell</span><button class="copy" type="button">Copier</button></div><pre><code>[Jump] button
+key Space
+joybutton 0 0
+
+[Horizontal] axis
+key Left -1
+key Right</code></pre></div>
+<p>Puis, dans un comportement :</p>
+<div class="code"><div class="code-head"><span class="file">comportement</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">if</span> (<span class="t">Input</span>::getButtonDown(<span class="s">"Jump"</span>)) rb.applyImpulse({ <span class="n">0</span>.f, -jumpForce });
+<span class="k">const</span> <span class="k">float</span> moveX = <span class="t">Input</span>::getAxis(<span class="s">"Horizontal"</span>);   <span class="c">// -1..1</span></code></pre></div>
+<p>Le chemin du fichier est celui de <code>paths.input</code> dans le <code>.angproj</code>. Pour des valeurs par défaut sans fichier, ajoutez l'action dans <code>defaultRpgInput</code> (<code>rpg_scene.h</code>) avec <code>input.addAction("Jump")</code>.</p>
+</div></details>
+
+<details><summary>Faire suivre une entité par la caméra</summary><div class="body">
+<p>Une caméra est une entité avec un <code>Transform2D</code> et un <code>Camera2d</code>. Le suivi est un composant à part, <code>CameraFollow</code> ; les systèmes caméra s'enregistrent d'un coup avec <code>registerCameraSystems</code> :</p>
+<div class="code"><div class="code-head"><span class="file">rpg_scene.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="t">Entity</span> cameraEntity = registry.createEntity();
+registry.addComponent&lt;<span class="t">Transform2D</span>&gt;(cameraEntity);
+registry.addComponent&lt;<span class="t">Camera2d</span>&gt;(cameraEntity);
+<span class="t">Camera</span>::follow(registry, cameraEntity, player);            <span class="c">// ajoute CameraFollow et fixe la cible</span>
+registry.addComponent&lt;<span class="t">CameraBounds</span>&gt;(cameraEntity).set({ <span class="n">0</span>.f, <span class="n">0</span>.f }, { <span class="n">3000</span>.f, <span class="n">3000</span>.f });   <span class="c">// optionnel : limites du monde</span>
+
+<span class="c">// dans registerRpgSystems (déjà fait dans le RPG) :</span>
+registerCameraSystems(game.systems(), game.target());      <span class="c">// Control, Follow, Bounds, Shake puis CameraSystem (priorité 7)</span></code></pre></div>
+<p>Dans l'éditeur, la même chose se fait en glissant la caméra sur l'entité à suivre dans la Hierarchy ; elle se place alors sur sa cible et ne se déplace plus à la main. Sans cible, la caméra est libre : si elle a un <code>CameraControl</code>, les actions <code>CameraX</code> / <code>CameraY</code> la déplacent, et la molette (<code>ZoomWheel</code>) zoome dans les deux cas. <code>CameraFollow::lookAhead</code> fait anticiper le mouvement de la cible, <code>smoothTime</code> et <code>deadZone</code> règlent la souplesse. Pour un choc ou une explosion : <code>Camera::shake(registry, 0.5f)</code>. Détail des champs : <a href="composants.html">Référence des composants</a>.</p>
+</div></details>
+
+<details><summary>Ajouter une texture à une entité</summary><div class="body">
+<p>Déposez l'image dans <code>projects/rpg/assets/</code> (ou <code>projects/sandbox/assets/</code> pour le Sandbox) : elle est copiée à côté de l'exécutable après chaque build (<code>av_copy_assets</code>). Puis utilisez son identifiant dans un <code>Geometry::SpriteData</code> :</p>
+<div class="code"><div class="code-head"><span class="file">scène</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code>registry.addComponent&lt;<span class="t">Geometry</span>&gt;(player,
+    <span class="t">Geometry</span>::<span class="t">SpriteData</span>{ <span class="s">"player"</span>, sf::<span class="t">IntRect</span>({<span class="n">0</span>, <span class="n">0</span>}, {<span class="n">32</span>, <span class="n">64</span>}), sf::<span class="t">Color</span>::<span class="t">White</span> }, <span class="n">1</span>);</code></pre></div>
+<p>Si l'image n'est pas trouvée, un damier magenta s'affiche à la place et la console indique <code>couldn't find …</code>.</p>
+</div></details>
+
+<h2 id="glossaire">Glossaire</h2>
+<div class="table-wrap"><table>
+<tr><th>Terme</th><th>Définition</th></tr>
+<tr><td>ECS</td><td><em>Entity-Component-System</em> : les objets de jeu sont des identifiants (entités) portant des données (composants), traités par des systèmes.</td></tr>
+<tr><td>Entité</td><td>Un identifiant <code>{ index, generation }</code>. N'a ni données ni méthodes.</td></tr>
+<tr><td>Composant</td><td>Une structure de données attachée à une entité (<code>RigidBody2D</code>…).</td></tr>
+<tr><td>Système</td><td>Une classe <code>ISystem</code> qui parcourt les composants à chaque frame, par ordre de priorité.</td></tr>
+<tr><td>Registry</td><td>L'objet qui possède les entités et les pools de composants.</td></tr>
+<tr><td>Sparse set</td><td>Structure de stockage avec un tableau dense (données contiguës) et un tableau épars (index par entité).</td></tr>
+<tr><td>Dual-grid</td><td>Technique de tilemap où le visuel est posé sur les sommets entre quatre tuiles, pour des transitions de terrain avec peu de textures (autotile <code>corners16</code>).</td></tr>
+<tr><td>Projet (<code>.angproj</code>)</td><td>Le fichier qui décrit un jeu : scène de départ, scènes, dossiers, fenêtre, systèmes actifs.</td></tr>
+<tr><td>Scène (<code>.scene</code>)</td><td>Un fichier JSON qui contient des entités et leurs composants.</td></tr>
+<tr><td>Prefab (<code>.prefab</code>)</td><td>Un groupe d'entités enregistré pour être recréé à volonté.</td></tr>
+<tr><td>PersistentId</td><td>Identifiant stable d'une entité, écrit dans les fichiers : il relie les entités entre elles, là où l'index mémoire change à chaque chargement.</td></tr>
+<tr><td>Tileset (<code>.tileset</code>)</td><td>Une feuille d'images découpée en grille, avec ses réglages (ancre, autotile, tri en Y).</td></tr>
+<tr><td>Tilemap (<code>.map</code>)</td><td>Une carte : une grille de cases « tileset + tile ». Posée sur une entité par le composant <code>Tilemap</code>.</td></tr>
+<tr><td>Autotile</td><td>Un tileset dont les pièces de transition (bords, coins) sont choisies automatiquement d'après les cases voisines.</td></tr>
+<tr><td>Tri en Y</td><td>Dessiner les objets du plus haut au plus bas de l'écran pour que les personnages passent devant ou derrière arbres et murs.</td></tr>
+<tr><td><code>REGISTER_*</code></td><td>Les macros <code>REGISTER_BEHAVIOR</code>, <code>REGISTER_COMPONENT</code> et <code>REGISTER_SYSTEM</code> qui déclarent le code d'un jeu à l'éditeur, aux scènes et à <code>Game</code>.</td></tr>
+<tr><td>Behavior</td><td>Une classe C++ héritant d'<code>IBehavior</code>, attachée via le composant <code>Script</code>.</td></tr>
+<tr><td>Action (entrée)</td><td>Un nom (« Horizontal », « Jump ») relié à des touches, des boutons de souris, la molette ou une manette par <code>input.cfg</code> ; lu avec <code>Input::getAxis</code> ou <code>Input::getButtonDown</code>.</td></tr>
+<tr><td>Axe</td><td>Une action qui renvoie une valeur réelle entre −1 et 1 (déplacement, par exemple), par opposition à un bouton qui est enfoncé ou non.</td></tr>
+<tr><td>Catégorie</td><td>Un dossier de la Hierarchy pour ranger les entités ; n'existe que dans l'éditeur.</td></tr>
+<tr><td>Dock</td><td>Un panneau déplaçable de l'éditeur (<code>QDockWidget</code>).</td></tr>
+<tr><td>QSS</td><td>Qt Style Sheets : le langage de thème de l'éditeur, proche du CSS.</td></tr>
+</table></div>
+
+<h2 id="faq">FAQ</h2>
+<details><summary>Pourquoi mes textures s'affichent-elles en damier magenta ?</summary><div class="body"><p>Le chargeur n'a pas trouvé le fichier. Vérifiez que l'image est dans le dossier <code>assets/</code> du projet (<code>projects/rpg/assets/</code> ou <code>projects/sandbox/assets/</code>, copié dans <code>bin/assets</code> au build) et que l'identifiant utilisé correspond à un chemin valide depuis le dossier de l'exécutable.</p></div></details>
+<details><summary>L'éditeur n'est pas construit, que faire ?</summary><div class="body"><p>CMake n'a pas trouvé Qt 6. Indiquez son dossier avec <code>CMAKE_PREFIX_PATH</code> ou la variable d'environnement <code>QT_ROOT</code>. Voir <a href="demarrage.html">Démarrage &amp; build</a>.</p></div></details>
+<details><summary>Puis-je compiler sans Qt ?</summary><div class="body"><p>Oui : le preset <code>x64-debug-no-editor</code> (ou <code>-DAV_BUILD_EDITOR=OFF</code>) construit le moteur, les projets (RPG et Sandbox) et les tests sans Qt.</p></div></details>
+<details><summary>D'autres questions ?</summary><div class="body"><p>Voir la page <a href="faq.html">FAQ &amp; dépannage</a>.</p></div></details>
+<details><summary>Où sont les sources de l'ancien prototype RTS ?</summary><div class="body"><p>Dans <code>legacy/rts/</code> : composants, systèmes et utilitaires conservés comme référence, non compilés par le CMake actuel.</p></div></details>
+<div class="pager"><a class="prev" href="editeur.html"><small>Précédent</small>← Éditeur Qt</a><a class="next" href="demarrage.html"><small>Suivant</small>Démarrage &amp; build →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#les-guides">Les guides</a><a href="#guide-de-lediteur" class="sub">Guide de l&#x27;éditeur</a><a href="#projet-sauvegarde" class="sub">Projet &amp;amp; sauvegarde</a><a href="#tilemaps-tilesets" class="sub">Tilemaps &amp;amp; tilesets</a><a href="#code-de-jeu" class="sub">Code de jeu</a><a href="#demarrage-build" class="sub">Démarrage &amp;amp; build</a><a href="#creer-un-systeme-engine" class="sub">Créer un système (engine)</a><a href="#creer-un-composant-engine" class="sub">Créer un composant (engine)</a><a href="#comportements-c" class="sub">Comportements C++</a><a href="#reference-des-composants" class="sub">Référence des composants</a><a href="#ecs-registry" class="sub">ECS &amp;amp; Registry</a><a href="#editeur-qt" class="sub">Éditeur Qt</a><a href="#faq-depannage" class="sub">FAQ &amp;amp; dépannage</a><a href="#feuille-de-route" class="sub">Feuille de route</a><a href="#recettes">Recettes</a><a href="#glossaire">Glossaire</a><a href="#faq">FAQ</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div>
+ <div><h4>Documentation</h4><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>

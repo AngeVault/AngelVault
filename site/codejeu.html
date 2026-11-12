@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code de jeu — AngeVault Engine</title>
+<meta name="description" content="Guide du code de jeu AngeVault : REGISTER_BEHAVIOR, REGISTER_COMPONENT, REGISTER_SYSTEM, dossiers behaviors, components et systems d&#x27;un projet, en-tête généré par CMake, Exécuter &gt; Systèmes.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html" class="current" aria-current="page">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Code de jeu</div><span class="eyebrow">Documentation</span><h1>Code de jeu</h1><p class="lead">Ajouter un comportement, un composant ou un système à un projet sans toucher au moteur ni à l'éditeur, grâce à trois macros : REGISTER_BEHAVIOR, REGISTER_COMPONENT et REGISTER_SYSTEM.</p></div></section>
+<div class="wrap doc"><article class="prose"><h2 id="le-code-du-jeu-vit-dans-le-projet">Le code du jeu vit dans le projet</h2>
+<p>Le moteur fournit les briques (ECS, physique, rendu). Le <strong>code propre à un jeu</strong> — comment le joueur bouge, quels composants décrivent un ennemi, quels systèmes les font agir — se range dans le dossier du projet, sous trois formes :</p>
+<div class="grid g3" style="margin:20px 0 28px">
+  <div class="card"><span class="tag ok">behaviors/</span><h4>Comportements</h4><p>Une classe qui hérite de <code>IBehavior</code>, attachée à <em>une</em> entité via <code>Script</code>. Déclarée avec <code>REGISTER_BEHAVIOR</code>.</p></div>
+  <div class="card"><span class="tag plan">components/</span><h4>Composants</h4><p>Une structure de données (<code>Health</code>, <code>Spin</code>…) posée sur des entités. Déclarée avec <code>REGISTER_COMPONENT</code>.</p></div>
+  <div class="card"><span class="tag warn">systems/</span><h4>Systèmes</h4><p>Une classe qui parcourt des composants à chaque frame, pour <em>toutes</em> les entités. Déclarée avec <code>REGISTER_SYSTEM</code>.</p></div>
+</div>
+<p>Chaque macro enregistre le code dans un <strong>registre global</strong> au démarrage du programme. Ce registre est lu par l'éditeur (menus, Inspector, glisser-déposer), par le chargement des scènes (retrouver une classe à partir de son nom) et par <code>Game</code> (ajouter les systèmes). Résultat : <strong>déposer un fichier suffit</strong>, sans modifier le moteur, l'éditeur ni une liste quelque part.</p>
+
+<h2 id="quand-choisir-quoi">Quand choisir quoi ?</h2>
+<div class="table-wrap"><table>
+<tr><th>Je veux…</th><th>J'écris…</th><th>Parce que…</th></tr>
+<tr><td>faire bouger <em>le joueur</em> avec le clavier</td><td>un comportement</td><td>la logique ne concerne qu'une entité</td></tr>
+<tr><td>donner des points de vie à plusieurs entités</td><td>un composant</td><td>c'est de la donnée, partagée et sauvegardée dans la scène</td></tr>
+<tr><td>faire tourner toutes les entités qui ont <code>Spin</code></td><td>un composant + un système</td><td>une même règle s'applique à beaucoup d'entités</td></tr>
+<tr><td>réagir à une collision d'un ennemi précis</td><td>un comportement (il peut brancher le callback <code>onCollision</code> du <code>Collider2D</code>)</td><td>cas particulier d'une entité</td></tr>
+</table></div>
+<p>La règle d'or de l'ECS : <strong>les données dans les composants, la logique dans les systèmes</strong>. Un comportement est pratique pour un cas unique ; dès qu'une règle concerne « toutes les entités qui ont X », préférez un système.</p>
+
+<h2 id="les-dossiers-dun-projet">Les dossiers d'un projet</h2>
+<div class="code"><div class="code-head"><span class="file">projects/rpg/</span><span class="lang">Arborescence</span><button class="copy" type="button">Copier</button></div><pre><code><span class="t">projects/</span><span class="t">rpg/</span>
+├── rpg.angproj           <span class="c"># le projet</span>
+├── CMakeLists.txt        <span class="c"># inclut automatiquement les trois dossiers ci-dessous</span>
+├── main.cpp              <span class="c"># rpg.exe</span>
+├── rpg_scene.h           <span class="c"># registerRpgSystems, entrées, scène de secours</span>
+├── <span class="t">behaviors/</span>            <span class="c"># REGISTER_BEHAVIOR   (player_behaviors.h, test.h…)</span>
+├── <span class="t">components/</span>           <span class="c"># REGISTER_COMPONENT  (spin.h)</span>
+├── <span class="t">systems/</span>              <span class="c"># REGISTER_SYSTEM     (spin_system.h)</span>
+├── <span class="t">scenes/</span>               <span class="c"># main.scene, iso_demo.scene</span>
+├── <span class="t">prefab/</span>               <span class="c"># Player.prefab…</span>
+└── <span class="t">assets/</span>               <span class="c"># input.cfg, tilesets/…</span></code></pre></div>
+<p>Le <code>CMakeLists.txt</code> du projet liste tous les <code>*.h</code> et <code>*.hpp</code> de ces trois dossiers (<code>file(GLOB … CONFIGURE_DEPENDS)</code>) et en fait un <strong>en-tête généré</strong>, <code>rpg_game_code.h</code>, qui les inclut un par un. Cet en-tête est compilé dans <code>rpg.exe</code> <em>et</em> dans l'éditeur (cible <code>rpg_project</code>) : le même code est donc visible aux deux endroits.</p>
+<div class="callout"><i class="fa-solid fa-circle-info"></i><div><p><strong>Après avoir ajouté un fichier, recompilez.</strong> Le code est du C++ : il n'apparaît dans l'éditeur qu'après une compilation. CMake détecte tout seul les nouveaux fichiers (<code>CONFIGURE_DEPENDS</code>) ; lancez simplement la compilation.</p></div></div>
+
+<h2 id="register-behavior">REGISTER_BEHAVIOR</h2>
+<p>Un comportement est une classe qui hérite de <code>IBehavior</code> (voir <a href="comportements.html">Comportements C++</a>). Une ligne sous la classe l'enregistre :</p>
+<div class="code"><div class="code-head"><span class="file">projects/rpg/behaviors/player_behaviors.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#pragma</span> once
+<span class="p">#include</span> <span class="s">"ecs/behavior.h"</span>
+<span class="p">#include</span> <span class="s">"ecs/behavior_factory.h"</span>
+<span class="p">#include</span> <span class="s">"ecs/registry.h"</span>
+<span class="p">#include</span> <span class="s">"components/rigid_body2d.h"</span>
+<span class="p">#include</span> <span class="s">"input/input.h"</span>
+
+<span class="k">class</span> <span class="t">PlayerBehavior</span> : <span class="k">public</span> <span class="t">IBehavior</span> {
+<span class="k">public</span>:
+    <span class="t">PROPERTY</span>(<span class="k">float</span>, speed, <span class="n">250</span>.f)      <span class="c">// visible dans l'Inspector, enregistré dans la scène</span>
+
+    <span class="k">void</span> onUpdate(<span class="t">Entity</span> self, <span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) <span class="k">override</span> {
+        <span class="k">auto</span>&amp; rb = registry.getComponent&lt;<span class="t">RigidBody2D</span>&gt;(self);
+        rb.velocity.x = <span class="t">Input</span>::getAxis(<span class="s">"Horizontal"</span>) * speed;
+        rb.velocity.y = <span class="t">Input</span>::getAxis(<span class="s">"Vertical"</span>)   * speed;
+    }
+};
+
+<span class="t">REGISTER_BEHAVIOR</span>(<span class="t">PlayerBehavior</span>)      <span class="c">// nom utilisé dans les fichiers .scene / .prefab</span></code></pre></div>
+<p>Le <code>BehaviorFactory</code> retient le nom de la classe, comment en créer une instance et le fichier où elle est déclarée (<code>__FILE__</code>). C'est ce qui permet :</p>
+<ul>
+  <li><strong>d'enregistrer</strong> un <code>Script</code> dans une scène : on écrit le nom et les <code>PROPERTY</code> ;</li>
+  <li><strong>de recharger</strong> : <code>create("PlayerBehavior")</code> fabrique un nouvel objet ; un nom inconnu (classe renommée ou supprimée) donne <code>nullptr</code> et un avertissement ;</li>
+  <li><strong>de glisser un fichier</strong> <code>.h</code> sur une entité : <code>namesInFile("player_behaviors.h")</code> liste les comportements qu'il déclare (le nom du fichier est comparé sans tenir compte de la casse, pour Windows).</li>
+</ul>
+<p>Un même fichier peut déclarer plusieurs comportements, et une entité peut en porter <strong>plusieurs</strong> : le composant <code>Script</code> contient une liste (<code>behaviors</code>), exécutée dans l'ordre. En C++ : <code>script.add&lt;PlayerBehavior&gt;()</code>, <code>script.get&lt;PlayerBehavior&gt;()</code>, <code>script.remove(i)</code>, <code>script.size()</code>.</p>
+
+<h2 id="register-component">REGISTER_COMPONENT</h2>
+<p>Un composant de jeu est une simple structure avec des valeurs par défaut. Une ligne sous la structure suffit :</p>
+<div class="code"><div class="code-head"><span class="file">projects/rpg/components/spin.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#pragma</span> once
+<span class="p">#include</span> <span class="s">"ecs/game_components.h"</span>
+
+<span class="k">struct</span> <span class="t">Spin</span> {
+    <span class="k">float</span> degreesPerSecond = <span class="n">90</span>.f;   <span class="c">// vitesse de rotation</span>
+    <span class="k">bool</span> clockwise = <span class="k">true</span>;
+};
+<span class="t">REGISTER_COMPONENT</span>(<span class="t">Spin</span>, <span class="t">FIELD</span>(degreesPerSecond), <span class="t">FIELD</span>(clockwise))</code></pre></div>
+<p>Cette ligne fait trois choses :</p>
+<ol>
+  <li><strong>Inspector</strong> : <em>Ajouter un composant → Spin</em> apparaît, avec un champ par <code>FIELD</code>.</li>
+  <li><strong>Sauvegarde</strong> : la scène et les prefabs enregistrent le composant sous le nom <code>Spin</code>, avec ses champs (via un sérialiseur créé automatiquement, <code>addReflected</code>).</li>
+  <li><strong>Glisser-déposer</strong> : on peut glisser <code>spin.h</code> sur une entité pour lui ajouter le composant.</li>
+</ol>
+<div class="table-wrap"><table>
+<tr><th>Type du champ</th><th>Widget dans l'Inspector</th></tr>
+<tr><td><code>float</code></td><td>nombre décimal</td></tr>
+<tr><td><code>int</code></td><td>nombre entier</td></tr>
+<tr><td><code>bool</code></td><td>case à cocher</td></tr>
+<tr><td><code>sf::Vector2f</code></td><td>deux nombres (x, y)</td></tr>
+<tr><td><code>std::string</code></td><td>zone de texte</td></tr>
+</table></div>
+<p>Dans le code du jeu, c'est un composant comme les autres : <code>registry.getComponent&lt;Spin&gt;(e)</code>, <code>registry.view&lt;Spin, Transform2D&gt;(…)</code>.</p>
+<div class="callout warn"><i class="fa-solid fa-triangle-exclamation"></i><div><p><strong>Limite.</strong> Seuls les cinq types ci-dessus sont pris en charge. Un champ de type <code>Entity</code>, une liste ou une énumération ne se déclare pas avec <code>FIELD</code> : écrivez alors un sérialiseur à la main (voir <a href="projet.html">Projet &amp; sauvegarde</a>) ou stockez un entier / une chaîne.</p></div></div>
+
+<h2 id="register-system">REGISTER_SYSTEM</h2>
+<p>Un système hérite d'<code>ISystem</code>, fixe sa <code>priority</code> et implémente <code>onUpdate</code>. L'inclusion de <code>game_systems.h</code> apporte la macro :</p>
+<div class="code"><div class="code-head"><span class="file">projects/rpg/systems/spin_system.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#pragma</span> once
+<span class="p">#include</span> <span class="s">"game_systems.h"</span>
+<span class="p">#include</span> <span class="s">"components/transform2d.h"</span>
+<span class="p">#include</span> <span class="s">"../components/spin.h"</span>
+
+<span class="k">class</span> <span class="t">SpinSystem</span> : <span class="k">public</span> <span class="t">ISystem</span> {
+<span class="k">public</span>:
+    <span class="t">SpinSystem</span>() { priority = <span class="n">3</span>; }   <span class="c">// après la physique et les scripts, avant le rendu (10)</span>
+
+    <span class="k">void</span> onUpdate(<span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) <span class="k">override</span> {
+        registry.view&lt;<span class="t">Spin</span>, <span class="t">Transform2D</span>&gt;([&amp;](<span class="t">Entity</span>, <span class="t">Spin</span>&amp; spin, <span class="t">Transform2D</span>&amp; t) {
+            <span class="k">const</span> <span class="k">float</span> sign = spin.clockwise ? <span class="n">1</span>.f : -<span class="n">1</span>.f;
+            t.rotate(sf::degrees(sign * spin.degreesPerSecond * dt));
+        });
+    }
+};
+<span class="t">REGISTER_SYSTEM</span>(<span class="t">SpinSystem</span>)</code></pre></div>
+<p>Chaque <code>Game</code> (<code>rpg.exe</code> comme le mode Jouer de l'éditeur) ajoute tous les systèmes enregistrés dans <code>Game::init</code>, après ceux du moteur. Le constructeur peut être :</p>
+<div class="table-wrap"><table>
+<tr><th>Constructeur</th><th>Pour…</th></tr>
+<tr><td><code>MonSysteme()</code></td><td>un système qui ne touche qu'au <code>Registry</code></td></tr>
+<tr><td><code>MonSysteme(Game&amp; game)</code></td><td>accéder au jeu (entrées : <code>game.input()</code>, systèmes…)</td></tr>
+<tr><td><code>MonSysteme(sf::RenderTarget&amp; target)</code></td><td>dessiner (interface, effets) : l'image du jeu (<code>game.target()</code>, une <code>RenderTexture</code> que le post-process affiche ensuite dans la fenêtre)</td></tr>
+</table></div>
+<p>Choisissez une <code>priority</code> qui place votre système au bon endroit dans la frame (voir <a href="architecture.html">l'ordre d'exécution</a>) : avant 10 pour agir sur les données, après 10 pour dessiner par-dessus. Le nom du système est celui de sa classe.</p>
+
+<h2 id="activer-et-desactiver-des-systemes">Activer et désactiver des systèmes</h2>
+<p><em>Exécuter → Systèmes…</em> ouvre la liste de tous les systèmes du jeu <strong>dans leur ordre d'exécution</strong>, avec leur priorité et leur origine (<em>Moteur</em> ou <em>Jeu</em>). On coche ou décoche chaque système :</p>
+<ul>
+  <li>le choix est enregistré dans le projet, section <code>systems</code> du <code>.angproj</code> (<code>"ForceDebugSystem": false</code>) ;</li>
+  <li>il est appliqué au lancement (<kbd>F5</kbd>, <code>rpg.exe</code>) grâce à <code>game.applySystemSettings(project.systems)</code> ;</li>
+  <li>il prend effet <strong>tout de suite</strong> si le jeu tourne déjà dans l'éditeur.</li>
+</ul>
+<p>C'est idéal pour masquer les tracés de debug (<code>RenderCollisionSystem</code>, <code>ForceDebugSystem</code>) ou isoler un système pendant qu'on cherche un bug. Un système désactivé n'est plus appelé (<code>onUpdate</code>), mais reste en mémoire.</p>
+
+<h2 id="creer-du-code-depuis-lediteur">Créer du code depuis l'éditeur</h2>
+<p>Dans le panneau <strong>Project</strong>, clic droit → <strong>Créer (C++)</strong> propose <em>Behavior…</em>, <em>Composant de jeu…</em> et <em>Système de jeu…</em>. L'éditeur demande le nom de la classe (un nom C++ valide, sinon il refuse), crée le fichier dans le bon dossier avec un modèle commenté prêt à compiler, puis rappelle qu'il faut recompiler. Il n'y a plus qu'à le remplir.</p>
+<ol>
+  <li>Clic droit dans Project → Créer (C++) → Behavior… (par exemple <code>test</code>) : un fichier <code>behaviors/test.h</code> apparaît avec <code>REGISTER_BEHAVIOR(test)</code> en bas.</li>
+  <li>Écrivez le code, puis <strong>recompilez</strong> (cible <code>AngeVaultEditor</code>).</li>
+  <li>Dans l'éditeur, deux façons de l'attacher : glisser le fichier <code>.h</code> sur une entité (Hierarchy, Inspector ou vue scène), ou <em>Inspector → Ajouter un composant → Comportement → test</em>.</li>
+  <li><kbd>Ctrl</kbd>+<kbd>S</kbd> : le nom du comportement et ses <code>PROPERTY</code> sont dans la scène. <kbd>F5</kbd> pour l'essayer.</li>
+</ol>
+<div class="callout"><i class="fa-solid fa-circle-info"></i><div><p><strong>Pourquoi recompiler ?</strong> Le code de jeu est lié à l'éditeur (cible <code>rpg_project</code>). Il n'y a pas de rechargement à chaud : après chaque modification de C++, il faut reconstruire l'éditeur pour que le mode Jouer utilise la nouvelle version.</p></div></div>
+
+<div class="callout"><i class="fa-solid fa-circle-info"></i><div><p><strong>Et côté moteur ?</strong> Cette page décrit le code d'<em>un jeu</em>. Pour ajouter un système ou un composant au moteur lui-même (dossier <code>engine/</code>, utilisable par tous les jeux et par l'éditeur), voir <a href="systeme-engine.html">Créer un système (côté engine)</a> et <a href="composant-engine.html">Créer un composant (côté engine)</a>.</p></div></div>
+
+<h2 id="creer-un-nouveau-projet-de-jeu">Créer un nouveau projet de jeu</h2>
+<p>Un nouveau projet dans l'éditeur (<em>Fichier → Nouveau projet…</em>) crée les fichiers de données (<code>.angproj</code>, <code>assets/</code>, <code>scenes/</code>), mais le <em>code</em> d'un projet est compilé : il appartient à un exécutable déclaré en CMake. Pour avoir un jeu avec son propre code, copiez la structure de <code>projects/rpg</code> (CMakeLists avec le glob des trois dossiers, <code>main.cpp</code>) et ajoutez-la au <code>CMakeLists.txt</code> racine. Le projet <code>projects/test/test.angproj</code> sert de projet de données vide pour essayer l'éditeur.</p>
+
+<h2 id="depannage">Dépannage</h2>
+<div class="table-wrap"><table>
+<tr><th>Symptôme</th><th>Cause probable</th></tr>
+<tr><td>Mon comportement n'apparaît pas dans l'Inspector</td><td>Pas recompilé, ou <code>REGISTER_BEHAVIOR</code> manquant, ou le fichier n'est pas dans <code>behaviors/</code> (donc absent de l'en-tête généré)</td></tr>
+<tr><td>« comportement inconnu » au chargement d'une scène</td><td>La classe a été renommée ou supprimée : le nom écrit dans le <code>.scene</code> ne correspond plus à rien</td></tr>
+<tr><td>Mon système ne s'exécute pas</td><td>Pas de <code>REGISTER_SYSTEM</code>, ou décoché dans <em>Exécuter → Systèmes…</em> (section <code>systems</code> du <code>.angproj</code>)</td></tr>
+<tr><td>Mon composant n'est pas sauvegardé</td><td><code>REGISTER_COMPONENT</code> manquant, ou un champ n'est pas déclaré avec <code>FIELD</code></td></tr>
+<tr><td>Erreur de compilation : champ non pris en charge</td><td>Type de <code>FIELD</code> autre que <code>float</code>, <code>int</code>, <code>bool</code>, <code>sf::Vector2f</code>, <code>std::string</code></td></tr>
+</table></div>
+<div class="pager"><a class="prev" href="tilemaps.html"><small>Précédent</small>← Tilemaps &amp; tilesets</a><a class="next" href="systeme-engine.html"><small>Suivant</small>Créer un système (engine) →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#le-code-du-jeu-vit-dans-le-projet">Le code du jeu vit dans le projet</a><a href="#quand-choisir-quoi">Quand choisir quoi ?</a><a href="#les-dossiers-dun-projet">Les dossiers d&#x27;un projet</a><a href="#register-behavior">REGISTER_BEHAVIOR</a><a href="#register-component">REGISTER_COMPONENT</a><a href="#register-system">REGISTER_SYSTEM</a><a href="#activer-et-desactiver-des-systemes">Activer et désactiver des systèmes</a><a href="#creer-du-code-depuis-lediteur">Créer du code depuis l&#x27;éditeur</a><a href="#creer-un-nouveau-projet-de-jeu">Créer un nouveau projet de jeu</a><a href="#depannage">Dépannage</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div>
+ <div><h4>Documentation</h4><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>

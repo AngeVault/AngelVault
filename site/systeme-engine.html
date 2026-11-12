@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Créer un système (côté engine) — AngeVault Engine</title>
+<meta name="description" content="Comment ajouter un ISystem au moteur AngeVault : choisir le module, écrire l&#x27;en-tête, la priorité, onStart/onUpdate/onStop, l&#x27;enregistrer dans Game::init ou dans une fonction registerXxxSystems, l&#x27;activer par son nom et le tester.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html" class="current" aria-current="page">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Créer un système (côté engine)</div><span class="eyebrow">Documentation</span><h1>Créer un système (côté engine)</h1><p class="lead">Écrire un système dans le moteur lui-même (dossier engine/), le brancher à la boucle de jeu, le rendre activable depuis l'éditeur et le tester. À ne pas confondre avec un système de jeu, qui vit dans un projet.</p></div></section>
+<div class="wrap doc"><article class="prose"><h2 id="moteur-ou-projet">Moteur ou projet ?</h2>
+<p>Un système est une classe qui hérite de <code>ISystem</code> et qui parcourt des composants à chaque frame. Il peut vivre à <strong>deux endroits</strong>, et la bonne réponse dépend de qui s'en sert :</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>Système de jeu (projet)</th><th>Système du moteur (<code>engine/</code>)</th></tr>
+<tr><td>Où</td><td><code>projects/rpg/systems/</code></td><td><code>engine/&lt;module&gt;/include/systems/</code></td></tr>
+<tr><td>Pour qui</td><td>un seul jeu</td><td>tous les jeux et l'éditeur</td></tr>
+<tr><td>Branchement</td><td><code>REGISTER_SYSTEM(MonSysteme)</code> : automatique</td><td>à la main : <code>Game::init()</code> ou une fonction <code>registerXxxSystems</code></td></tr>
+<tr><td>Dépendances</td><td>tout le moteur</td><td>seulement celles du module (voir le graphe de dépendances de la <a href="architecture.html">Vue d'ensemble</a> et les <a href="modules.html">Modules du moteur</a>)</td></tr>
+<tr><td>Guide</td><td><a href="codejeu.html">Code de jeu</a></td><td>cette page</td></tr>
+</table></div>
+<p>Règle simple : si la règle est propre à <em>votre</em> jeu (un ennemi qui poursuit le joueur), elle va dans le projet. Si elle est générale (la physique, le rendu, le tremblement de caméra), elle va dans le moteur, avec son composant (voir <a href="composant-engine.html">Créer un composant (côté engine)</a>).</p>
+<p>Les exemples de cette page construisent un système fictif, <code>LifetimeSystem</code> : il détruit les entités dont le composant <code>Lifetime</code> arrive à zéro (étincelles, projectiles…). Les vrais systèmes cités en comparaison (<code>CameraShakeSystem</code>, <code>PhysicsSystem</code>) sont ceux du dépôt.</p>
+
+<h2 id="ce-que-fournit-isystem">Ce que fournit ISystem</h2>
+<div class="code"><div class="code-head"><span class="file">engine/core/include/ecs/system.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">struct</span> <span class="t">ISystem</span> {
+    <span class="k">virtual</span> ~<span class="t">ISystem</span>() = <span class="k">default</span>;
+    <span class="k">virtual</span> <span class="k">void</span> onStart(<span class="t">Registry</span>&amp; registry) {}
+    <span class="k">virtual</span> <span class="k">void</span> onUpdate(<span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) = <span class="n">0</span>;   <span class="c">// obligatoire</span>
+    <span class="k">virtual</span> <span class="k">void</span> onStop(<span class="t">Registry</span>&amp; registry) {}
+
+    <span class="k">int</span> priority = <span class="n">0</span>;       <span class="c">// ordre d'exécution : le plus petit d'abord</span>
+    <span class="k">bool</span> enabled = <span class="k">true</span>;    <span class="c">// faux : onUpdate n'est plus appelé</span>
+    <span class="k">std</span>::string name;       <span class="c">// rempli par SystemManager (nom de la classe)</span>
+};</code></pre></div>
+<div class="table-wrap"><table>
+<tr><th>Membre</th><th>Quand</th><th>À savoir</th></tr>
+<tr><td><code>onStart</code></td><td>une fois, à <code>m_systems.start()</code></td><td>facultatif ; voir l'avertissement plus bas</td></tr>
+<tr><td><code>onUpdate</code></td><td>chaque frame, si <code>enabled</code></td><td><code>dt</code> en secondes ; c'est là que vit la logique</td></tr>
+<tr><td><code>onStop</code></td><td>à <code>Game::stop()</code></td><td>libérer ce que <code>onStart</code> a pris</td></tr>
+<tr><td><code>priority</code></td><td>au moment de l'ajout</td><td>se règle dans le <strong>constructeur</strong> (<code>priority = 6;</code>) ; tri stable : à priorité égale, l'ordre d'ajout</td></tr>
+<tr><td><code>name</code></td><td>à l'ajout</td><td>nom de la classe, utilisé par <code>setEnabled</code>, le <code>.angproj</code> et Exécuter &gt; Systèmes…</td></tr>
+</table></div>
+
+<h2 id="etape-1-choisir-le-module">Étape 1 : choisir le module</h2>
+<p>Un système se range dans le module qui possède ses données et ses dépendances. Le module est un dossier <code>engine/&lt;nom&gt;/</code> avec un <code>include/</code> (en-têtes publics) et, facultativement, un <code>src/</code> :</p>
+<div class="table-wrap"><table>
+<tr><th>Votre système…</th><th>Module</th><th>Exemple existant</th></tr>
+<tr><td>ne dépend que de l'ECS, des transformations ou des scripts</td><td>Core</td><td><code>systems/script_system.h</code></td></tr>
+<tr><td>touche aux corps rigides ou aux collisions</td><td>Physics2D</td><td><code>PhysicsSystem</code>, <code>CollisionSystem</code></td></tr>
+<tr><td>dessine, ou règle la vue</td><td>Render2D</td><td><code>RenderSystem</code>, <code>CameraShakeSystem</code></td></tr>
+<tr><td>gère des particules</td><td>Particles</td><td><code>ParticleSystem</code></td></tr>
+</table></div>
+<div class="callout"><i class="fa-solid fa-circle-info"></i><div><p><strong>Core ne dessine pas.</strong> Core ne dépend que de <code>SFML::System</code> et de <code>glm</code> : pas de <code>sf::RenderTarget</code>, pas de texture. Un système qui dessine doit aller dans Render2D (seul module qui dessine). Respectez le sens des dépendances : un module ne doit jamais inclure un module « au-dessus » de lui.</p></div></div>
+<p>Si aucun module ne convient, créez-en un (dossier, <code>CMakeLists.txt</code>, <code>add_subdirectory</code>) :</p>
+<div class="code"><div class="code-head"><span class="file">engine/monmodule/CMakeLists.txt</span><span class="lang">CMake</span><button class="copy" type="button">Copier</button></div><pre><code><span class="c"># Un module = un dossier = une cible AngeVault::&lt;Nom&gt;</span>
+<span class="c"># 100 % en-têtes (pas de src/*.cpp) : cible INTERFACE ; avec des .cpp : bibliothèque statique</span>
+av_module(MonModule <span class="t">DEPS</span> AngeVault::Core AngeVault::Physics2D)</code></pre></div>
+<div class="code"><div class="code-head"><span class="file">engine/CMakeLists.txt</span><span class="lang">CMake</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">add_subdirectory</span>(monmodule)   <span class="c"># ajoutez la ligne avec les autres modules</span>
+
+<span class="k">add_library</span>(av_engine <span class="t">INTERFACE</span>)
+<span class="k">add_library</span>(AngeVault::Engine <span class="t">ALIAS</span> av_engine)
+<span class="k">target_link_libraries</span>(av_engine <span class="t">INTERFACE</span>
+    AngeVault::Core AngeVault::Physics2D AngeVault::Particles AngeVault::Tilemap
+    AngeVault::Render2D AngeVault::Runtime AngeVault::Input AngeVault::Scene
+    AngeVault::MonModule)       <span class="c"># ... et ajoutez la cible ici</span></code></pre></div>
+<p><code>av_module</code> (défini dans <code>cmake/AngeVaultHelpers.cmake</code>) fait le reste : il compile tous les <code>src/**/*.cpp</code>, expose <code>include/</code> et impose C++20. Les modules prévus mais pas encore créés (assets, animation, audio, ui, ai) suivront ce même modèle.</p>
+
+<h2 id="etape-2-ecrire-le-systeme">Étape 2 : écrire le système</h2>
+<p>Le composant d'abord (voir la page suivante), puis le système. Un fichier d'en-tête par système, dans <code>include/systems/</code> :</p>
+<div class="code"><div class="code-head"><span class="file">engine/core/include/systems/lifetime_system.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#pragma</span> once
+<span class="c">// Détruit les entités dont la durée de vie (Lifetime) est écoulée.</span>
+<span class="p">#include</span> <span class="s">"ecs/system.h"</span>
+<span class="p">#include</span> <span class="s">"ecs/registry.h"</span>
+<span class="p">#include</span> <span class="s">"components/lifetime.h"</span>
+
+<span class="k">class</span> <span class="t">LifetimeSystem</span> : <span class="k">public</span> <span class="t">ISystem</span> {
+<span class="k">public</span>:
+    <span class="t">LifetimeSystem</span>() { priority = <span class="n">9</span>; }   <span class="c">// après la logique, avant le rendu (Render = 10)</span>
+
+    <span class="k">void</span> onUpdate(<span class="t">Registry</span>&amp; registry, <span class="k">float</span> dt) <span class="k">override</span> {
+        registry.view&lt;<span class="t">Lifetime</span>&gt;([&amp;](<span class="t">Entity</span> e, <span class="t">Lifetime</span>&amp; life) {
+            life.remaining -= dt;
+            <span class="k">if</span> (life.remaining &lt;= <span class="n">0</span>.f)
+                registry.destroyEntity(e);   <span class="c">// différé : voir l'encadré</span>
+        });
+    }
+};</code></pre></div>
+<p>Les règles à respecter dans <code>onUpdate</code> :</p>
+<ul>
+<li><strong>Parcourir avec <code>registry.view&lt;A, B&gt;(…)</code></strong> : la lambda reçoit l'entité puis une référence à chaque composant demandé. Seules les entités qui possèdent <em>tous</em> les composants sont visitées.</li>
+<li><strong>Détruire avec <code>registry.destroyEntity(e)</code></strong> : la destruction est <em>différée</em>. L'entité reste valide jusqu'à la fin de la frame (<code>Game::tick</code> appelle <code>flushPendingDestroys()</code> après tous les systèmes), donc le rendu la dessine encore une dernière fois.</li>
+<li><strong>Ne pas ajouter ou retirer de composant pendant un <code>view</code></strong> sur ce même type de composant : la liste parcourue changerait sous vos pieds. Collectez les entités concernées, puis modifiez après la boucle.</li>
+<li><strong>Entités liées</strong> (<code>CameraFollow::target</code>) : vérifiez toujours <code>registry.isValid(target)</code> avant de l'utiliser, la cible peut avoir été détruite (voir <code>CameraFollowSystem</code>).</li>
+<li><strong>Pas d'état partagé caché</strong> : mettez les données dans les composants (elles sont sauvegardées avec la scène) et gardez dans le système seulement ce qui est temporaire.</li>
+</ul>
+
+<h2 id="choisir-la-priorite">Choisir la priorité</h2>
+<p>La priorité est l'ordre d'exécution dans la frame. Voici où se placent les systèmes actuels ; choisissez la vôtre <em>par rapport à ce dont votre système dépend</em> :</p>
+<div class="table-wrap"><table>
+<tr><th>Priorité</th><th>Système</th><th>Priorité</th><th>Système</th></tr>
+<tr><td>−1</td><td><code>CameraControlSystem</code></td><td>6</td><td><code>CameraShakeSystem</code></td></tr>
+<tr><td>0</td><td><code>PhysicsSystem</code></td><td>7</td><td><code>CameraSystem</code></td></tr>
+<tr><td>1</td><td><code>CollisionSystem</code></td><td>8</td><td><code>TilemapRenderSystem</code></td></tr>
+<tr><td>2</td><td><code>ScriptSystem</code></td><td>10</td><td><code>RenderSystem</code></td></tr>
+<tr><td>3</td><td><code>ParticleSystem</code></td><td>11</td><td><code>RenderCollisionSystem</code></td></tr>
+<tr><td>4</td><td><code>CameraFollowSystem</code></td><td>12</td><td><code>ForceDebugSystem</code></td></tr>
+<tr><td>5</td><td><code>CameraBoundsSystem</code></td><td></td><td></td></tr>
+</table></div>
+<ul>
+<li>Il lit des positions finales ? Après la physique et les scripts (≥ 3).</li>
+<li>Il modifie la vue ? Avant <code>CameraSystem</code> (7), qui l'applique à l'image.</li>
+<li>Il dessine ? Après la caméra et la carte, vers 10 et au-delà (<code>RenderSystem</code> trie lui-même par couche).</li>
+<li>Deux systèmes de même priorité : ordre d'ajout. Si l'ordre compte, changez la priorité plutôt que de compter sur l'ordre d'ajout.</li>
+</ul>
+
+<h2 id="etape-3-le-brancher">Étape 3 : le brancher</h2>
+<p>Écrire la classe ne suffit pas : <strong>aucun système du moteur n'est ajouté tout seul</strong>. Deux façons de le brancher :</p>
+<h3 id="a-dans-game-init-toujours-actif">A. Dans <code>Game::init()</code> : toujours actif</h3>
+<p>Pour un système que tout jeu doit avoir (comme le rendu). Dans <code>engine/runtime/src/game_loop.cpp</code> :</p>
+<div class="code"><div class="code-head"><span class="file">engine/runtime/src/game_loop.cpp</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#include</span> <span class="s">"systems/lifetime_system.h"</span>     <span class="c">// en haut du fichier</span>
+
+<span class="k">void</span> <span class="t">Game</span>::init() {
+    <span class="t">InputManager</span>::setCurrent(&amp;m_input);
+    syncScene();
+    m_systems.addSystem&lt;<span class="t">LifetimeSystem</span>&gt;();                                <span class="c">// &lt;- votre système</span>
+    m_systems.addSystem&lt;<span class="t">TilemapRenderSystem</span>&gt;(m_scene, m_textureLoader);
+    m_systems.addSystem&lt;<span class="t">RenderSystem</span>&gt;(m_scene, m_textureLoader);
+    <span class="c">// ...</span>
+    <span class="k">for</span> (<span class="k">const</span> <span class="t">GameSystemInfo</span>&amp; info : <span class="t">GameSystemRegistry</span>::get().all()) m_systems.add(info.create(*<span class="k">this</span>, m_scene));
+    m_systems.start(m_registry);        <span class="c">// onStart de tous les systèmes ajoutés jusqu'ici</span>
+}</code></pre></div>
+<p>Les arguments passés à <code>addSystem&lt;T&gt;(args…)</code> vont au constructeur : <code>m_scene</code> (l'image du jeu, <code>sf::RenderTarget</code>) pour un système qui dessine ou qui a besoin de la taille de l'écran.</p>
+<h3 id="b-une-fonction-registerxxxsystems-le-projet-choisit">B. Une fonction <code>registerXxxSystems</code> : le projet choisit</h3>
+<p>Pour des systèmes optionnels ou groupés, comme la caméra : une fonction inline qui ajoute tout le groupe dans le bon ordre, et que chaque projet appelle.</p>
+<div class="code"><div class="code-head"><span class="file">engine/render2d/include/systems/camera_systems.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">inline</span> <span class="k">void</span> registerCameraSystems(<span class="t">SystemManager</span>&amp; systems, sf::<span class="t">RenderTarget</span>&amp; target) {
+    systems.addSystem&lt;<span class="t">CameraControlSystem</span>&gt;();
+    systems.addSystem&lt;<span class="t">CameraFollowSystem</span>&gt;();
+    systems.addSystem&lt;<span class="t">CameraBoundsSystem</span>&gt;(target);
+    systems.addSystem&lt;<span class="t">CameraShakeSystem</span>&gt;();
+    systems.addSystem&lt;<span class="t">CameraSystem</span>&gt;(target);
+}</code></pre></div>
+<div class="code"><div class="code-head"><span class="file">projects/rpg/rpg_scene.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">inline</span> <span class="k">void</span> registerRpgSystems(<span class="t">Game</span>&amp; game) {
+    game.systems().addSystem&lt;<span class="t">PhysicsSystem</span>&gt;();
+    game.systems().addSystem&lt;<span class="t">CollisionSystem</span>&gt;();
+    game.systems().addSystem&lt;<span class="t">ScriptSystem</span>&gt;();
+    registerCameraSystems(game.systems(), game.target());   <span class="c">// &lt;- le projet appelle le groupe</span>
+}</code></pre></div>
+<div class="table-wrap"><table>
+<tr><th>Choix</th><th>Avantage</th><th>Limite</th></tr>
+<tr><td>A : <code>Game::init()</code></td><td>tous les projets et l'éditeur l'ont, <code>onStart</code> est appelé</td><td>modifie le runtime ; Runtime doit pouvoir inclure le module</td></tr>
+<tr><td>B : <code>registerXxxSystems</code></td><td>chaque projet décide, un seul appel pour un groupe</td><td>un projet qui oublie l'appel n'aura pas le système ; <strong>pas d'<code>onStart</code></strong></td></tr>
+</table></div>
+<div class="callout warn"><i class="fa-solid fa-triangle-exclamation"></i><div><p><strong>À savoir sur <code>onStart</code>.</strong> <code>Game::init()</code> appelle <code>m_systems.start()</code> une seule fois, dans le constructeur de <code>Game</code>. Un système ajouté plus tard (cas B, <code>registerRpgSystems</code>) ne reçoit jamais <code>onStart</code> : faites son initialisation dans le constructeur, ou au premier <code>onUpdate</code>. <code>onStop</code> est en revanche appelé pour tous.</p></div></div>
+
+<h2 id="etape-4-lactiver-ou-le-couper-par-son-nom">Étape 4 : l'activer ou le couper par son nom</h2>
+<p>Le <code>SystemManager</code> connaît chaque système par son <code>name</code> (le nom de la classe, rempli par <code>addSystem</code>). Il n'y a rien d'autre à écrire pour que votre système apparaisse dans l'éditeur, sous <em>Exécuter &gt; Systèmes…</em>, et dans le projet :</p>
+<div class="code"><div class="code-head"><span class="file">projects/rpg/rpg.angproj</span><span class="lang">JSON</span><button class="copy" type="button">Copier</button></div><pre><code>{
+  <span class="t">"systems"</span>: {
+    <span class="t">"ForceDebugSystem"</span>: <span class="k">false</span>,
+    <span class="t">"LifetimeSystem"</span>: <span class="k">true</span>
+  }
+}</code></pre></div>
+<p>Depuis le code : <code>game.systems().setEnabled("LifetimeSystem", false)</code> (renvoie <code>false</code> si le nom est inconnu), <code>isEnabled(name)</code>, <code>find(name)</code>, <code>list()</code>. <code>Game::applySystemSettings</code> applique la table du <code>.angproj</code> en ignorant les noms inconnus.</p>
+<div class="callout"><i class="fa-solid fa-circle-info"></i><div><p><strong>Ne renommez pas une classe à la légère.</strong> Le nom est la clé dans le <code>.angproj</code> : renommer <code>LifetimeSystem</code> fait perdre son réglage dans les projets existants (le nom inconnu est simplement ignoré).</p></div></div>
+
+<h2 id="etape-5-le-tester">Étape 5 : le tester</h2>
+<p>Un système n'a besoin ni de fenêtre ni d'éditeur : il suffit d'un <code>Registry</code> et d'appeler <code>onUpdate</code>. Les tests sont des exécutables simples (pas de framework) listés dans <code>tests/CMakeLists.txt</code> :</p>
+<div class="code"><div class="code-head"><span class="file">tests/test_lifetime.cpp</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#include</span> <span class="s">"components/lifetime.h"</span>
+<span class="p">#include</span> <span class="s">"systems/lifetime_system.h"</span>
+<span class="p">#include</span> &lt;cstdio&gt;
+
+<span class="k">static</span> <span class="k">int</span> g_failures = <span class="n">0</span>;
+<span class="p">#define</span> <span class="t">CHECK</span>(cond) <span class="k">do</span> { <span class="k">if</span> (!(cond)) { <span class="k">std</span>::printf(<span class="s">"ECHEC ligne %d : %s\n"</span>, __LINE__, #cond); ++g_failures; } } <span class="k">while</span> (<span class="n">0</span>)
+
+<span class="k">int</span> main() {
+    <span class="t">Registry</span> r;
+    <span class="k">const</span> <span class="t">Entity</span> e = r.createEntity();
+    r.addComponent&lt;<span class="t">Lifetime</span>&gt;(e).remaining = <span class="n">1</span>.f;
+
+    <span class="t">LifetimeSystem</span> sys;
+    sys.onUpdate(r, <span class="n">0.5f</span>);
+    <span class="t">CHECK</span>(r.isValid(e));                 <span class="c">// pas encore écoulée</span>
+
+    sys.onUpdate(r, <span class="n">0.6f</span>);
+    r.flushPendingDestroys();            <span class="c">// la destruction est différée : on la valide à la main</span>
+    <span class="t">CHECK</span>(!r.isValid(e));
+
+    <span class="k">return</span> g_failures == <span class="n">0</span> ? <span class="n">0</span> : <span class="n">1</span>;
+}</code></pre></div>
+<div class="code"><div class="code-head"><span class="file">tests/CMakeLists.txt</span><span class="lang">CMake</span><button class="copy" type="button">Copier</button></div><pre><code><span class="k">add_executable</span>(test_lifetime test_lifetime.cpp)
+<span class="k">target_link_libraries</span>(test_lifetime <span class="t">PRIVATE</span> AngeVault::Core)   <span class="c"># le module qui contient le système</span>
+<span class="k">add_test</span>(<span class="t">NAME</span> test_lifetime <span class="t">COMMAND</span> test_lifetime)</code></pre></div>
+<p>Lancez-les avec <code>ctest --test-dir build --output-on-failure</code>. Pour un exemple réel, voir <code>tests/test_camera.cpp</code> : il teste <code>CameraFollowSystem</code>, <code>CameraShakeSystem</code> et <code>CameraControlSystem</code> sans fenêtre (seuls <code>CameraSystem</code> et <code>CameraBoundsSystem</code> ont besoin d'une cible de rendu). Concevez vos systèmes pour que leur logique soit testable ainsi : la cible de rendu ne doit être demandée que par ceux qui dessinent vraiment.</p>
+
+<h2 id="liste-de-controle">Liste de contrôle</h2>
+<ul>
+<li>□ Le module choisi a les dépendances nécessaires (<code>av_module(… DEPS …)</code>) et n'inclut rien « au-dessus » de lui.</li>
+<li>□ <code>include/systems/mon_systeme.h</code> : <code>#pragma once</code>, classe qui hérite de <code>ISystem</code>, <code>priority</code> réglée dans le constructeur.</li>
+<li>□ Le composant existe, est sérialisé et visible dans l'Inspector (page suivante).</li>
+<li>□ Branché : <code>Game::init()</code> (A) ou <code>registerXxxSystems</code> appelé par le projet (B).</li>
+<li>□ Initialisation dans le constructeur si le système est ajouté après <code>Game::init()</code>.</li>
+<li>□ Test dans <code>tests/</code> + <code>add_test</code>.</li>
+<li>□ Le système apparaît dans <em>Exécuter &gt; Systèmes…</em> et se coupe sans planter.</li>
+<li>□ Documenté : priorité ajoutée au tableau de la page <a href="architecture.html">Vue d'ensemble</a>.</li>
+</ul>
+<p>Suite : <a href="composant-engine.html">Créer un composant (côté engine)</a>.</p>
+<div class="pager"><a class="prev" href="codejeu.html"><small>Précédent</small>← Code de jeu</a><a class="next" href="composant-engine.html"><small>Suivant</small>Créer un composant (engine) →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#moteur-ou-projet">Moteur ou projet ?</a><a href="#ce-que-fournit-isystem">Ce que fournit ISystem</a><a href="#etape-1-choisir-le-module">Étape 1 : choisir le module</a><a href="#etape-2-ecrire-le-systeme">Étape 2 : écrire le système</a><a href="#choisir-la-priorite">Choisir la priorité</a><a href="#etape-3-le-brancher">Étape 3 : le brancher</a><a href="#a-dans-game-init-toujours-actif" class="sub">A. Dans Game::init() : toujours actif</a><a href="#b-une-fonction-registerxxxsystems-le-projet-choisit" class="sub">B. Une fonction registerXxxSystems : le projet choisit</a><a href="#etape-4-lactiver-ou-le-couper-par-son-nom">Étape 4 : l&#x27;activer ou le couper par son nom</a><a href="#etape-5-le-tester">Étape 5 : le tester</a><a href="#liste-de-controle">Liste de contrôle</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div>
+ <div><h4>Documentation</h4><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>

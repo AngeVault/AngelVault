@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projet &amp; sauvegarde — AngeVault Engine</title>
+<meta name="description" content="Formats de fichiers d&#x27;AngeVault : projet .angproj, scène .scene, prefab .prefab, identifiants stables PersistentId, sérialiseurs de composants et API du module scene.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html" class="current" aria-current="page">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Projet &amp; sauvegarde</div><span class="eyebrow">Documentation</span><h1>Projet &amp; sauvegarde</h1><p class="lead">Les fichiers d'un projet AngeVault (.angproj, .scene, .prefab, .map, .tileset), comment ils sont écrits et comment le module scene les lit.</p></div></section>
+<div class="wrap doc"><article class="prose"><h2 id="un-projet-des-fichiers-json">Un projet = des fichiers JSON</h2>
+<p>Depuis le module <code>scene</code>, tout ce que l'on construit dans l'éditeur s'enregistre dans des fichiers texte JSON, lisibles et faciles à versionner avec Git. Le même code les lit dans l'éditeur (<kbd>F5</kbd>) et dans <code>rpg.exe</code>.</p>
+<div class="table-wrap"><table>
+<tr><th>Extension</th><th>Format (<code>format</code>)</th><th>Contient</th><th>Exemple</th></tr>
+<tr><td><code>.angproj</code></td><td><code>angeVault.project</code></td><td>Le projet : scène de départ, liste des scènes, dossiers, fenêtre, systèmes actifs</td><td><code>rpg.angproj</code></td></tr>
+<tr><td><code>.scene</code></td><td><code>angeVault.scene</code></td><td>Des entités et leurs composants</td><td><code>scenes/main.scene</code></td></tr>
+<tr><td><code>.prefab</code></td><td><code>angeVault.prefab</code></td><td>Un groupe d'entités réutilisable</td><td><code>prefab/Player.prefab</code></td></tr>
+<tr><td><code>.map</code></td><td><code>angeVault.tilemap</code></td><td>Une carte : taille, orientation, cases (voir <a href="tilemaps.html">Tilemaps &amp; tilesets</a>)</td><td><code>maps/iso_demo.map</code></td></tr>
+<tr><td><code>.tileset</code></td><td><code>angeVault.tileset</code></td><td>Une feuille d'images découpée en tiles</td><td><code>assets/tilesets/demo/herbe.tileset</code></td></tr>
+<tr><td><code>input.cfg</code></td><td>texte</td><td>Les actions de l'Input Manager (voir <a href="modules.html">Input</a>)</td><td><code>assets/input.cfg</code></td></tr>
+</table></div>
+<p>Tous les chemins écrits dans ces fichiers sont <strong>relatifs au dossier du <code>.angproj</code></strong> : un projet se copie ou se déplace sans rien casser.</p>
+
+<h2 id="le-fichier-projet-angproj">Le fichier projet <code>.angproj</code></h2>
+<div class="code"><div class="code-head"><span class="file">projects/rpg/rpg.angproj</span><span class="lang">JSON</span><button class="copy" type="button">Copier</button></div><pre><code>{
+  <span class="t">"format"</span>: <span class="s">"angeVault.project"</span>,
+  <span class="t">"version"</span>: <span class="n">1</span>,
+  <span class="t">"name"</span>: <span class="s">"RPG"</span>,
+  <span class="t">"startScene"</span>: <span class="s">"scenes/main.scene"</span>,
+  <span class="t">"scenes"</span>: [ <span class="s">"scenes/main.scene"</span>, <span class="s">"scenes/iso_demo.scene"</span> ],
+  <span class="t">"paths"</span>:  { <span class="t">"assets"</span>: <span class="s">"assets"</span>, <span class="t">"input"</span>: <span class="s">"assets/input.cfg"</span>, <span class="t">"settings"</span>: <span class="s">"assets/settings.cfg"</span> },
+  <span class="t">"window"</span>: { <span class="t">"title"</span>: <span class="s">"RPG"</span>, <span class="t">"size"</span>: [<span class="n">1920</span>, <span class="n">1080</span>] },
+  <span class="t">"systems"</span>: { <span class="t">"ForceDebugSystem"</span>: <span class="k">false</span> }
+}</code></pre></div>
+<div class="table-wrap"><table>
+<tr><th>Clé</th><th>Rôle</th></tr>
+<tr><td><code>startScene</code></td><td>La scène chargée à l'ouverture du projet et par <code>rpg.exe</code></td></tr>
+<tr><td><code>scenes</code></td><td>Les scènes du projet (<em>Enregistrer sous…</em> ajoute la nouvelle scène à cette liste)</td></tr>
+<tr><td><code>paths</code></td><td>Dossier des assets, fichier des actions d'entrée (<code>input</code>) et fichier des paramètres du jeu (<code>settings</code>)</td></tr>
+<tr><td><code>window</code></td><td>Titre et taille de la fenêtre du jeu. La vsync, le plein écran, l'antialiasing, la limite de FPS et le shader ne sont plus ici : ils sont dans <code>assets/settings.cfg</code> (voir plus bas)</td></tr>
+<tr><td><code>systems</code></td><td>Systèmes désactivés : <code>nom de la classe → true / false</code>. Un système absent de la liste est actif. Modifié par <em>Exécuter → Systèmes…</em></td></tr>
+</table></div>
+<p>La classe <code>Project</code> (<code>scene/project.h</code>) offre <code>load</code>, <code>save</code>, <code>directory()</code>, <code>resolve(chemin)</code> (relatif → complet), <code>relative(chemin)</code> (l'inverse), <code>addScene</code> et <code>Project::create(dossier, nom, projet)</code>, qui crée <code>nom.angproj</code>, <code>assets/</code>, <code>scenes/</code> et une scène vide.</p>
+
+<h2 id="le-fichier-scene-scene">Le fichier scène <code>.scene</code></h2>
+<p>Une scène est une liste d'entités. Chaque entité a un <code>id</code> et une table de composants, un objet JSON par composant.</p>
+<div class="code"><div class="code-head"><span class="file">scenes/main.scene (abrégé)</span><span class="lang">JSON</span><button class="copy" type="button">Copier</button></div><pre><code>{
+  <span class="t">"format"</span>: <span class="s">"angeVault.scene"</span>,
+  <span class="t">"version"</span>: <span class="n">1</span>,
+  <span class="t">"name"</span>: <span class="s">"main"</span>,
+  <span class="t">"map"</span>: <span class="k">null</span>,
+  <span class="t">"entities"</span>: [
+    {
+      <span class="t">"id"</span>: <span class="n">18092514487157541069</span>,
+      <span class="t">"components"</span>: {
+        <span class="t">"Name"</span>:        { <span class="t">"name"</span>: <span class="s">"Player"</span> },
+        <span class="t">"Transform2D"</span>: { <span class="t">"position"</span>: [<span class="n">-395.7</span>, <span class="n">637.0</span>], <span class="t">"rotation"</span>: <span class="n">0.0</span>, <span class="t">"scale"</span>: [<span class="n">1.0</span>, <span class="n">1.15</span>], <span class="t">"depth"</span>: <span class="n">0.0</span> },
+        <span class="t">"Geometry"</span>:    { <span class="t">"layer"</span>: <span class="n">1</span>, <span class="t">"shape"</span>: <span class="s">"Sprite"</span>, <span class="t">"texture"</span>: <span class="s">"player"</span>, <span class="t">"rect"</span>: [<span class="n">0</span>, <span class="n">0</span>, <span class="n">32</span>, <span class="n">64</span>], <span class="t">"tint"</span>: <span class="s">"#FFFFFFFF"</span> },
+        <span class="t">"RigidBody2D"</span>: { <span class="t">"mass"</span>: <span class="n">1.0</span>, <span class="t">"linearDrag"</span>: <span class="n">0.05</span>, <span class="t">"friction"</span>: <span class="n">0.4</span> },
+        <span class="t">"Collider2D"</span>:  { <span class="t">"offset"</span>: [<span class="n">0</span>, <span class="n">22</span>], <span class="t">"shape"</span>: <span class="s">"Box"</span>, <span class="t">"halfSize"</span>: [<span class="n">16</span>, <span class="n">15</span>], <span class="t">"isTrigger"</span>: <span class="k">false</span> },
+        <span class="t">"Script"</span>:      { <span class="t">"behaviors"</span>: [ { <span class="t">"name"</span>: <span class="s">"PlayerBehavior"</span>, <span class="t">"properties"</span>: { <span class="t">"speed"</span>: <span class="n">400.0</span> } } ] }
+      }
+    },
+    {
+      <span class="t">"id"</span>: <span class="n">901886561833534410</span>,
+      <span class="t">"components"</span>: {
+        <span class="t">"Name"</span>: { <span class="t">"name"</span>: <span class="s">"CameraEntity"</span> },
+        <span class="t">"Camera2d"</span>:     { <span class="t">"zoom"</span>: <span class="n">1.0</span>, <span class="t">"minZoom"</span>: <span class="n">0.25</span>, <span class="t">"maxZoom"</span>: <span class="n">4.0</span>, <span class="t">"rotation"</span>: <span class="n">0.0</span>,
+                          <span class="t">"priority"</span>: <span class="n">0</span>, <span class="t">"active"</span>: <span class="k">true</span>, <span class="t">"blendTime"</span>: <span class="n">0.0</span> },
+        <span class="t">"CameraFollow"</span>: { <span class="t">"target"</span>: <span class="n">18092514487157541069</span>, <span class="t">"smoothTime"</span>: <span class="n">0.15</span>, <span class="t">"lookAhead"</span>: <span class="n">0.0</span> },
+        <span class="t">"CameraBounds"</span>: { <span class="t">"min"</span>: [<span class="n">-1000</span>, <span class="n">-1000</span>], <span class="t">"max"</span>: [<span class="n">3000</span>, <span class="n">3000</span>], <span class="t">"limitZoom"</span>: <span class="k">true</span> }
+      }
+    }
+  ],
+  <span class="t">"editor"</span>: { <span class="t">"categories"</span>: [<span class="s">"Personnages"</span>], <span class="t">"entityCategory"</span>: { <span class="t">"18092514487157541069"</span>: <span class="s">"Personnages"</span> } }
+}</code></pre></div>
+<ul>
+  <li><strong>Composants connus</strong> : <code>Name</code>, <code>Transform2D</code>, <code>Geometry</code>, <code>RigidBody2D</code>, <code>Collider2D</code>, <code>Camera2d</code>, <code>CameraFollow</code>, <code>CameraBounds</code>, <code>CameraControl</code>, <code>CameraShake</code>, <code>Tilemap</code>, <code>Script</code>, plus les composants de jeu déclarés avec <code>REGISTER_COMPONENT</code> (voir <a href="codejeu.html">Code de jeu</a>).</li>
+  <li><strong>Couleurs</strong> : texte <code>"#RRGGBBAA"</code>. <strong>Vecteurs</strong> et rectangles : tableaux de nombres.</li>
+  <li><strong>Script</strong> : un composant qui porte une <em>liste</em> de comportements. Chacun est enregistré par son <strong>nom de classe</strong> et la valeur de ses champs <code>PROPERTY</code>. Au chargement, la fabrique (<code>BehaviorFactory</code>) recrée le bon objet à partir du nom. Un nom inconnu (classe renommée ou supprimée) donne un avertissement, sans bloquer le chargement.</li>
+  <li><strong>Tilemap</strong> : seulement le chemin du <code>.map</code> et l'indicateur <code>visible</code> ; les cases sont dans le fichier <code>.map</code>.</li>
+  <li><strong><code>editor</code></strong> : réservé à l'éditeur (catégories de la Hierarchy). Le jeu l'ignore.</li>
+  <li><strong>Composant inconnu</strong> : il est ignoré avec un avertissement. Le fichier reste donc lisible par une version plus ancienne du moteur.</li>
+</ul>
+
+<h2 id="persistentid-des-liens-qui-survivent-a-lenregistrement">PersistentId : des liens qui survivent à l'enregistrement</h2>
+<p>Une <code>Entity</code> est un index mémoire (avec sa génération) : il change à chaque chargement. Pour relier des entités dans un fichier, chacune reçoit un <code>PersistentId</code>, un entier de 64 bits tiré au hasard (jamais 0) qu'elle garde ensuite pour toujours : <code>ensurePersistentIds</code> en donne un à chaque entité qui n'en a pas avant l'écriture. Les entités créées en cours de partie (balles, particules) n'en ont pas besoin. Un lien est écrit avec cet identifiant : par exemple <code>Camera2d::targetLock</code> pointe vers le joueur par son <code>id</code>.</p>
+<p>Le chargement se fait donc <strong>en deux passes</strong> :</p>
+<ol>
+  <li>créer toutes les entités (chacune avec son <code>PersistentId</code>) ;</li>
+  <li>lire les composants ; un lien est converti de <code>PersistentId</code> vers l'<code>Entity</code> créée à la passe 1 (<code>LoadContext::entityOf</code>).</li>
+</ol>
+<p>Si la cible d'un lien n'existe pas (entité absente du fichier ou d'un prefab), le lien devient <code>NULL_ENTITY</code> et un avertissement est ajouté à <code>SceneLoadResult::warnings</code>. C'est ce que vérifie le test <code>test_scene</code> (aller-retour : enregistrer, recharger, comparer).</p>
+
+<h2 id="lire-et-ecrire-en-c">Lire et écrire en C++</h2>
+<div class="code"><div class="code-head"><span class="file">scene/scene_io.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="t">SceneMeta</span> meta;                                             <span class="c">// nom, map associée, données de l'éditeur</span>
+
+<span class="c">// Le jeu : charger</span>
+<span class="t">SceneLoadResult</span> r = loadScene(game.registry(), meta, project.resolve(project.startScene));
+<span class="k">if</span> (!r.ok) <span class="k">std</span>::cerr &lt;&lt; r.error &lt;&lt; <span class="s">"\n"</span>;
+<span class="k">for</span> (<span class="k">const</span> <span class="k">std</span>::string&amp; w : r.warnings) <span class="k">std</span>::cerr &lt;&lt; <span class="s">"[Scène] "</span> &lt;&lt; w &lt;&lt; <span class="s">"\n"</span>;
+
+<span class="c">// L'éditeur : enregistrer (Ctrl+S)</span>
+<span class="k">std</span>::string error;
+saveScene(registry, meta, <span class="s">"scenes/main.scene"</span>, &amp;error);
+
+<span class="c">// Sans fichier : une scène dans une chaîne (le mode Jouer en fait une copie)</span>
+<span class="k">std</span>::string json = sceneToString(registry, meta);
+sceneFromString(otherRegistry, meta, json);</code></pre></div>
+<div class="table-wrap"><table>
+<tr><th>Fonction</th><th>Rôle</th></tr>
+<tr><td><code>saveScene</code> / <code>loadScene</code></td><td>Écrire / lire un fichier. L'écriture est <strong>atomique</strong> (<code>writeFileAtomic</code> : fichier <code>.tmp</code> puis renommage) : une panne en plein enregistrement ne détruit pas l'ancienne version</td></tr>
+<tr><td><code>sceneToString</code> / <code>sceneFromString</code>, <code>sceneToJson</code> / <code>sceneFromJson</code></td><td>Mêmes opérations sur une chaîne ou un objet JSON</td></tr>
+<tr><td><code>ensurePersistentIds</code></td><td>Donne un identifiant à chaque entité qui n'en a pas (appelé avant d'écrire)</td></tr>
+<tr><td><code>entitiesToJson</code> / <code>entitiesFromJson(…, freshIds)</code></td><td>Le cœur commun aux scènes et aux prefabs. <code>freshIds = true</code> donne de <em>nouveaux</em> identifiants (copie), en gardant les liens internes</td></tr>
+<tr><td><code>clearRegistry</code></td><td>Détruit toutes les entités tout de suite (à faire avant de charger une autre scène : le chargement <em>ajoute</em> au registre)</td></tr>
+<tr><td><code>loadTilemaps(registry, dossierProjet, warnings)</code></td><td>Après le chargement : lit les fichiers <code>.map</code> des composants <code>Tilemap</code> qui n'ont pas encore leurs données</td></tr>
+</table></div>
+
+<h2 id="serialiseurs-de-composants">Sérialiseurs de composants</h2>
+<p>Chaque composant sait s'écrire grâce à un <strong>sérialiseur</strong> enregistré dans le <code>SerializerRegistry</code>. Les composants du moteur ont les leurs ; ceux du jeu sont ajoutés automatiquement. Pour un composant à part, on enregistre ses fonctions de sauvegarde et de chargement :</p>
+<div class="code"><div class="code-head"><span class="file">scene/component_serializer.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="t">SerializerRegistry</span>::get().add&lt;<span class="t">Health</span>&gt;(<span class="s">"Health"</span>,
+    <span class="c">// sauvegarde : composant -&gt; JSON</span>
+    [](<span class="t">Health</span>&amp; h, <span class="k">const</span> <span class="t">SaveContext</span>&amp;) {
+        <span class="k">return</span> <span class="t">Json</span>{ { <span class="s">"hp"</span>, h.hp }, { <span class="s">"max"</span>, h.max } };
+    },
+    <span class="c">// chargement : JSON -&gt; composant (créé avec Health{} avant : valeurs absentes = défauts)</span>
+    [](<span class="t">Health</span>&amp; h, <span class="k">const</span> <span class="t">Json</span>&amp; j, <span class="k">const</span> <span class="t">LoadContext</span>&amp;) {
+        h.hp  = j.value(<span class="s">"hp"</span>, h.hp);
+        h.max = j.value(<span class="s">"max"</span>, h.max);
+    });</code></pre></div>
+<ul>
+  <li><code>addReflected&lt;T&gt;(nom)</code> : pour un composant déclaré avec <code>REGISTER_COMPONENT</code> : ses champs <code>FIELD</code> sont lus et écrits seuls.</li>
+  <li><code>SaveContext::idOf(entité)</code> et <code>LoadContext::entityOf(id)</code> convertissent les liens ; <code>LoadContext::warn(texte)</code> ajoute un avertissement.</li>
+  <li>Le namespace <code>SceneJson</code> offre des aides : vecteurs, rectangles, couleurs <code>"#RRGGBBAA"</code>, lecture des <code>PROPERTY</code> des comportements.</li>
+</ul>
+
+<h2 id="prefabs">Prefabs</h2>
+<p>Un prefab est une scène en miniature : une liste d'entités (avec leurs liens internes) enregistrée dans un fichier <code>.prefab</code>. Dans l'éditeur, on le crée en glissant une entité de la Hierarchy vers le panneau Project (une caméra qui suit l'entité est incluse), et on l'instancie en le glissant dans la vue scène.</p>
+<div class="code"><div class="code-head"><span class="file">scene/prefab.h</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="c">// Créer : l'entité racine (la première) + les caméras qui la suivent</span>
+savePrefab(registry, prefabGroup(registry, player), <span class="s">"Player"</span>, <span class="s">"prefabs/Player.prefab"</span>, &amp;error);
+
+<span class="c">// Instancier : de NOUVEAUX PersistentId, liens internes conservés</span>
+<span class="t">SceneLoadResult</span> r = instantiatePrefabFile(registry, <span class="s">"prefabs/Enemy.prefab"</span>,
+                                          sf::<span class="t">Vector2f</span>{ <span class="n">400</span>.f, <span class="n">300</span>.f });   <span class="c">// position facultative</span>
+<span class="k">if</span> (r.ok) <span class="t">Entity</span> enemy = r.entities.front();                                 <span class="c">// la racine</span></code></pre></div>
+<p>Sans position, l'instance apparaît là où le prefab a été créé ; avec une position, la racine y est placée et les autres entités gardent leur décalage. <code>prefabGroup</code> calcule le groupe à enregistrer à partir d'une entité racine. Le résultat de <code>instantiatePrefabFile</code> peut être appelé depuis un comportement pour faire apparaître un ennemi en cours de partie.</p>
+
+<h2 id="ouvrir-un-projet-ce-que-fait-rpg-exe">Ouvrir un projet : ce que fait <code>rpg.exe</code></h2>
+<div class="code"><div class="code-head"><span class="file">projects/rpg/main.cpp (résumé)</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="c">// rpg.exe [projet.angproj] [scene.scene]</span>
+<span class="t">Project</span> project;
+project.load(projectPath);                                      <span class="c">// 1. le projet</span>
+settings.loadFromFile(project.resolve(project.settingsPath));    <span class="c">// 2. les paramètres du jeu (settings.cfg)</span>
+<span class="t">Game</span> game({ w.width, w.height }, w.title, settings);            <span class="c">//    la fenêtre réglée par le projet</span>
+registerRpgSystems(game);                                       <span class="c">//    Physics, Collision, Script, systèmes caméra</span>
+game.applySystemSettings(project.systems);                      <span class="c">// 3. systèmes désactivés</span>
+loadRpgInput(game.input(), project.resolve(project.inputPath)); <span class="c">// 4. les touches (input.cfg)</span>
+loadScene(game.registry(), meta, scenePath);                    <span class="c">// 5. la scène</span>
+loadTilemaps(game.registry(), project.directory(), &amp;warnings);  <span class="c">// 6. les cartes (.map)</span>
+game.run();</code></pre></div>
+<p>Sans argument, <code>rpg.exe</code> cherche <code>rpg.angproj</code> à côté de lui (CMake l'y copie, avec le dossier <code>scenes/</code>) et joue sa scène de départ. Avec deux arguments (<code>rpg.exe projet.angproj scene.scene</code>), il joue la scène donnée : c'est ce que fait <kbd>Ctrl</kbd>+<kbd>F5</kbd> dans l'éditeur, après avoir enregistré la scène. Les avertissements de chargement (composant inconnu, carte introuvable…) sont écrits sur la sortie d'erreur. S'il n'y a ni projet ni scène lisible, il retombe sur la scène écrite en code (<code>loadRpgEntities</code> de <code>rpg_scene.h</code>), conservée comme solution de secours.</p>
+
+<h2 id="parametres-du-jeu-settings-cfg">Paramètres du jeu : <code>settings.cfg</code></h2>
+<p>Les réglages d'affichage ne sont pas dans le <code>.angproj</code> mais dans un petit fichier texte, <code>assets/settings.cfg</code> (chemin : <code>paths.settings</code>). Fichier absent ou clé manquante : valeurs par défaut. Il se modifie à la main ou par <em>Édition → Paramètres du jeu…</em>.</p>
+<div class="code"><div class="code-head"><span class="file">assets/settings.cfg</span><span class="lang">Shell</span><button class="copy" type="button">Copier</button></div><pre><code>fullscreen = false
+vsync = true
+antialiasing = 4            <span class="c"># 0, 2, 4, 8 ou 16</span>
+fpsLimit = 0                <span class="c"># 0 = illimité, ignoré si vsync</span>
+shader = assets/shaders/postprocess.frag
+shader.contrast = 1.1       <span class="c"># réglage déclaré par « // @param » dans le shader</span></code></pre></div>
+<p>Le <code>shader</code> est un fichier <code>.frag</code> relatif au projet, appliqué à l'image du jeu avant son affichage (il reçoit <code>frame</code>, <code>resolution</code> et <code>time</code>). Chaque réglage est déclaré dans le shader par <code>uniform float contrast; // @param 1.0 0.0 2.0</code> (défaut, minimum, maximum) et enregistré sous la clé <code>shader.contrast</code>. Si le shader est introuvable ou ne compile pas, il est ignoré et un message s'affiche.</p>
+
+<h2 id="dans-lediteur">Dans l'éditeur</h2>
+<div class="table-wrap"><table>
+<tr><th>Action</th><th>Raccourci</th><th>Ce qui se passe</th></tr>
+<tr><td>Fichier → Nouveau projet…</td><td></td><td>Demande un dossier puis un nom, appelle <code>Project::create</code> (<code>.angproj</code>, <code>assets/</code>, <code>scenes/</code>, scène vide) et l'ouvre</td></tr>
+<tr><td>Fichier → Ouvrir…</td><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Un <code>.angproj</code> (avec sa scène de départ) ou un <code>.scene</code></td></tr>
+<tr><td>Fichier → Récents</td><td></td><td>Les derniers projets. L'éditeur rouvre le dernier projet au démarrage (sinon le RPG)</td></tr>
+<tr><td>Fichier → Nouvelle scène</td><td><kbd>Ctrl</kbd>+<kbd>N</kbd></td><td>Une scène vide, sans chemin</td></tr>
+<tr><td>Fichier → Enregistrer</td><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td><code>saveScene</code> ; sur une scène neuve (sans chemin), ouvre « Enregistrer sous… »</td></tr>
+<tr><td>Fichier → Enregistrer sous…</td><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>S</kbd></td><td>Propose le dossier <code>scenes/</code> du projet, écrit le fichier et ajoute la scène au <code>.angproj</code></td></tr>
+</table></div>
+<p>Un astérisque dans le titre de la fenêtre signale des modifications non enregistrées, et l'éditeur pose la question en quittant. Le mode Jouer (<kbd>F5</kbd>) charge une <strong>copie</strong> de la scène (<code>sceneSnapshot</code>) : ce qui bouge pendant le jeu ne modifie jamais la scène éditée. Voir le <a href="guide.html">guide de l'éditeur</a>.</p>
+<div class="callout"><i class="fa-solid fa-circle-info"></i><div><p><strong>Sandbox.</strong> Le projet Sandbox ne passe pas encore par ces fichiers : sa scène est toujours écrite en code (<code>loadSandboxScene</code>). Seul le projet RPG (et le projet vide <code>projects/test/test.angproj</code>) utilise <code>.angproj</code> et <code>.scene</code>.</p></div></div>
+<div class="pager"><a class="prev" href="guide.html"><small>Précédent</small>← Guide de l’éditeur</a><a class="next" href="tilemaps.html"><small>Suivant</small>Tilemaps &amp; tilesets →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#un-projet-des-fichiers-json">Un projet = des fichiers JSON</a><a href="#le-fichier-projet-angproj">Le fichier projet .angproj</a><a href="#le-fichier-scene-scene">Le fichier scène .scene</a><a href="#persistentid-des-liens-qui-survivent-a-lenregistrement">PersistentId : des liens qui survivent à l&#x27;enregistrement</a><a href="#lire-et-ecrire-en-c">Lire et écrire en C++</a><a href="#serialiseurs-de-composants">Sérialiseurs de composants</a><a href="#prefabs">Prefabs</a><a href="#ouvrir-un-projet-ce-que-fait-rpg-exe">Ouvrir un projet : ce que fait rpg.exe</a><a href="#parametres-du-jeu-settings-cfg">Paramètres du jeu : settings.cfg</a><a href="#dans-lediteur">Dans l&#x27;éditeur</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div>
+ <div><h4>Documentation</h4><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>

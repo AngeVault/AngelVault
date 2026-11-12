@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Référence des composants — AngeVault Engine</title>
+<meta name="description" content="Référence des composants AngeVault : Transform2D, Transform3D, NameComponent, PersistentId, Script, RigidBody2D, Collider2D, Geometry, SpriteComponent, Camera2d, CameraFollow, CameraBounds, CameraControl, CameraShake, Tilemap, ParticleEmitter et composants de jeu.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html" class="current" aria-current="page">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / Référence des composants</div><span class="eyebrow">Documentation</span><h1>Référence des composants</h1><p class="lead">Tous les composants du moteur, avec leurs champs et leurs valeurs par défaut, tels qu'ils sont dans le code.</p></div></section>
+<div class="wrap doc"><article class="prose"><p>Les composants sont de simples structures. On les ajoute avec <code>registry.addComponent&lt;T&gt;(entité, …)</code> et on les lit avec <code>getComponent&lt;T&gt;</code>. Les valeurs par défaut ci-dessous sont celles du code.</p>
+
+<h2 id="core">Core</h2>
+<h3 id="transform2d">Transform2D <span class="tag">core/components/transform2d.h</span></h3>
+<p>Position, rotation et échelle d'une entité 2D. Les champs sont <strong>privés</strong> : on passe par les accesseurs, qui marquent la matrice locale comme à recalculer.</p>
+<div class="table-wrap"><table>
+<tr><th>Membre</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+<tr><td><code>depth</code></td><td><code>float</code></td><td><code>0</code></td><td>Profondeur (public)</td></tr>
+<tr><td><code>setPosition / getPosition</code></td><td><code>sf::Vector2f</code></td><td><code>{0, 0}</code></td><td>Position dans le monde</td></tr>
+<tr><td><code>setRotation / getRotation</code></td><td><code>sf::Angle</code></td><td><code>0°</code></td><td>Rotation (utilisez <code>sf::degrees(…)</code>)</td></tr>
+<tr><td><code>setScale / getScale</code></td><td><code>sf::Vector2f</code></td><td><code>{1, 1}</code></td><td>Échelle</td></tr>
+<tr><td><code>move(offset)</code> / <code>rotate(angle)</code></td><td>—</td><td>—</td><td>Ajoute à la position / à la rotation</td></tr>
+<tr><td><code>getLocalMatrix()</code></td><td><code>const sf::Transform&amp;</code></td><td>—</td><td>Matrice translation·rotation·échelle, recalculée seulement si nécessaire</td></tr>
+</table></div>
+
+<h3 id="transform3d">Transform3D <span class="tag">core/components/transform3d.h</span></h3>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Type</th><th>Défaut</th></tr>
+<tr><td><code>position</code></td><td><code>glm::vec3</code></td><td><code>(0, 0, 0)</code></td></tr>
+<tr><td><code>rotation</code></td><td><code>glm::quat</code></td><td>identité</td></tr>
+<tr><td><code>scale</code></td><td><code>glm::vec3</code></td><td><code>(1, 1, 1)</code></td></tr>
+</table></div>
+<p><code>getModelMatrix()</code> renvoie la matrice 4×4 translation · rotation · échelle.</p>
+
+<h3 id="namecomponent">NameComponent <span class="tag">core/components/name.h</span></h3>
+<p>Un seul champ, <code>std::string name</code>, construit via <code>NameComponent("Player")</code>. Sert à l'affichage dans la Hierarchy ; il est réfléchi pour l'éditeur (<code>reflectComponent&lt;NameComponent&gt;</code>).</p>
+
+<h3 id="persistentid">PersistentId <span class="tag">core/components/persistent_id.h</span></h3>
+<p>Un seul champ, <code>uint64_t value</code> (0 = pas d'identifiant). Il identifie une entité de façon stable d'une session à l'autre ; il sert uniquement à la sauvegarde (liens entre entités dans les <code>.scene</code> et <code>.prefab</code>). <code>generatePersistentId()</code> en tire un au hasard. Voir <a href="projet.html">Projet &amp; sauvegarde</a>.</p>
+
+<h3 id="script">Script <span class="tag">core/components/script_component.h</span></h3>
+<div class="table-wrap"><table>
+<tr><th>Champ / méthode</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>behaviors</code></td><td><code>std::vector&lt;Script::Slot&gt;</code></td><td>Les comportements portés, exécutés dans l'ordre. Chaque <code>Slot</code> contient un <code>std::unique_ptr&lt;IBehavior&gt; behavior</code> et un <code>bool started</code> (vrai après l'appel de <code>onStart</code>)</td></tr>
+<tr><td><code>add&lt;T&gt;(args…)</code></td><td><code>T&amp;</code></td><td>Crée et ajoute un comportement de type <code>T</code></td></tr>
+<tr><td><code>get&lt;T&gt;()</code></td><td><code>T*</code></td><td>Le premier comportement de type <code>T</code> (<code>nullptr</code> si absent)</td></tr>
+<tr><td><code>remove(i)</code>, <code>size()</code>, <code>empty()</code></td><td></td><td>Retirer, compter</td></tr>
+</table></div>
+<p>Non copiable, déplaçable. Voir <a href="comportements.html">Comportements C++</a>.</p>
+
+<h2 id="physics2d">Physics2D</h2>
+<h3 id="rigidbody2d">RigidBody2D <span class="tag">physics2d/components/rigid_body2d.h</span></h3>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+<tr><td><code>mass</code></td><td><code>float</code></td><td><code>1.0</code></td><td>Masse ; l'inverse est utilisé par la physique</td></tr>
+<tr><td><code>linearDrag</code></td><td><code>float</code></td><td><code>0.05</code></td><td>Résistance de l'air</td></tr>
+<tr><td><code>friction</code></td><td><code>float</code></td><td><code>0.4</code></td><td>Frottement</td></tr>
+<tr><td><code>isStatic</code></td><td><code>bool</code></td><td><code>false</code></td><td>Corps immobile (sol, murs) ; les forces sont ignorées</td></tr>
+<tr><td><code>useGravity</code></td><td><code>bool</code></td><td><code>true</code></td><td>Applique la gravité du <code>PhysicsSystem</code></td></tr>
+<tr><td><code>isGrounded</code></td><td><code>bool</code></td><td><code>false</code></td><td>Posé sur un autre corps (mis à jour chaque frame)</td></tr>
+<tr><td><code>velocity</code></td><td><code>sf::Vector2f</code></td><td><code>{0, 0}</code></td><td>Vitesse en px/s</td></tr>
+<tr><td><code>forceAccumulator</code></td><td><code>sf::Vector2f</code></td><td><code>{0, 0}</code></td><td>Forces de la frame, remises à zéro après intégration</td></tr>
+<tr><td><code>inertia</code></td><td><code>float</code></td><td><code>0</code></td><td>Inertie de rotation</td></tr>
+<tr><td><code>angularVelocity</code></td><td><code>float</code></td><td><code>0.4</code></td><td>Vitesse angulaire</td></tr>
+<tr><td><code>torque</code></td><td><code>float</code></td><td><code>0</code></td><td>Couple accumulé</td></tr>
+<tr><td><code>fixedRotation</code></td><td><code>bool</code></td><td><code>false</code></td><td>Interdit la rotation</td></tr>
+</table></div>
+<p>Méthodes : <code>applyForce(f)</code> (accumule), <code>applyImpulse(i)</code> (<code>velocity += i / mass</code>), <code>applyTorque(t)</code>, <code>inverseMass()</code> et <code>inverseInertia()</code>. Les corps statiques ignorent forces et impulsions.</p>
+
+<h3 id="collider2d">Collider2D <span class="tag">physics2d/components/collider2d.h</span></h3>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+<tr><td><code>shape</code></td><td><code>std::variant&lt;Box, Circle, Ellipse, Capsule, Polygon&gt;</code></td><td><code>Box{16, 16}</code></td><td>Forme du collider</td></tr>
+<tr><td><code>offset</code></td><td><code>sf::Vector2f</code></td><td><code>{0, 0}</code></td><td>Décalage par rapport au <code>Transform2D</code></td></tr>
+<tr><td><code>isTrigger</code></td><td><code>bool</code></td><td><code>false</code></td><td>Détecte sans résoudre la physique</td></tr>
+<tr><td><code>restitution</code></td><td><code>float</code></td><td><code>0.2</code></td><td>Rebond, de 0 à 1</td></tr>
+<tr><td><code>friction</code></td><td><code>float</code></td><td><code>0.4</code></td><td>Frottement, de 0 à 1</td></tr>
+</table></div>
+<div class="table-wrap"><table>
+<tr><th>Forme</th><th>Données (défaut)</th><th>Fabrique rapide</th></tr>
+<tr><td><code>Box</code></td><td><code>halfSize = {16, 16}</code></td><td><code>Collider2D::makeBox(halfSize, trigger)</code></td></tr>
+<tr><td><code>Circle</code></td><td><code>radius = 16</code></td><td><code>makeCircle(radius, trigger)</code></td></tr>
+<tr><td><code>Ellipse</code></td><td><code>radii = {16, 8}</code></td><td><code>makeEllipse(radii, trigger)</code></td></tr>
+<tr><td><code>Capsule</code></td><td><code>radius = 8</code>, <code>height = 24</code></td><td><code>makeCapsule(radius, height, trigger)</code></td></tr>
+<tr><td><code>Polygon</code></td><td><code>points</code> (locaux, relatifs au centre)</td><td><code>makePolygon(points, trigger)</code></td></tr>
+</table></div>
+<p>L'énumération <code>Collider2D::Precision</code> (<code>BoundingBox</code>, <code>Circle</code>, <code>Convex</code>, <code>PixelPerfect</code>) décrit la précision voulue pour des colliders générés depuis une texture.</p>
+
+<h2 id="render2d">Render2D</h2>
+<h3 id="geometry">Geometry <span class="tag">render2d/components/geometry.h</span></h3>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>data</code></td><td><code>std::variant&lt;BoxData, CircleData, PolygonData, SpriteData&gt;</code></td><td>La forme dessinée</td></tr>
+<tr><td><code>layer</code></td><td><code>int</code> (<code>0</code>)</td><td>Ordre de dessin : petit = derrière</td></tr>
+</table></div>
+<div class="table-wrap"><table>
+<tr><th>Structure</th><th>Champs</th></tr>
+<tr><td><code>GeometryShapeStyle</code></td><td><code>fillColor</code> (blanc), <code>outlineColor</code> (transparent), <code>outlineThickness</code> (0), <code>textureId</code> (vide)</td></tr>
+<tr><td><code>BoxData</code></td><td><code>halfSize</code>, <code>style</code></td></tr>
+<tr><td><code>CircleData</code></td><td><code>radius</code>, <code>style</code></td></tr>
+<tr><td><code>PolygonData</code></td><td><code>points</code>, <code>style</code></td></tr>
+<tr><td><code>SpriteData</code></td><td><code>textureId</code>, <code>rect</code> (<code>sf::IntRect</code>), <code>tint</code> (blanc)</td></tr>
+</table></div>
+<div class="code"><div class="code-head"><span class="file">usage</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code>registry.addComponent&lt;<span class="t">Geometry</span>&gt;(e, <span class="t">Geometry</span>::<span class="t">CircleData</span>{ <span class="n">16</span>.f, { sf::<span class="t">Color</span>(<span class="n">255</span>, <span class="n">0</span>, <span class="n">0</span>) } }, <span class="c">/*layer*/</span> <span class="n">1</span>);</code></pre></div>
+
+<h3 id="camera2d">Camera2d <span class="tag">render2d/components/camera2d.h</span></h3>
+<p>Une caméra est une entité : sa <strong>position</strong> est celle de son <code>Transform2D</code>. <code>Camera2d</code> ne contient plus que l'essentiel (zoom, rotation, priorité) ; le suivi, les limites, le pilotage et le tremblement sont des <strong>composants séparés</strong>, chacun avec son système, qu'on ajoute seulement quand on en a besoin (voir les quatre sections suivantes). Le <code>CameraSystem</code> construit la <code>sf::View</code> finale (voir <a href="modules.html">Render2D</a>).</p>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Défaut</th><th>Description</th></tr>
+<tr><td><code>zoom</code></td><td><code>1</code></td><td>Zoom courant (2 = deux fois plus près)</td></tr>
+<tr><td><code>minZoom</code> / <code>maxZoom</code></td><td><code>0.25</code> / <code>4</code></td><td>Bornes appliquées par <code>setZoom(z)</code></td></tr>
+<tr><td><code>rotation</code></td><td><code>0</code></td><td>Rotation de la vue, en degrés</td></tr>
+<tr><td><code>priority</code></td><td><code>0</code></td><td>Avec plusieurs caméras, la plus grande priorité (parmi les actives) est affichée</td></tr>
+<tr><td><code>active</code></td><td><code>true</code></td><td><code>false</code> : cette caméra n'est jamais affichée</td></tr>
+<tr><td><code>blendTime</code></td><td><code>0</code></td><td>Fondu, en secondes, quand cette caméra devient la caméra affichée (0 = coupure franche)</td></tr>
+</table></div>
+<p>Trois champs de travail (<code>effectOffset</code>, <code>effectRotation</code>, <code>effectZoom</code>) ne sont ni exposés ni enregistrés : les effets comme le tremblement y écrivent à chaque frame et le <code>CameraSystem</code> les remet à zéro. Les sept champs ci-dessus sont ceux de <code>reflectComponent&lt;Camera2d&gt;</code>.</p>
+<div class="callout"><i class="fa-solid fa-circle-info"></i><div><p><strong>Anciennes scènes.</strong> Avant le découpage, <code>Camera2d</code> contenait aussi la cible, les limites du monde, les vitesses de déplacement et le zoom visé. Au chargement, un ancien fichier est <strong>migré</strong> : la cible devient un <code>CameraFollow</code>, les limites un <code>CameraBounds</code>. Il se réenregistre ensuite au nouveau format.</p></div></div>
+
+<h3 id="camerafollow">CameraFollow <span class="tag">render2d/components/camera_follow.h</span></h3>
+<p>Fait suivre une entité par la caméra (<code>CameraFollowSystem</code>, priorité 4, après la physique et les scripts). Marche sur toute entité avec un <code>Transform2D</code>, pas seulement une caméra.</p>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Défaut</th><th>Description</th></tr>
+<tr><td><code>target</code></td><td><code>NULL_ENTITY</code></td><td>Entité suivie. Rien ou détruite : la caméra est libre. Enregistrée dans la scène par <code>PersistentId</code>. Se règle avec <code>setTarget(e)</code></td></tr>
+<tr><td><code>offset</code></td><td><code>{0, 0}</code></td><td>Décalage par rapport à la cible</td></tr>
+<tr><td><code>smoothTime</code></td><td><code>0.15</code></td><td>Secondes pour rattraper la cible (ressort amorti ; 0 = collée)</td></tr>
+<tr><td><code>maxSpeed</code></td><td><code>0</code></td><td>Vitesse maximale (0 = illimitée)</td></tr>
+<tr><td><code>deadZone</code></td><td><code>{0, 0}</code></td><td>Demi-taille de la zone où la cible bouge sans faire bouger la caméra</td></tr>
+<tr><td><code>lookAhead</code></td><td><code>0</code></td><td>Avance dans le sens de la vitesse de la cible (lue sur son <code>RigidBody2D</code>)</td></tr>
+<tr><td><code>lookAheadTime</code></td><td><code>0.3</code></td><td>Lissage de l'avance (s), pour que la caméra ne saute pas à chaque demi-tour</td></tr>
+<tr><td><code>snapOnStart</code></td><td><code>true</code></td><td>Se place sur la cible dès la première frame</td></tr>
+</table></div>
+<p>Dans l'éditeur : glissez la caméra sur l'entité à suivre dans la Hierarchy (ou clic droit → <em>Suivre</em>). Tant qu'une cible valide existe, la position de la caméra est en lecture seule.</p>
+
+<h3 id="camerabounds">CameraBounds <span class="tag">render2d/components/camera_bounds.h</span></h3>
+<p>Garde la vue dans une zone du monde (<code>CameraBoundsSystem</code>, priorité 5).</p>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Défaut</th><th>Description</th></tr>
+<tr><td><code>min</code> / <code>max</code></td><td><code>{0, 0}</code></td><td>Coins de la zone. Inactive tant que <code>max ≤ min</code> (<code>valid()</code>). <code>set(min, max)</code> les règle</td></tr>
+<tr><td><code>limitZoom</code></td><td><code>true</code></td><td>Empêche un dézoom qui montrerait l'extérieur de la zone</td></tr>
+</table></div>
+
+<h3 id="cameracontrol">CameraControl <span class="tag">render2d/components/camera_control.h</span></h3>
+<p>Déplacement et zoom à la main (<code>CameraControlSystem</code>, priorité −1), seulement sur la caméra affichée, et sans déplacement si elle suit une cible. Les actions sont celles de l'Input Manager (<code>assets/input.cfg</code>).</p>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Défaut</th><th>Description</th></tr>
+<tr><td><code>actionX</code> / <code>actionY</code></td><td><code>"CameraX"</code> / <code>"CameraY"</code></td><td>Actions de déplacement</td></tr>
+<tr><td><code>actionZoom</code></td><td><code>"Zoom"</code></td><td>Axe de zoom maintenu</td></tr>
+<tr><td><code>actionZoomWheel</code></td><td><code>"ZoomWheel"</code></td><td>Zoom par crans (molette)</td></tr>
+<tr><td><code>panEnabled</code> / <code>zoomEnabled</code></td><td><code>true</code></td><td>Autorise le déplacement / le zoom</td></tr>
+<tr><td><code>panSpeed</code></td><td><code>800</code></td><td>Vitesse de déplacement, en pixels écran par seconde</td></tr>
+<tr><td><code>zoomSpeed</code></td><td><code>1.5</code></td><td>Vitesse du zoom maintenu</td></tr>
+<tr><td><code>wheelStep</code></td><td><code>0.15</code></td><td>+15 % par cran de molette</td></tr>
+<tr><td><code>zoomSharpness</code></td><td><code>12</code></td><td>Lissage du zoom (0 = immédiat)</td></tr>
+<tr><td><code>targetZoom</code></td><td><code>0</code></td><td>Zoom visé (0 = le zoom actuel). Un script peut le changer ; non enregistré</td></tr>
+</table></div>
+
+<h3 id="camerashake">CameraShake <span class="tag">render2d/components/camera_shake.h</span></h3>
+<p>Tremblement de caméra (<code>CameraShakeSystem</code>, priorité 6), modèle « trauma » : l'intensité vaut <code>trauma<sup>exponent</sup></code> et retombe de <code>decay</code> par seconde, avec un bruit lissé (pas de saccades). Il ne touche pas au <code>Transform2D</code>, seulement à la vue de la frame.</p>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Défaut</th><th>Description</th></tr>
+<tr><td><code>trauma</code></td><td><code>0</code></td><td>0..1. <code>add(x)</code> en ajoute (borné à 1)</td></tr>
+<tr><td><code>decay</code></td><td><code>1.5</code></td><td>Trauma perdu par seconde</td></tr>
+<tr><td><code>maxOffset</code></td><td><code>{24, 24}</code></td><td>Décalage maximal (unités monde)</td></tr>
+<tr><td><code>maxRotation</code></td><td><code>3</code></td><td>Rotation maximale, en degrés</td></tr>
+<tr><td><code>frequency</code></td><td><code>18</code></td><td>Fréquence du bruit (Hz)</td></tr>
+<tr><td><code>exponent</code></td><td><code>2</code></td><td>2 = petits chocs discrets, gros chocs forts</td></tr>
+</table></div>
+<div class="code"><div class="code-head"><span class="file">usage</span><span class="lang">C++</span><button class="copy" type="button">Copier</button></div><pre><code><span class="p">#include</span> <span class="s">"utils/camera_utils.h"</span>
+
+<span class="c">// Raccourcis pour le code de jeu : ajoutent le composant au besoin</span>
+<span class="t">Camera</span>::shake(registry, <span class="n">0.5f</span>);                    <span class="c">// fait trembler la caméra affichée</span>
+<span class="t">Camera</span>::follow(registry, cameraEntity, player);   <span class="c">// la caméra suit le joueur (NULL_ENTITY = libre)</span>
+sf::<span class="t">Vector2f</span> world = <span class="t">Camera</span>::screenToWorld(<span class="t">Input</span>::mousePosition());   <span class="c">// souris -&gt; monde</span>
+
+<span class="c">// Ou à la main :</span>
+<span class="t">Entity</span> cameraEntity = registry.createEntity();
+registry.addComponent&lt;<span class="t">Transform2D</span>&gt;(cameraEntity);
+registry.addComponent&lt;<span class="t">Camera2d</span>&gt;(cameraEntity).setZoom(<span class="n">1.5f</span>);
+registry.addComponent&lt;<span class="t">CameraFollow</span>&gt;(cameraEntity).setTarget(player);
+registry.addComponent&lt;<span class="t">CameraBounds</span>&gt;(cameraEntity).set({ <span class="n">0</span>.f, <span class="n">0</span>.f }, { <span class="n">3000</span>.f, <span class="n">3000</span>.f });</code></pre></div>
+<p>Les cinq composants se règlent dans l'Inspector (<em>Ajouter un composant</em>). Pour en créer un du même genre, voir <a href="composant-engine.html">Créer un composant (côté engine)</a>.</p>
+
+<h3 id="spritecomponent">SpriteComponent <span class="tag">render2d/components/sprite_component.h</span></h3>
+<p>Enveloppe un <code>sf::Sprite</code> et un <code>layer</code>. Les scènes actuelles utilisent plutôt <code>Geometry::SpriteData</code>.</p>
+
+<h2 id="tilemap">Tilemap</h2>
+<h3 id="tilemap-2">Tilemap <span class="tag">tilemap/tilemap.h</span></h3>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+<tr><td><code>file</code></td><td><code>std::string</code></td><td>vide</td><td>Le fichier <code>.map</code>, relatif au dossier du projet</td></tr>
+<tr><td><code>visible</code></td><td><code>bool</code></td><td><code>true</code></td><td>Décocher pour masquer la carte sans la supprimer</td></tr>
+<tr><td><code>data</code></td><td><code>std::shared_ptr&lt;TileMapData&gt;</code></td><td>vide</td><td>Les cases et tilesets, chargés depuis <code>file</code> par <code>loadTilemaps</code> (non enregistré dans la scène)</td></tr>
+</table></div>
+<p>Le <code>Transform2D</code> de l'entité donne la position de la carte. Voir <a href="tilemaps.html">Tilemaps &amp; tilesets</a>.</p>
+
+<h2 id="particles">Particles</h2>
+<h3 id="particleemitter">ParticleEmitter <span class="tag">particles/components/particle_emitter.h</span></h3>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Défaut</th><th>Description</th></tr>
+<tr><td><code>emissionRate</code></td><td><code>0</code></td><td>Particules par seconde</td></tr>
+<tr><td><code>burstCount</code></td><td><code>0</code></td><td>Émission immédiate au démarrage</td></tr>
+<tr><td><code>duration</code></td><td><code>-1</code></td><td>Négatif = émission sans fin</td></tr>
+<tr><td><code>emitting</code> / <code>destroyWhenFinished</code></td><td><code>true</code> / <code>false</code></td><td>Actif ? Détruire l'entité à la fin ?</td></tr>
+<tr><td><code>maxParticlesPerUpdate</code></td><td><code>256</code></td><td>Plafond d'émission par mise à jour</td></tr>
+<tr><td><code>spawnShape</code></td><td><code>Point</code></td><td><code>Point</code>, <code>Rectangle</code> (avec <code>spawnArea</code>) ou <code>Circle</code> (avec <code>spawnRadius</code>)</td></tr>
+<tr><td><code>angleMinDegrees</code> / <code>angleMaxDegrees</code></td><td><code>0</code> / <code>360</code></td><td>Cône d'émission</td></tr>
+<tr><td><code>speedMin</code> / <code>speedMax</code></td><td><code>0</code></td><td>Vitesse initiale</td></tr>
+<tr><td><code>acceleration</code></td><td><code>{0, 0}</code></td><td>Accélération des particules</td></tr>
+<tr><td><code>lifetimeMin</code> / <code>lifetimeMax</code></td><td><code>0.5</code> / <code>1.5</code></td><td>Durée de vie en secondes</td></tr>
+<tr><td><code>angularVelocityMin</code> / <code>Max</code></td><td><code>0</code></td><td>Rotation propre</td></tr>
+<tr><td><code>randomSeed</code></td><td><code>0</code></td><td><code>0</code> = graine déterministe basée sur l'entité</td></tr>
+</table></div>
+<p><code>ParticleEmitterRuntime</code> (accumulateur, compteur de particules vivantes, temps écoulé…) est l'état d'exécution, isolé de la configuration.</p>
+
+<h2 id="composants-de-jeu">Composants de jeu</h2>
+<p>Les composants déclarés par un projet avec <code>REGISTER_COMPONENT</code> (dossier <code>components/</code>) ne figurent pas dans cette liste : ils sont propres à chaque jeu. Le RPG en fournit un exemple.</p>
+<h3 id="spin">Spin <span class="tag">projects/rpg/components/spin.h</span></h3>
+<div class="table-wrap"><table>
+<tr><th>Champ</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+<tr><td><code>degreesPerSecond</code></td><td><code>float</code></td><td><code>90</code></td><td>Vitesse de rotation</td></tr>
+<tr><td><code>clockwise</code></td><td><code>bool</code></td><td><code>true</code></td><td>Sens de rotation</td></tr>
+</table></div>
+<p>C'est le <code>SpinSystem</code> (priorité 3, <code>systems/spin_system.h</code>) qui fait tourner les entités qui ont <code>Spin</code> et <code>Transform2D</code>. Voir <a href="codejeu.html">Code de jeu</a>.</p>
+<div class="pager"><a class="prev" href="comportements.html"><small>Précédent</small>← Comportements C++</a><a class="next" href="faq.html"><small>Suivant</small>FAQ &amp; dépannage →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#core">Core</a><a href="#transform2d" class="sub">Transform2D</a><a href="#transform3d" class="sub">Transform3D</a><a href="#namecomponent" class="sub">NameComponent</a><a href="#persistentid" class="sub">PersistentId</a><a href="#script" class="sub">Script</a><a href="#physics2d">Physics2D</a><a href="#rigidbody2d" class="sub">RigidBody2D</a><a href="#collider2d" class="sub">Collider2D</a><a href="#render2d">Render2D</a><a href="#geometry" class="sub">Geometry</a><a href="#camera2d" class="sub">Camera2d</a><a href="#camerafollow" class="sub">CameraFollow</a><a href="#camerabounds" class="sub">CameraBounds</a><a href="#cameracontrol" class="sub">CameraControl</a><a href="#camerashake" class="sub">CameraShake</a><a href="#spritecomponent" class="sub">SpriteComponent</a><a href="#tilemap">Tilemap</a><a href="#tilemap-2" class="sub">Tilemap</a><a href="#particles">Particles</a><a href="#particleemitter" class="sub">ParticleEmitter</a><a href="#composants-de-jeu">Composants de jeu</a><a href="#spin" class="sub">Spin</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div>
+ <div><h4>Documentation</h4><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>

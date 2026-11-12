@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ &amp; dépannage — AngeVault Engine</title>
+<meta name="description" content="FAQ et dépannage d&#x27;AngeVault : CMake et Qt, rpg.exe introuvable, comportement absent, scène qui ne charge pas, tileset manquant, touches qui ne répondent pas, système qui ne tourne pas.">
+<script>try{var t=localStorage.getItem('av-theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="site-header"><div class="wrap">
+ <a class="brand" href="accueil.html"><span class="logo">AV</span><span class="long">AngeVault <b>Engine</b></span></a>
+ <nav class="nav" id="nav" aria-label="Navigation principale"><div class="item"><a class="top" href="accueil.html">Accueil</a></div><div class="item"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Architecture <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div></div><div class="item active"><button class="top" type="button" aria-expanded="false" aria-haspopup="true">Documentation <span class="chev" aria-hidden="true"></span></button><div class="dropdown"><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html" class="current" aria-current="page">FAQ &amp; dépannage</a></div></div><div class="item"><a class="top" href="roadmap.html">Feuille de route</a></div></nav>
+ <button class="icon-btn" id="theme-btn" type="button" aria-label="Changer de thème"></button>
+ <button class="icon-btn burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span class="bars"></span></button>
+</div></header>
+<main id="main">
+<section class="banner sub"><div class="wrap"><div class="crumbs"><a href="accueil.html">Accueil</a> / Documentation / FAQ &amp; dépannage</div><span class="eyebrow">Documentation</span><h1>FAQ &amp; dépannage</h1><p class="lead">Les questions qui reviennent, et ce qu'il faut vérifier quand quelque chose ne marche pas : compilation, éditeur, scènes, cartes, entrées.</p></div></section>
+<div class="wrap doc"><article class="prose"><h2 id="compilation">Compilation</h2>
+<div class="table-wrap"><table>
+<tr><th>Problème</th><th>À vérifier</th></tr>
+<tr><td>CMake dit que Qt est introuvable</td><td>Définissez la variable d'environnement <code>QT_ROOT</code> ou passez <code>-DCMAKE_PREFIX_PATH=…</code> (voir <a href="demarrage.html">Démarrage &amp; build</a>) ou utilisez le preset <code>x64-debug-no-editor</code> pour ne construire que le moteur, les projets et les tests</td></tr>
+<tr><td>La première configuration est longue</td><td>Normal : SFML et glm sont téléchargés par FetchContent. Les suivantes sont rapides</td></tr>
+<tr><td>Un nouveau fichier de <code>behaviors/</code>, <code>components/</code> ou <code>systems/</code> n'est pas pris en compte</td><td>Relancez la compilation : le glob de CMake est en <code>CONFIGURE_DEPENDS</code> et regénère l'en-tête <code>rpg_game_code.h</code> tout seul</td></tr>
+<tr><td>Erreur <em>« SFML::… introuvable »</em> dans un nouveau module</td><td>Ajoutez la cible dans <code>DEPS</code> de <code>av_module(…)</code> (recette « Ajouter un module » dans la <a href="docs.html">documentation</a>)</td></tr>
+<tr><td>Un test ne compile pas après avoir changé l'API</td><td>Les tests sont construits avec le projet (<code>AV_BUILD_TESTS</code>). Voir la <a href="roadmap.html">feuille de route</a> : <code>test_tilemap</code> a été écrit pour l'ancienne API des cartes</td></tr>
+</table></div>
+
+<h2 id="editeur">Éditeur</h2>
+<div class="table-wrap"><table>
+<tr><th>Problème</th><th>À vérifier</th></tr>
+<tr><td>Mon comportement, composant ou système n'apparaît pas</td><td>Recompilez l'éditeur ; la ligne <code>REGISTER_…</code> est-elle présente ? Le fichier est-il dans le bon dossier du projet ? Voir <a href="codejeu.html">Code de jeu</a></td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>F5</kbd> dit que <code>rpg.exe</code> est introuvable</td><td>Compilez la cible <code>rpg</code> (elle est aussi une dépendance de l'éditeur : une compilation complète la construit)</td></tr>
+<tr><td>Le jeu lancé dans l'éditeur ne bouge pas</td><td>La vue du jeu doit avoir le focus : cliquez dedans. Les touches viennent de l'Input Manager : vérifiez les actions <code>Horizontal</code> et <code>Vertical</code> et que le comportement du joueur est bien attaché</td></tr>
+<tr><td>Ma carte n'affiche rien</td><td>Le tileset est-il ajouté à la carte (Tile Palette → +) ? Le composant <code>Tilemap</code> est-il <code>visible</code> ? Le message <em>« introuvable »</em> à côté d'un tileset signale un fichier déplacé</td></tr>
+<tr><td>Les transitions d'herbe sont fausses</td><td>Vérifiez les rôles des tiles dans la fenêtre Tileset (<em>Disposition standard</em>) et l'ordre des tilesets : un autotile doit être <em>après</em> ceux sur lesquels il déborde</td></tr>
+<tr><td>Je ne peux pas déplacer la caméra</td><td>Elle suit une entité (composant <code>CameraFollow</code>, champ <code>target</code>). Clic droit → <em>Suivre → (Personne : caméra libre)</em>. Pour la piloter à la main en jeu, ajoutez un <code>CameraControl</code> à une caméra sans cible</td></tr>
+<tr><td>Le jeu dessine des contours verts ou des flèches</td><td>Ce sont les systèmes de debug : décochez-les dans <em>Exécuter → Systèmes…</em> (<code>RenderCollisionSystem</code>, <code>ForceDebugSystem</code>)</td></tr>
+<tr><td>L'éditeur est tout rose / tout sombre</td><td>Menu <em>Édition → Thème</em></td></tr>
+<tr><td>Le jeu est flou, saccadé ou trop sombre / trop contrasté</td><td>Regardez <em>Édition → Paramètres du jeu…</em> : antialiasing, vsync, limite de FPS et shader de post-process. Un shader qui ne compile pas est désactivé (message dans la Console)</td></tr>
+<tr><td>Ma caméra ne bouge pas, ne tremble pas ou ne suit rien en jeu</td><td>Le projet doit appeler <code>registerCameraSystems(game.systems(), game.target())</code> (fait dans <code>registerRpgSystems</code>), et la caméra doit avoir le composant voulu (<code>CameraFollow</code>, <code>CameraControl</code>, <code>CameraShake</code>). Avec plusieurs caméras, seule la plus prioritaire et active est affichée</td></tr>
+<tr><td>Un système que j'ai écrit dans <code>engine/</code> ne s'exécute pas</td><td>Aucun système du moteur n'est ajouté tout seul : ajoutez-le dans <code>Game::init()</code> ou dans une fonction <code>registerXxxSystems</code> appelée par le projet (voir <a href="systeme-engine.html">Créer un système (côté engine)</a>)</td></tr>
+<tr><td>Mon composant du moteur disparaît à l'enregistrement</td><td>Il manque son sérialiseur : <code>reg.addReflected&lt;T&gt;("Nom")</code> dans <code>registerBuiltins</code> (voir <a href="composant-engine.html">Créer un composant (côté engine)</a>)</td></tr>
+</table></div>
+
+<h2 id="scenes-et-fichiers">Scènes et fichiers</h2>
+<div class="table-wrap"><table>
+<tr><th>Problème</th><th>Cause et remède</th></tr>
+<tr><td>Avertissement « comportement inconnu »</td><td>Le nom écrit dans le <code>.scene</code> ne correspond à aucune classe enregistrée (classe renommée ou supprimée, ou code non recompilé). L'entité est chargée sans ce comportement</td></tr>
+<tr><td>Avertissement « composant inconnu »</td><td>Même cause pour un composant. Le reste de la scène se charge normalement</td></tr>
+<tr><td>Une caméra ne suit plus sa cible après le chargement</td><td>La cible n'est plus dans la scène : le lien devient vide (avec un avertissement)</td></tr>
+<tr><td>« ancien format (une image par tile) »</td><td>Carte de version 1 : convertissez-la avec <code>tools/convert_tilemaps.py</code> (voir <a href="tilemaps.html">Tilemaps &amp; tilesets</a>)</td></tr>
+<tr><td>Textures magenta et noires</td><td>Texture introuvable (damier de secours) : vérifiez l'identifiant ou le chemin de l'image et le dossier <code>assets/</code> copié à côté de l'exécutable</td></tr>
+<tr><td>Le projet ne s'ouvre pas sur un autre poste</td><td>Les chemins sont relatifs au <code>.angproj</code> : copiez tout le dossier du projet, pas seulement le fichier</td></tr>
+<tr><td>Où sont mes modifications après <kbd>F5</kbd> ?</td><td>Le jeu joue une <em>copie</em> : rien de ce qui se passe en jeu n'est enregistré dans la scène. Modifiez dans l'éditeur, pas pendant le jeu</td></tr>
+</table></div>
+
+<h2 id="entrees">Entrées</h2>
+<div class="table-wrap"><table>
+<tr><th>Problème</th><th>À vérifier</th></tr>
+<tr><td><code>rpg.exe</code> ignore mes touches</td><td>Le fichier <code>input.cfg</code> est lu à l'emplacement donné par <code>paths.input</code> du <code>.angproj</code>, relatif au projet. Lancé sans projet, le jeu retombe sur les actions par défaut du code</td></tr>
+<tr><td>Une action ne renvoie jamais rien</td><td>Le nom doit correspondre exactement (majuscules comprises) à celui du fichier <code>input.cfg</code>. Hors d'un <code>Game</code> (dans un test), <code>Input::</code> renvoie toujours 0 ou faux</td></tr>
+<tr><td>La manette dérive</td><td>Augmentez la zone morte de l'axe (0,2 par défaut) dans l'Input Manager</td></tr>
+</table></div>
+
+<h2 id="questions-frequentes">Questions fréquentes</h2>
+<h3 id="peut-on-utiliser-angevault-sans-lediteur">Peut-on utiliser AngeVault sans l'éditeur ?</h3>
+<p>Oui. Le moteur est indépendant de l'éditeur : <code>Game</code> en mode autonome, des entités créées en C++ comme dans le Sandbox, ou un projet chargé depuis ses fichiers comme dans <code>rpg.exe</code>. Le preset <code>x64-debug-no-editor</code> construit tout sauf l'éditeur.</p>
+<h3 id="faut-il-ecrire-du-c-pour-faire-un-jeu">Faut-il écrire du C++ pour faire un jeu ?</h3>
+<p>Pour la logique, oui (comportements et systèmes sont du C++). Pour construire les niveaux — cartes, entités, prefabs, réglages — l'éditeur suffit.</p>
+<h3 id="comment-ajouter-un-systeme-ou-un-composant-au-moteur">Comment ajouter un système ou un composant au moteur ?</h3>
+<p>Voir <a href="systeme-engine.html">Créer un système (côté engine)</a> et <a href="composant-engine.html">Créer un composant (côté engine)</a> : module, priorité, branchement dans <code>Game::init()</code>, sérialiseur et bloc <code>ComponentDesc</code> pour l'Inspector.</p>
+<h3 id="comment-ajouter-un-module-au-moteur">Comment ajouter un module au moteur ?</h3>
+<p>Voir la recette « Ajouter un module » du <a href="docs.html">centre de documentation</a> : un dossier, un <code>CMakeLists.txt</code> d'une ligne avec <code>av_module</code>, et l'ajouter à <code>engine/CMakeLists.txt</code>.</p>
+<h3 id="o-signaler-un-bug">Où signaler un bug ?</h3>
+<p>Menu <em>Aide → Signaler un bug</em> de l'éditeur, ou <a href="https://github.com/AngeVault/AngelVault/issues/new">une nouvelle issue sur GitHub</a>.</p>
+<div class="pager"><a class="prev" href="composants.html"><small>Précédent</small>← Référence des composants</a><a class="next" href="roadmap.html"><small>Suivant</small>Feuille de route →</a></div></article><aside class="toc" aria-label="Sur cette page"><b>Sur cette page</b><a href="#compilation">Compilation</a><a href="#editeur">Éditeur</a><a href="#scenes-et-fichiers">Scènes et fichiers</a><a href="#entrees">Entrées</a><a href="#questions-frequentes">Questions fréquentes</a><a href="#peut-on-utiliser-angevault-sans-lediteur" class="sub">Peut-on utiliser AngeVault sans l&#x27;éditeur ?</a><a href="#faut-il-ecrire-du-c-pour-faire-un-jeu" class="sub">Faut-il écrire du C++ pour faire un jeu ?</a><a href="#comment-ajouter-un-systeme-ou-un-composant-au-moteur" class="sub">Comment ajouter un système ou un composant au moteur ?</a><a href="#comment-ajouter-un-module-au-moteur" class="sub">Comment ajouter un module au moteur ?</a><a href="#o-signaler-un-bug" class="sub">Où signaler un bug ?</a></aside></div>
+</main>
+<footer class="site-footer"><div class="wrap">
+<div class="foot">
+ <div><a class="brand" href="accueil.html" style="padding:0"><span class="logo">AV</span><span>AngeVault <b>Engine</b></span></a>
+ <p>Moteur de jeu 2D en C++20 : ECS à sparse sets, SFML 3, éditeur Qt 6, build CMake modulaire.</p></div>
+ <div><h4>Découvrir</h4><a href="accueil.html">Accueil</a><a href="architecture.html">Vue d’ensemble</a><a href="ecs.html">ECS &amp; Registry</a><a href="modules.html">Modules du moteur</a><a href="editeur.html">Éditeur Qt</a></div>
+ <div><h4>Documentation</h4><a href="docs.html">Centre de documentation</a><a href="demarrage.html">Démarrage &amp; build</a><a href="guide.html">Guide de l’éditeur</a><a href="projet.html">Projet &amp; sauvegarde</a><a href="tilemaps.html">Tilemaps &amp; tilesets</a><a href="codejeu.html">Code de jeu</a><a href="systeme-engine.html">Créer un système (engine)</a><a href="composant-engine.html">Créer un composant (engine)</a><a href="comportements.html">Comportements C++</a><a href="composants.html">Référence des composants</a><a href="faq.html">FAQ &amp; dépannage</a><a href="roadmap.html">Feuille de route</a></div>
+ <div><h4>Projet</h4><a href="https://github.com/AngeVault/AngelVault/issues">Signaler un bug</a><a href="roadmap.html">Feuille de route</a><a href="demarrage.html">Compiler le projet</a></div>
+</div>
+<div class="legal">&copy; 2026 AngeVault Engine. Tous droits réservés. Propulsé par la passion du C++.</div>
+</div></footer>
+<script src="assets/app.js"></script>
+</body>
+</html>
