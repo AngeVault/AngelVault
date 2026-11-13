@@ -90,7 +90,7 @@ QString componentTemplate(const QString& className) {
 #include <SFML/System/Vector2.hpp>
 #include <string>
 
-// Composant de jeu « %1 » (données seulement : la logique va dans un système ou un behavior).
+// Composant de jeu « %1 » : données seulement, la logique va dans un système (%1System).
 // Après compilation : Inspector > Ajouter un composant > %1, ou glissez ce fichier sur une entité.
 struct %1 {
     float value = 1.f;
@@ -103,11 +103,20 @@ REGISTER_COMPONENT(%1, FIELD(value))
 }
 
 // Modèle d'un nouveau système de jeu
-QString systemTemplate(const QString& className) {
+// component : composant traité (ex. "Damage" pour DamageSystem), vide si aucun trouvé
+QString systemTemplate(const QString& className, const QString& component) {
+    const QString include = component.isEmpty()
+        ? QString("// #include \"../components/mon_composant.h\"")
+        : QString("#include \"../components/%1.h\"").arg(snakeCase(component));
+    const QString view = component.isEmpty()
+        ? QString("        // registry.view<MonComposant, Transform2D>([&](Entity e, MonComposant& c, Transform2D& t) {\n"
+                  "        // });")
+        : QString("        registry.view<%1, Transform2D>([&](Entity e, %1& c, Transform2D& t) {\n"
+                  "        });").arg(component);
     return QString(R"(#pragma once
 #include "game_systems.h"
 #include "components/transform2d.h"
-// #include "../components/mon_composant.h"
+%2
 
 // Système de jeu « %1 » : ajouté automatiquement au jeu après compilation.
 // Activer / désactiver : éditeur > Exécuter > Systèmes...
@@ -120,12 +129,11 @@ public:
     }
 
     void onUpdate(Registry& registry, float dt) override {
-        // registry.view<MonComposant, Transform2D>([&](Entity e, MonComposant& c, Transform2D& t) {
-        // });
+%3
     }
 };
 REGISTER_SYSTEM(%1)
-)").arg(className);
+)").arg(className, include, view);
 }
 
 QString behaviorTemplate(const QString& className) {
@@ -133,25 +141,19 @@ QString behaviorTemplate(const QString& className) {
 #include "ecs/behavior.h"
 #include "ecs/behavior_factory.h"
 #include "ecs/registry.h"
-#include "components/transform2d.h"
-#include "input/input.h"
 
-// Comportement « %1 ».
-// Après compilation, glissez ce fichier sur une entité (Hierarchy, Inspector ou vue scène),
-// ou Inspector > Ajouter un composant > Comportement > %1.
+// Comportement « %1 » : logique propre à une seule entité.
+// Partagée par plusieurs entités ? Préférez un composant + un système.
+// Après compilation : glissez ce fichier sur une entité, ou Inspector > Ajouter un composant > Comportement.
 class %1 : public IBehavior {
 public:
-    // Réglages visibles dans l'Inspector et enregistrés dans la scène (float, int, bool, sf::Vector2f, std::string)
+    // Réglages visibles dans l'Inspector (float, int, bool, sf::Vector2f, std::string)
     PROPERTY(float, speed, 100.f)
 
-    // Appelé une fois, avant le premier onUpdate
     void onStart(Entity self, Registry& registry) override {
     }
 
-    // Appelé à chaque frame (dt en secondes)
     void onUpdate(Entity self, Registry& registry, float dt) override {
-        // auto& transform = registry.getComponent<Transform2D>(self);
-        // transform.move({ Input::getAxis("Horizontal") * speed * dt, 0.f });
     }
 };
 
@@ -419,9 +421,11 @@ void ProjectPanel::showContextMenu(const QString& path, const QPoint& globalPos,
         connect(del, &QAction::triggered, this, [this, targets] { deletePaths(targets); });
     }
     QMenu* create = menu.addMenu(tr("Créer (C++)"));
-    connect(create->addAction(tr("Behavior...")), &QAction::triggered, this, [this] { createCode(0); });
+    // l'ECS d'abord, le behavior en dernier
     connect(create->addAction(tr("Composant de jeu...")), &QAction::triggered, this, [this] { createCode(1); });
     connect(create->addAction(tr("Système de jeu...")), &QAction::triggered, this, [this] { createCode(2); });
+    create->addSeparator();
+    connect(create->addAction(tr("Behavior...")), &QAction::triggered, this, [this] { createCode(0); });
     menu.addSeparator();
     connect(menu.addAction(tr("Copier le chemin")), &QAction::triggered, this,
             [path] { QGuiApplication::clipboard()->setText(QDir::toNativeSeparators(path)); });
@@ -556,7 +560,15 @@ void ProjectPanel::createCode(int kind) {
         QMessageBox::warning(this, title, tr("Impossible d'écrire %1").arg(QDir::toNativeSeparators(path)));
         return;
     }
-    const QString code = kind == 0 ? behaviorTemplate(name) : kind == 1 ? componentTemplate(name) : systemTemplate(name);
+    // DamageSystem -> Damage, si components/damage.h existe
+    QString component;
+    if (kind == 2 && name.endsWith("System") && name.size() > 6) {
+        const QString base = name.chopped(6);
+        if (QFileInfo::exists(m_root + "/components/" + snakeCase(base) + ".h")) component = base;
+    }
+    const QString code = kind == 0 ? behaviorTemplate(name)
+                       : kind == 1 ? componentTemplate(name)
+                                   : systemTemplate(name, component);
     file.write(code.toUtf8());
     file.close();
     setCurrentDir(dir);
