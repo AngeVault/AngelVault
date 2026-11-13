@@ -17,3 +17,7 @@ add_test(NAME test_tilemap COMMAND test_tilemap)
 add_executable(test_camera test_camera.cpp)
 target_link_libraries(test_camera PRIVATE AngeVault::Render2D)
 add_test(NAME test_camera COMMAND test_camera)
+
+add_executable(test_tile_collision test_tile_collision.cpp)
+target_link_libraries(test_tile_collision PRIVATE AngeVault::Tilemap)
+add_test(NAME test_tile_collision COMMAND test_tile_collision)

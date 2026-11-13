@@ -227,6 +227,34 @@ std::array<sf::Vector2f, 4> TileMapData::cellCorners(int x, int y) const {
              sf::Vector2f{ (x + 1) * w, (y + 1) * h }, sf::Vector2f{ x * w, (y + 1) * h } };
 }
 
+std::vector<std::array<sf::Vector2f, 4>> TileMapData::solidAreas() const {
+    std::vector<std::array<sf::Vector2f, 4>> areas;
+    std::vector<char> todo(m_cells.size(), 0);
+    for (std::size_t i = 0; i < m_cells.size(); ++i) {
+        const Tileset* t = tilesetOf(m_cells[i]);
+        todo[i] = t && t->solid;
+    }
+    auto pending = [&](int x, int y) { return inBounds(x, y) && todo[std::size_t(y) * m_width + x]; };
+
+    // rectangles gloutons : on étend en x, puis en y tant que toute la ligne suit
+    for (int y = 0; y < m_height; ++y)
+        for (int x = 0; x < m_width; ++x) {
+            if (!pending(x, y)) continue;
+            int x1 = x;
+            while (pending(x1 + 1, y)) ++x1;
+            int y1 = y;
+            auto rowPending = [&](int row) {
+                for (int i = x; i <= x1; ++i) if (!pending(i, row)) return false;
+                return true;
+            };
+            while (rowPending(y1 + 1)) ++y1;
+            for (int j = y; j <= y1; ++j)
+                for (int i = x; i <= x1; ++i) todo[std::size_t(j) * m_width + i] = 0;
+            areas.push_back({ cellCorners(x, y)[0], cellCorners(x1, y)[1], cellCorners(x1, y1)[2], cellCorners(x, y1)[3] });
+        }
+    return areas;
+}
+
 sf::Vector2f TileMapData::localOrigin() const {
     if (orientation == TileMapOrientation::Isometric) return { -m_height * tileSize.x * 0.5f, 0.f };
     return { 0.f, 0.f };
