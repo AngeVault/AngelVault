@@ -7,8 +7,11 @@
 #include "components/camera_shake.h"
 #include "components/collider2d.h"
 #include "components/day_night_cycle.h"
+#include "components/dont_destroy.h"
 #include "components/geometry.h"
+#include "components/map_transition.h"
 #include "components/name.h"
+#include "components/spawn_point.h"
 #include "components/rigid_body2d.h"
 #include "components/script_component.h"
 #include "components/transform2d.h"
@@ -842,6 +845,49 @@ std::vector<ComponentDesc> build() {
 
     // Script : pas de descripteur ici. Chaque comportement a sa propre section dans l'Inspector
     // (voir behaviorFields() plus bas et InspectorPanel::rebuild).
+
+    // ---------------------------------------------------------------- DontDestroy
+    {
+        ComponentDesc d{ "DontDestroy" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<DontDestroy>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<DontDestroy>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<DontDestroy>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            return std::vector<FieldDesc>{ stringRef<DontDestroy>(r, e, QObject::tr("Clé"),
+                [](DontDestroy& c) -> std::string& { return c.key; }) };
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- SpawnPoint
+    {
+        ComponentDesc d{ "SpawnPoint" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<SpawnPoint>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<SpawnPoint>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<SpawnPoint>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            return std::vector<FieldDesc>{ stringRef<SpawnPoint>(r, e, QObject::tr("Nom"),
+                [](SpawnPoint& c) -> std::string& { return c.name; }) };
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- MapTransition
+    {
+        ComponentDesc d{ "MapTransition" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<MapTransition>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<MapTransition>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<MapTransition>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(stringRef<MapTransition>(r, e, QObject::tr("Scène"),
+                [](MapTransition& c) -> std::string& { return c.scene; }));
+            f.push_back(stringRef<MapTransition>(r, e, QObject::tr("Spawn"),
+                [](MapTransition& c) -> std::string& { return c.spawn; }));
+            return f;
+        };
+        list.push_back(d);
+    }
 
     return list;
 }

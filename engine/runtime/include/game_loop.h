@@ -30,6 +30,7 @@ public:
     Registry& registry() { return m_registry; }
     SystemManager& systems() { return m_systems; }
     void setAssetDir(const std::string& dir);   // dossier du projet (textures, shader)
+    const std::string& assetDir() const { return m_assetDir; }
 
     sf::RenderWindow& window() { return *m_window; }   // événements, taille de l'écran
     sf::RenderTarget& target() { return m_scene; }      // où dessinent les systèmes

@@ -7,8 +7,11 @@
 #include "components/camera_shake.h"
 #include "components/collider2d.h"
 #include "components/day_night_cycle.h"
+#include "components/dont_destroy.h"
 #include "components/geometry.h"
+#include "components/map_transition.h"
 #include "components/name.h"
+#include "components/spawn_point.h"
 #include "components/rigid_body2d.h"
 #include "components/script_component.h"
 #include "components/transform2d.h"
@@ -271,6 +274,11 @@ void registerBuiltins(SerializerRegistry& reg) {
             c.duskColor = color(j.value("duskColor", Json()), c.duskColor);
             c.nightColor = color(j.value("nightColor", Json()), c.nightColor);
         });
+
+    // ---- changement de map
+    reg.addReflected<DontDestroy>("DontDestroy");
+    reg.addReflected<SpawnPoint>("SpawnPoint");
+    reg.addReflected<MapTransition>("MapTransition");
 
     // ---- Tilemap : seulement le fichier .map (les cases sont dedans) et « visible »
     reg.add<Tilemap>("Tilemap",

@@ -1,0 +1,115 @@
+{
+  "format": "angeVault.scene",
+  "version": 1,
+  "name": "donjon",
+  "map": null,
+  "entities": [
+    {
+      "id": 7001000000000000103,
+      "components": {
+        "Name": {
+          "name": "sol donjon"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/donjon.map",
+          "visible": true
+        }
+      }
+    },
+    {
+      "id": 7001000000000000104,
+      "components": {
+        "Name": {
+          "name": "Entree"
+        },
+        "Transform2D": {
+          "position": [
+            22.901809692382813,
+            210.0229949951172
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "SpawnPoint": {
+          "name": "entree"
+        }
+      }
+    },
+    {
+      "id": 7001000000000000105,
+      "components": {
+        "Name": {
+          "name": "Sortie"
+        },
+        "Transform2D": {
+          "position": [
+            48.042510986328125,
+            606.5870361328125
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Box",
+          "halfSize": [
+            40.0,
+            40.0
+          ],
+          "style": {
+            "fill": "#C0804080",
+            "outline": "#FFFFFFFF",
+            "outlineThickness": 2.0
+          }
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": true,
+          "restitution": 0.0,
+          "friction": 0.0,
+          "shape": "Box",
+          "halfSize": [
+            40.0,
+            40.0
+          ]
+        },
+        "MapTransition": {
+          "scene": "scenes/main.scene",
+          "spawn": "sortie_donjon"
+        }
+      }
+    }
+  ],
+  "editor": {
+    "categories": [
+      "map"
+    ],
+    "categoryParent": {},
+    "entityCategory": {
+      "7001000000000000103": "map"
+    }
+  }
+}

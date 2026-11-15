@@ -10,6 +10,7 @@
 #include "systems/collision_system.h"
 #include "systems/tile_collision_system.h"
 #include "systems/script_system.h"
+#include "systems/scene_transition_system.h"
 #include "components/name.h"
 #include "components/geometry.h"
 #include "systems/camera_systems.h"
@@ -77,7 +78,8 @@ inline void loadRpgInput(InputManager& input, const std::string& path = "assets/
 inline void registerRpgSystems(Game& game) {
     game.systems().addSystem<TileCollisionSystem>();  
     game.systems().addSystem<PhysicsSystem>();
-    game.systems().addSystem<CollisionSystem>();
+    auto& collision = game.systems().addSystem<CollisionSystem>();
+    game.systems().addSystem<SceneTransitionSystem>(game, collision);
     game.systems().addSystem<ScriptSystem>();
     registerCameraSystems(game.systems(), game.target());
 }

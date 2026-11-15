@@ -1,6 +1,7 @@
 #include "scene/scene_io.h"
 #include "scene/project.h"
 
+#include "components/dont_destroy.h"
 #include "components/persistent_id.h"
 
 #include <unordered_map>
@@ -32,6 +33,12 @@ void ensurePersistentIds(Registry& registry) {
 
 void clearRegistry(Registry& registry) {
     for (Entity e : aliveEntities(registry)) registry.destroyEntity(e);
+    registry.flushPendingDestroys();
+}
+
+void clearTransientEntities(Registry& registry) {
+    for (Entity e : aliveEntities(registry))
+        if (!registry.hasComponent<DontDestroy>(e)) registry.destroyEntity(e);
     registry.flushPendingDestroys();
 }
 
@@ -89,16 +96,40 @@ SceneLoadResult entitiesFromJson(Registry& registry, const Json& entities, bool 
     SceneLoadResult result;
     if (!entities.is_array()) { result.error = "\"entities\" doit être une liste"; return result; }
 
+    // entités DontDestroy déjà là : reprises, pas recréées
+    std::unordered_map<std::string, Entity> kept;
+    if (!freshIds)
+        registry.forEachEntity([&](Entity e) {
+            if (!registry.hasComponent<DontDestroy>(e)) return;
+            const std::string& key = registry.getComponent<DontDestroy>(e).key;
+            if (!key.empty()) kept[key] = e;
+        });
+
     // Passe 1 : créer toutes les entités, et la table « id du fichier -> Entity »
     std::unordered_map<uint64_t, Entity> table;
     std::unordered_set<uint64_t> usedIds;
+    std::vector<bool> skip(entities.size(), false);
     if (freshIds)   // copie (prefab) : les nouveaux ids ne doivent pas exister déjà dans le registry
         registry.forEachEntity([&](Entity e) {
             if (registry.hasComponent<PersistentId>(e)) usedIds.insert(registry.getComponent<PersistentId>(e).value);
         });
-    for (const Json& je : entities) {
-        Entity e = registry.createEntity();
+    for (std::size_t i = 0; i < entities.size(); ++i) {
+        const Json& je = entities[i];
         const uint64_t fileId = SceneJson::value<uint64_t>(je, "id", 0);
+
+        if (!kept.empty()) {
+            const std::string key = SceneJson::value<std::string>(
+                je.value("components", Json::object()).value("DontDestroy", Json::object()), "key", "");
+            const auto k = kept.find(key);
+            if (!key.empty() && k != kept.end()) {
+                if (fileId != 0) table[fileId] = k->second;
+                result.entities.push_back(k->second);
+                skip[i] = true;
+                continue;
+            }
+        }
+
+        Entity e = registry.createEntity();
         uint64_t id = fileId;
         if (freshIds || id == 0 || usedIds.count(id)) {   // copie, absent ou en double : nouvel id
             if (!freshIds && id != 0) result.warnings.push_back("identifiant d'entité en double : " + std::to_string(id));
@@ -119,6 +150,7 @@ SceneLoadResult entitiesFromJson(Registry& registry, const Json& entities, bool 
     ctx.warn = [&result](const std::string& w) { result.warnings.push_back(w); };
 
     for (std::size_t i = 0; i < entities.size(); ++i) {
+        if (skip[i]) continue;
         const Entity e = result.entities[i];
         const Json components = entities[i].value("components", Json::object());
         if (!components.is_object()) continue;
