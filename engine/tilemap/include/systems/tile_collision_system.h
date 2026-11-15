@@ -28,12 +28,15 @@ public:
             b->seen = true;
             const TileMapData* data = tm.data.get();
             const uint32_t version = data ? data->version : 0;
-            if (b->data == data && b->version == version && b->matrix == t.getLocalMatrix()) return;
+            // position seule, comme le rendu
+            sf::Transform matrix;
+            matrix.translate(t.getPosition());
+            if (b->data == data && b->version == version && b->matrix == matrix) return;
 
             clear(registry, *b);
             b->data = data;
             b->version = version;
-            b->matrix = t.getLocalMatrix();
+            b->matrix = matrix;
             if (data) build(registry, *b, *data);
         });
 

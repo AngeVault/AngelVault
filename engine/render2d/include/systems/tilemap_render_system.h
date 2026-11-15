@@ -355,18 +355,35 @@ public:
     void onUpdate(Registry& registry, float dt) override {
         m_time += dt;
         YSortQueue::of(m_target).items.clear();   // ce que le RenderSystem n'a pas dessiné (désactivé) est oublié
+        m_drawList.clear();
         registry.view<Tilemap>([&](Entity e, Tilemap& tm) {
             if (!tm.visible || !tm.data) return;
-            const sf::Vector2f offset = registry.hasComponent<Transform2D>(e)
-                ? registry.getComponent<Transform2D>(e).getPosition() : sf::Vector2f{};
-            m_renderer.draw(m_target, *tm.data, offset, m_time);
+            Entry entry{ tm.data.get() };
+            if (registry.hasComponent<Transform2D>(e)) {
+                const Transform2D& t = registry.getComponent<Transform2D>(e);
+                entry.depth = t.depth;
+                entry.offset = t.getPosition();
+            }
+            m_drawList.push_back(entry);
         });
+
+        // depth petit = dessiné en premier (derrière)
+        std::stable_sort(m_drawList.begin(), m_drawList.end(),
+                         [](const Entry& a, const Entry& b) { return a.depth < b.depth; });
+        for (const Entry& entry : m_drawList) m_renderer.draw(m_target, *entry.map, entry.offset, m_time);
     }
 
     TilemapRenderer& renderer() { return m_renderer; }
 
 private:
+    struct Entry {
+        const TileMapData* map;
+        float depth = 0.f;
+        sf::Vector2f offset;
+    };
+
     sf::RenderTarget& m_target;
     TilemapRenderer m_renderer;
+    std::vector<Entry> m_drawList;
     float m_time = 0.f;
 };
