@@ -187,7 +187,7 @@
           "zoom": 1.0,
           "minZoom": 0.25,
           "maxZoom": 4.0,
-          "zoomLocked": true,
+          "zoomLocked": false,
           "panSpeedKeyboard": 1000.0,
           "panSpeedGamepad": 100.0,
           "zoomStep": 0.5,
@@ -263,6 +263,9 @@
         },
         "UIText": {
           "text": "skill issue"
+        },
+        "UIButton": {
+          "Red": 50
         },
         "Script": {
           "behaviors": [

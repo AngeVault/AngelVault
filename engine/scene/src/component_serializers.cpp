@@ -8,7 +8,7 @@
 #include "components/script_component.h"
 #include "components/transform2d.h"
 #include "components/UIText.h"
-#include "components/UIRect.h"
+#include "components/UIButton.h"
 #include "tilemap/tilemap.h"
 #include "ecs/behavior_factory.h"
 #include "ecs/game_components.h"
@@ -220,6 +220,15 @@ void registerBuiltins(SerializerRegistry& reg) {
     reg.add<UIText>("UIText",
         [](UIText& t, const SaveContext&) { return Json{ { "text", t.text } };
         },[](UIText& t, const Json& j, const LoadContext&) {t.text = j.value("text", std::string()); });
+
+    reg.add<UIButton>("UIButton",
+        [](UIButton& t, const SaveContext&) { return Json{ { "Red", t.r } };
+        },[](UIButton& t, const Json& j, const LoadContext&) {
+            t.r = j.value("Red", 255);
+            t.g = j.value("Green", 255);
+            t.b = j.value("Blue", 255);
+            t.with = j.value("With", 70);
+            t.height = j.value("Height", 40); });
 
     // ---- Script : liste de comportements, chacun = son nom (BehaviorFactory) + ses PROPERTY
     //   "Script": { "behaviors": [ { "name": "PlayerBehavior", "properties": { "speed": 250 } } ] }

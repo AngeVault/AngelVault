@@ -6,7 +6,7 @@
 #include <SFML/Graphics.hpp>
 #include <cfloat>
 #include <algorithm>
-#include "components/UIRect.h"
+#include "components/UIButton.h"
 #include "components/UIText.h"
 
 
@@ -17,13 +17,9 @@ private:
     sf::RectangleShape m_spriteRect;
     sf::Font m_font;
     sf::Text m_text;
-    sf::RenderTarget& m_renderTarget;
-    std::vector<UIText> m_texts;
-    std::vector<UIRect> m_rects;
+    sf::RenderWindow& m_renderTarget;
 public:
-    SystemUI(sf::RenderTarget& renderTarget);
-    Entity addUIText(Registry& registry);
-    Entity addUIRect(Registry& registry);
+    SystemUI(sf::RenderWindow& renderTarget);
     void onUpdate(Registry& registry, float dt) override;
     void Render(Registry& registry);
 };
