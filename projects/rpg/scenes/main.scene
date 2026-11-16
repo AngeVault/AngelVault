@@ -82,7 +82,7 @@
             17.879981994628906,
             1757.9334716796875
           ],
-          "rotation": -25.999998092651367,
+          "rotation": -25.999990463256836,
           "scale": [
             1.0,
             1.0
@@ -353,7 +353,7 @@
           "actionZoom": "Zoom",
           "actionZoomWheel": "ZoomWheel",
           "panEnabled": true,
-          "zoomEnabled": false,
+          "zoomEnabled": true,
           "panSpeed": 800.0,
           "zoomSpeed": 1.5,
           "wheelStep": 0.15000000596046448,
@@ -420,6 +420,9 @@
         "DontDestroy": {
           "key": "Player"
         },
+        "UIButton": {
+          "Red": 13
+        },
         "Script": {
           "behaviors": [
             {
@@ -469,6 +472,42 @@
           "clockwise": true
         }
       }
+    },
+    {
+      "id": 12929588193896843262,
+      "components": {
+        "Name": {
+          "name": "Nouvelle entité"
+        },
+        "Transform2D": {
+          "position": [
+            193.6118927001953,
+            955.5352172851563
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 13,
+          "shape": "Box",
+          "halfSize": [
+            16.0,
+            16.0
+          ],
+          "style": {
+            "fill": "#431DFFFF",
+            "outline": "#00000000",
+            "outlineThickness": 0.0
+          }
+        },
+        "UIButton": {
+          "Red": 0
+        }
+      }
     }
   ],
   "editor": {
@@ -489,7 +528,8 @@
       "9932720423414607161": "jours nuit",
       "5309003831008224062": "map",
       "18092514487157541069": "Personnages",
-      "18418294981170371368": "test"
+      "18418294981170371368": "test",
+      "12929588193896843262": "Personnages"
     }
   }
 }

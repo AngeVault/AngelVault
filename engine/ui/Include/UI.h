@@ -21,7 +21,7 @@ private:
 public:
     SystemUI(sf::RenderWindow& renderTarget);
     void onUpdate(Registry& registry, float dt) override;
-    void Render(Registry& registry);
+    void Render(Entity& entity, Registry& registry);
 };
 
 

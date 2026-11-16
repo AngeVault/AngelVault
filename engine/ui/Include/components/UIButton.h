@@ -18,6 +18,8 @@ inline ReflectedComponent reflectComponent<UIButton>(UIButton& n) {
         {"Red", PropertyInfo::Type::Int, &n.r },
         {"Green", PropertyInfo::Type::Int, &n.g },
         {"Blue", PropertyInfo::Type::Int, &n.b },
+        {"With", PropertyInfo::Type::Int, &n.with },
+        {"Height", PropertyInfo::Type::Int, &n.height },
         }
     };
 }

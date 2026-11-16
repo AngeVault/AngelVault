@@ -1,8 +1,11 @@
 #include "Ui.h"
 
 #include "components/name.h"
+#include "utils/camera_utils.h"
 #include "scene/component_serializer.h"
 #include  <iostream>
+
+#include "components/geometry.h"
 
 
 SystemUI::SystemUI(sf::RenderWindow& renderTarget) : m_renderTarget(renderTarget),m_spriteRect(sf::RectangleShape()), m_font(sf::Font()), m_text(sf::Text(m_font))
@@ -13,28 +16,47 @@ SystemUI::SystemUI(sf::RenderWindow& renderTarget) : m_renderTarget(renderTarget
 }
 
 void SystemUI::onUpdate(Registry &registry, float dt) {
-  Render(registry);
-}
-
-void SystemUI::Render(Registry& registry) {
     registry.view<UIButton, Transform2D>([&](Entity e, UIButton& ui, Transform2D transform) {
-            sf::Vector2i mousePos = sf::Mouse::getPosition(m_renderTarget);
-            sf::Vector2i buttonPos = static_cast<sf::Vector2i>(transform.getPosition());
-                std::cout << buttonPos.x << ", " << buttonPos.y << std::endl;
-                if (mousePos.x < buttonPos.x + ui.with && mousePos.y < buttonPos.y + ui.height && mousePos.x > buttonPos.x && mousePos.y > buttonPos.y) {
-                ui.isTrigered = true;
-                m_spriteRect.setFillColor(sf::Color(ui.r,ui.g,ui.b,100));
-            }
-            else {
-                ui.isTrigered = false;
-                m_spriteRect.setFillColor(sf::Color(ui.r,ui.g,ui.b,255));
-            }
-            m_spriteRect.setSize(sf::Vector2f(ui.with, ui.height));
-            m_renderTarget.draw(m_spriteRect, transform.getLocalMatrix());
-        });
+           if (!registry.hasComponent<Geometry>(e)) return; //
+              auto& geo = registry.getComponent<Geometry>(e);
+           sf::Vector2f mousePos = Camera::screenToWorld(sf::Mouse::getPosition(m_renderTarget));
+           sf::Vector2f buttonPos = transform.getPosition();
+           if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && (ui.isTrigered || mousePos.x < buttonPos.x + ui.with && mousePos.y < buttonPos.y + ui.height && mousePos.x+ui.with > buttonPos.x && mousePos.y+ui.height > buttonPos.y)) {
+               ui.isTrigered = true;
+               if (auto data = std::get_if<Geometry::BoxData>(&geo.data)) {
+                   data->style.fillColor.a = 100;
+                   ui.with = data->halfSize.x;
+                   ui.height = data->halfSize.y;
+               }
+               else if (auto data = std::get_if<Geometry::CircleData>(&geo.data)) {
+                   data->style.fillColor.a = 100;
+               }
+               else if (auto data = std::get_if<Geometry::PolygonData>(&geo.data)) {
+                   data->style.fillColor.a = 100;
+               }
+           }
+           else {
+               if (auto data = std::get_if<Geometry::BoxData>(&geo.data)) {
+                   data->style.fillColor.a = 255;
+               }
+               else if (auto data = std::get_if<Geometry::CircleData>(&geo.data)) {
+                   data->style.fillColor.a = 255;
+               }
+               else if (auto data = std::get_if<Geometry::PolygonData>(&geo.data)) {
+                   data->style.fillColor.a = 255;
+               }
+               ui.isTrigered = false;
+               m_spriteRect.setFillColor(sf::Color(ui.r,ui.g,ui.b,255));
+           }
+           m_renderTarget.draw(m_spriteRect, transform.getLocalMatrix());
+       });
     registry.view<UIText, Transform2D>([&](Entity e, UIText& ui, Transform2D transform) {
         m_text.setString(ui.text);
         m_renderTarget.draw(m_text, transform.getLocalMatrix());
     });
+}
+
+void SystemUI::Render(Entity& entity, Registry& registry) {
+
 }
 
