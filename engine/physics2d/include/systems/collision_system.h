@@ -37,6 +37,9 @@ public:
 
     CollisionSystem() { priority = 1; } // après Physics (0), avant Render (10)
 
+    // après une téléportation
+    void forgetPositions() { m_lastPositions.clear(); }
+
     // Plus grand déplacement d'une image traité comme un mouvement (au-delà : téléportation, pas de balayage)
     float maxSweep = 2000.f;
     // Nombre max de sous-étapes par image (objets très rapides contre des murs très fins)

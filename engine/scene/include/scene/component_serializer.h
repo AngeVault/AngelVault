@@ -2,7 +2,7 @@
 // Registre « nom de composant -> écrire / lire en JSON ».
 //
 // Chaque composant sauvegardable a un ComponentSerializer. Ceux du moteur sont déjà enregistrés
-// (Name, Transform2D, Geometry, RigidBody2D, Collider2D, Camera2d, Script). Pour un nouveau composant :
+// (Name, Transform2D, Geometry, RigidBody2D, Collider2D, Camera2d et ses composants Camera*, Script). Pour un nouveau composant :
 //
 //     SerializerRegistry::get().add<MonComposant>("MonComposant",
 //         [](MonComposant& c, const SaveContext&) { return nlohmann::json{ { "vie", c.vie } }; },

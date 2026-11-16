@@ -2,6 +2,7 @@
 #include "editor_context.h"
 
 #include "components/camera2d.h"
+#include "components/camera_follow.h"
 
 #include <QAction>
 #include <QApplication>
@@ -195,7 +196,7 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
         Registry& reg = m_ctx.scene();
         for (Entity e : moved) {
             const bool isCamera = reg.hasComponent<Camera2d>(e);
-            // Caméra déposée sur une entité : elle la suit (targetLock)
+            // Caméra déposée sur une entité : elle la suit (CameraFollow)
             if (isCamera && target && !isCategory(target) && entityOf(target) != e) {
                 setFollowTarget(e, entityOf(target));
                 continue;
@@ -310,11 +311,11 @@ void HierarchyPanel::rebuild() {
                        Qt::ItemIsDropEnabled);
         entityItems.insert(pack(e), item);
     }
-    // Une caméra qui suit une entité (Camera2d::targetLock) s'affiche sous cette entité.
+    // Une caméra qui suit une entité (CameraFollow::target) s'affiche sous cette entité.
     // Rien n'est ajouté aux entités : c'est seulement la donnée du composant, montrée en arbre.
     for (Entity e : m_ctx.entities()) {
-        if (!reg.hasComponent<Camera2d>(e)) continue;
-        const Entity target = reg.getComponent<Camera2d>(e).targetLock;
+        if (!reg.hasComponent<Camera2d>(e) || !reg.hasComponent<CameraFollow>(e)) continue;
+        const Entity target = reg.getComponent<CameraFollow>(e).target;
         if (target == NULL_ENTITY || target == e || !reg.isValid(target)) continue;
         QTreeWidgetItem* item = entityItems.value(pack(e));
         QTreeWidgetItem* parent = entityItems.value(pack(target));
@@ -376,7 +377,7 @@ QString HierarchyPanel::targetCategory(QTreeWidgetItem* item) const {
 }
 
 void HierarchyPanel::setFollowTarget(Entity camera, Entity target) {
-    m_ctx.setFollowTarget(camera, target);   // Camera2d::targetLock + caméra placée sur la cible
+    m_ctx.setFollowTarget(camera, target);   // CameraFollow::target + caméra placée sur la cible
 }
 
 void HierarchyPanel::createEntityHere() {
@@ -446,7 +447,7 @@ void HierarchyPanel::showContextMenu(const QPoint& pos) {
 
         if (m_ctx.scene().hasComponent<Camera2d>(e)) {
             QMenu* follow = menu.addMenu(tr("Suivre"));
-            const Entity currentTarget = m_ctx.scene().getComponent<Camera2d>(e).targetLock;
+            const Entity currentTarget = m_ctx.followTarget(e);
             auto addFollow = [&](const QString& label, Entity target) {
                 QAction* a = follow->addAction(label);
                 a->setCheckable(true);

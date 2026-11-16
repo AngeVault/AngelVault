@@ -6,7 +6,8 @@
   "scenes": [
     "scenes/main.scene",
     "scenes/iso_demo.scene",
-    "scenes/nouvelle.scene"
+    "scenes/nouvelle.scene",
+    "scenes/donjon.scene"
   ],
   "paths": {
     "assets": "assets",

@@ -3,6 +3,9 @@
 #include "scene/scene_io.h"
 
 #include "components/camera2d.h"
+#include "components/camera_bounds.h"
+#include "components/camera_control.h"
+#include "components/camera_follow.h"
 #include "components/collider2d.h"
 #include "components/geometry.h"
 #include "components/name.h"
@@ -55,7 +58,7 @@ int main() {
     a.addComponent<Transform2D>(camera).setPosition({ 5.f, 6.f });
     auto& cam = a.addComponent<Camera2d>(camera);
     cam.zoom = 2.f;
-    cam.setWorldBorder({ 0.f, 0.f }, { 3000.f, 2000.f });
+    a.addComponent<CameraBounds>(camera).set({ 0.f, 0.f }, { 3000.f, 2000.f });
 
     Entity player = a.createEntity();
     a.addComponent<NameComponent>(player, "Player");
@@ -70,7 +73,7 @@ int main() {
     script.add<TestBehavior>().speed = 99.f;
     script.get<TestBehavior>()->label = "héros";
     script.add<OtherBehavior>().count = 7;   // plusieurs comportements sur la même entité
-    cam.setTarget(player);
+    a.addComponent<CameraFollow>(camera).setTarget(player);
 
     Entity box = a.createEntity();
     a.addComponent<Geometry>(box, Geometry::PolygonData{ { { 0, 0 }, { 10, 0 }, { 5, 8 } }, { sf::Color::Red, sf::Color::Blue, 2.f, "" } }, 0);
@@ -101,10 +104,10 @@ int main() {
     Entity c2 = findByName(b, "Camera");
     CHECK(b.isValid(p2) && b.isValid(c2));
     CHECK(!(p2 == player));                                            // autre index qu'avant...
-    CHECK(b.getComponent<Camera2d>(c2).targetLock == p2);              // ... mais le lien suit
+    CHECK(b.getComponent<CameraFollow>(c2).target == p2);              // ... mais le lien suit
     CHECK(b.getComponent<PersistentId>(p2).value == playerId);
     CHECK(near(b.getComponent<Camera2d>(c2).zoom, 2.f));
-    CHECK(near(b.getComponent<Camera2d>(c2).worldMax.x, 3000.f));
+    CHECK(near(b.getComponent<CameraBounds>(c2).max.x, 3000.f));
 
     const Transform2D& t2 = b.getComponent<Transform2D>(p2);
     CHECK(near(t2.getPosition().x, 200.f) && near(t2.getPosition().y, 100.f));
@@ -141,6 +144,25 @@ int main() {
         CHECK(r.ok && old.getComponent<Script>(r.entities[0]).get<TestBehavior>()->speed == 12.f);
     }
 
+    // ---- Ancien Camera2d (tout en un) : réparti dans CameraFollow / CameraBounds / CameraControl
+    {
+        Registry old;
+        SceneMeta m;
+        const std::string oldText = R"({"format":"angeVault.scene","version":1,"entities":[
+            {"id":7,"components":{"Transform2D":{"position":[0,0]}}},
+            {"id":8,"components":{"Camera2d":{"zoom":1.5,"zoomLocked":true,"panSpeedKeyboard":1000.0,
+                "worldMin":[-10,-10],"worldMax":[100,50],"targetLock":7}}}]})";
+        SceneLoadResult r = sceneFromString(old, m, oldText);
+        CHECK(r.ok && r.warnings.empty());
+        const Entity oc = r.entities[1];
+        CHECK(near(old.getComponent<Camera2d>(oc).zoom, 1.5f));
+        CHECK(old.hasComponent<CameraFollow>(oc) && old.getComponent<CameraFollow>(oc).target == r.entities[0]);
+        CHECK(old.hasComponent<CameraBounds>(oc) && near(old.getComponent<CameraBounds>(oc).max.y, 50.f));
+        CHECK(old.hasComponent<CameraControl>(oc) && !old.getComponent<CameraControl>(oc).zoomEnabled);
+        const Json resaved = Json::parse(sceneToString(old, m));
+        CHECK(!resaved["entities"][1]["components"]["Camera2d"].contains("targetLock"));   // nouveau format
+    }
+
     // ---- Prefab : le joueur + sa caméra, instancié deux fois ailleurs
     {
         const std::vector<Entity> group = prefabGroup(a, player);
@@ -152,8 +174,8 @@ int main() {
         SceneLoadResult i2 = instantiatePrefab(world, prefab, sf::Vector2f{ 0.f, 0.f });
         CHECK(i1.ok && i2.ok && i1.entities.size() == 2);
         const Entity pl1 = i1.entities[0], cam1 = i1.entities[1], pl2 = i2.entities[0], cam2 = i2.entities[1];
-        CHECK(world.getComponent<Camera2d>(cam1).targetLock == pl1);   // chaque caméra suit SON joueur
-        CHECK(world.getComponent<Camera2d>(cam2).targetLock == pl2);
+        CHECK(world.getComponent<CameraFollow>(cam1).target == pl1);   // chaque caméra suit SON joueur
+        CHECK(world.getComponent<CameraFollow>(cam2).target == pl2);
         CHECK(world.getComponent<PersistentId>(pl1).value != world.getComponent<PersistentId>(pl2).value);
         CHECK(world.getComponent<PersistentId>(pl1).value != playerId);
         CHECK(near(world.getComponent<Transform2D>(pl1).getPosition().x, 1000.f));
@@ -162,7 +184,7 @@ int main() {
         CHECK(world.getComponent<Script>(pl2).size() == 2);
         // prefab d'une caméra seule : le lien vers le joueur (hors prefab) devient null
         const Json camOnly = prefabToJson(a, { camera }, "Cam");
-        CHECK(camOnly["entities"][0]["components"]["Camera2d"]["targetLock"].is_null());
+        CHECK(camOnly["entities"][0]["components"]["CameraFollow"]["target"].is_null());
     }
 
     Entity box2 = res.entities[2];
@@ -184,7 +206,7 @@ int main() {
     SceneLoadResult r4 = sceneFromJson(d, meta4, broken);
     CHECK(r4.ok);
     CHECK(r4.warnings.size() == 2);
-    CHECK(d.getComponent<Camera2d>(findByName(d, "Camera")).targetLock == NULL_ENTITY);
+    CHECK(d.getComponent<CameraFollow>(findByName(d, "Camera")).target == NULL_ENTITY);
     Registry e;
     CHECK(!sceneFromString(e, meta4, "{ pas du json").ok);
     CHECK(!sceneFromString(e, meta4, "{\"format\":\"autre\"}").ok);
