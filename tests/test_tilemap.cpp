@@ -35,59 +35,61 @@ int main() {
         CHECK(m.localOrigin().x == -3 * 64.f && m.localSize() == sf::Vector2f(7 * 64.f, 7 * 32.f));
     }
 
-    // ---- Cases, redimensionnement, suppression de tile
+    // ---- Layers : cases séparées, redimensionnement, ordre
     TileMapData m;
-    m.tiles.resize(3);
-    m.tiles[0].name = "Terre";
-    m.tiles[1].name = "Sable";
-    m.tiles[2].name = "Herbe";
-    m.tiles[2].base = "Sable";
+    auto ground = std::make_shared<Tileset>();
+    auto wall = std::make_shared<Tileset>();
+    ground->file = "ground.tileset";
+    wall->file = "wall.tileset";
+    m.addTileset(ground);
+    m.addTileset(wall);
     m.resize(5, 4);
-    m.fill(1);
-    CHECK(m.set(2, 2, 3) && !m.set(2, 2, 3) && !m.set(9, 9, 1));
-    m.set(1, 1, 2);
-    m.resize(3, 3);                          // garde le coin haut-gauche
-    CHECK(m.width() == 3 && m.get(2, 2) == 3 && m.get(1, 1) == 2);
-    m.removeTile(2);                         // « Sable » : ses cases deviennent vides, Herbe passe de 3 à 2
-    CHECK(m.tiles.size() == 2 && m.get(1, 1) == 0 && m.get(2, 2) == 2 && m.tile(2)->name == "Herbe");
-    CHECK(m.tile(2)->base.empty());          // son « dessous » a disparu avec elle
-    CHECK(m.tileId("Herbe") == 2 && m.tileId("?") == 0);
+    CHECK(m.addLayer("fond") == 0 && m.addLayer("supérieur", TileLayerMode::Above) == 1);
+    CHECK(m.addLayer("principal", TileLayerMode::YSort, 1) == 1 && m.layer(2)->name == "supérieur");
+    m.fill(0, makeCell(0, 0));
+    CHECK(m.set(1, 2, 2, makeCell(1, 3)) && !m.set(1, 2, 2, makeCell(1, 3)) && !m.set(1, 9, 9, 1) && !m.set(7, 0, 0, 1));
+    CHECK(m.get(0, 2, 2) == makeCell(0, 0) && m.get(2, 2, 2) == 0);
+    m.resize(3, 3);   // garde le coin haut-gauche, sur tous les layers
+    CHECK(m.width() == 3 && m.get(1, 2, 2) == makeCell(1, 3) && m.get(0, 2, 2) == makeCell(0, 0));
+    CHECK(m.usedCells(0) == 9 && m.usedCells(1) == 1);
+    m.moveLayer(1, 2);
+    CHECK(m.layer(2)->name == "principal" && m.get(2, 2, 2) == makeCell(1, 3));
+    m.removeTileset(0);   // ses cases se vident, le tileset 1 devient 0 sur tous les layers
+    CHECK(m.get(0, 0, 0) == 0 && m.get(2, 2, 2) == makeCell(0, 3));
+    m.removeLayer(0);
+    CHECK(m.layerCount() == 2 && m.layer(0)->name == "supérieur");
 
-    // ---- Fichier .map : aller-retour complet
+    // ---- Fichier .map : aller-retour avec plusieurs layers
     TileMapData a;
     a.orientation = TileMapOrientation::Isometric;
     a.tileSize = { 128.f, 64.f };
-    TileDef grass;
-    grass.name = "Herbe";
-    grass.autotile = AutotileMode::Edges16;
-    grass.images = { "a/full_N.png", "a/full_E.png" };
-    grass.edge = { "e0", "e1", "e2", "e3" };
-    grass.corner = { "c0", "c1", "c2", "c3" };
-    grass.ring = { "r" };
-    grass.base = "Terre";
-    grass.anchor = { 128.f, 208.f };
-    TileDef water;
-    water.name = "Eau";
-    water.autotile = AutotileMode::Corners16;
-    water.images = { "water.png" };
-    water.frameTime = 0.15f;
-    water.solid = true;
-    a.tiles = { water, grass };
+    a.addTileset(ground);
+    a.addTileset(wall);
     a.resize(40, 3);
-    a.fill(1);
-    for (int x = 10; x < 13; ++x) a.set(x, 1, 2);
-    a.set(39, 2, 0);
-    const std::string json = a.toJson();
+    a.addLayer("fond");
+    a.addLayer("principal", TileLayerMode::YSort);
+    a.addLayer("supérieur", TileLayerMode::Above);
+    a.fill(0, makeCell(0, kAutoTile));
+    for (int x = 10; x < 13; ++x) a.set(1, x, 1, makeCell(1, 4));
+    a.set(2, 39, 2, makeCell(1, 7));
+    a.layer(2)->hidden = true;
+    const std::string file = "test_tilemap_layers.map";
+    CHECK(save_map(a, file));
     TileMapData b;
     std::string err;
-    CHECK(b.fromJson(json, &err));
-    CHECK(b.toJson() == json);
-    CHECK(b.orientation == TileMapOrientation::Isometric && b.width() == 40 && b.height() == 3);
-    CHECK(b.get(11, 1) == 2 && b.get(9, 1) == 1 && b.get(39, 2) == 0);
-    CHECK(b.tiles[1].autotile == AutotileMode::Edges16 && b.tiles[1].corner[3] == "c3" && b.tiles[1].ring.size() == 1);
-    CHECK(b.tiles[1].anchor == sf::Vector2f(128.f, 208.f) && b.tiles[1].base == "Terre");
-    CHECK(b.tiles[0].autotile == AutotileMode::Corners16 && b.tiles[0].solid && std::abs(b.tiles[0].frameTime - 0.15f) < 1e-6f);
-    CHECK(json.find("\"40*1\"") != std::string::npos);   // RLE : une rangée de 40 fois la tile 1
+    CHECK(loadTileMap(b, file, "", &err));
+    std::remove(file.c_str());
+    CHECK(b.orientation == TileMapOrientation::Isometric && b.width() == 40 && b.height() == 3 && b.tilesets.size() == 2);
+    CHECK(b.layerCount() == 3 && b.layer(1)->name == "principal" && b.layer(1)->mode == TileLayerMode::YSort);
+    CHECK(b.layer(2)->mode == TileLayerMode::Above && !b.layer(2)->hidden);   // caché : éditeur seulement
+    CHECK(b.get(0, 5, 0) == makeCell(0, kAutoTile) && b.get(1, 11, 1) == makeCell(1, 4) && b.get(1, 9, 1) == 0);
+    CHECK(b.get(2, 39, 2) == makeCell(1, 7) && b.get(2, 38, 2) == 0);
+    CHECK(tilesToJson(a, 0)[0] == "40*0:a");   // RLE : une rangée de 40 fois la même case
+
+    // ---- Ancien format v2 : une seule grille devient le layer « fond »
+    TileMapData old;
+    CHECK(old.fromJson(R"({"format":"angeVault.tilemap","version":2,"size":[2,1],"tilesets":[],"cells":["2*0"]})", &err));
+    CHECK(old.layerCount() == 1 && old.layer(0)->name == "fond" && old.width() == 2);
     CHECK(!b.fromJson("{ pas du json", &err) && !b.fromJson("{\"format\":\"autre\"}", &err));
 
     // ---- Chemins relatifs au projet

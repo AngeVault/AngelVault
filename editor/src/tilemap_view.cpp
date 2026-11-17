@@ -588,8 +588,14 @@ QString TilemapView::describeCell(const TileMapData& map, TileCell cell) const {
 void TilemapView::pickAt(sf::Vector2i cell) {
     const TileMapData* map = m_ctx.activeMap();
     if (!map) return;
-    const TileCell c = map->get(cell.x, cell.y);
+    // le layer actif d'abord, sinon le plus haut layer visible qui a une tile ici
+    int layer = m_ctx.activeLayer();
+    if (!map->tilesetOf(map->get(layer, cell.x, cell.y)))
+        for (int l = map->layerCount() - 1; l >= 0; --l)
+            if (!map->layer(l)->hidden && map->tilesetOf(map->get(l, cell.x, cell.y))) { layer = l; break; }
+    const TileCell c = map->get(layer, cell.x, cell.y);
     if (!map->tilesetOf(c)) { emit statusText(tr("Pipette : case vide")); return; }
+    m_ctx.setActiveLayer(m_ctx.activeTilemap(), layer);
     TileBrush b;
     b.slot = cellSlot(c);
     b.autotile = cellIsAuto(c);
@@ -601,7 +607,8 @@ void TilemapView::pickAt(sf::Vector2i cell) {
 
 bool TilemapView::dab(sf::Vector2i cell) {
     TileMapData* map = m_ctx.activeMap();
-    if (!map) return false;
+    const int layer = m_ctx.activeLayer();
+    if (!map || !map->validLayer(layer)) return false;
     const bool erase = m_ctx.tool() == EditorTool::Erase;
     const TileBrush& brush = m_ctx.brush();
     const Tileset* ts = map->tileset(brush.slot);
@@ -619,13 +626,13 @@ bool TilemapView::dab(sf::Vector2i cell) {
         for (int j = 0; j < brush.height; ++j)
             for (int i = 0; i < brush.width; ++i) {
                 const int index = ts->tileIndex(first.x + i, first.y + j);
-                if (index >= 0) changed |= map->set(aligned.x + i, aligned.y + j, makeCell(brush.slot, index));
+                if (index >= 0) changed |= map->set(layer, aligned.x + i, aligned.y + j, makeCell(brush.slot, index));
             }
         return changed;
     }
     const TileCell value = erase ? 0 : makeCell(brush.slot, brush.autotile ? int(kAutoTile) : brush.tile);
     for (sf::Vector2i d : brushFootprint(m_ctx.brushSize(), m_ctx.brushShape()))
-        changed |= map->set(cell.x + d.x, cell.y + d.y, value);   // hors carte : ignoré
+        changed |= map->set(layer, cell.x + d.x, cell.y + d.y, value);   // hors carte : ignoré
     return changed;
 }
 
@@ -648,11 +655,12 @@ void TilemapView::strokeTo(sf::Vector2i cell) {
 // Remplir : la zone de cases identiques (4 voisines) sous la souris prend le pinceau
 void TilemapView::floodFill(sf::Vector2i start) {
     TileMapData* map = m_ctx.activeMap();
-    if (!map || !map->inBounds(start.x, start.y)) return;
+    const int layer = m_ctx.activeLayer();
+    if (!map || !map->validLayer(layer) || !map->inBounds(start.x, start.y)) return;
     const TileBrush& brush = m_ctx.brush();
     const Tileset* ts = map->tileset(brush.slot);
     if (!ts) return;
-    const TileCell target = map->get(start.x, start.y);
+    const TileCell target = map->get(layer, start.x, start.y);
     const sf::Vector2i first = ts->tileCoords(brush.tile);
     auto valueAt = [&](sf::Vector2i c) -> TileCell {
         if (brush.autotile) return makeCell(brush.slot, kAutoTile);
@@ -674,13 +682,13 @@ void TilemapView::floodFill(sf::Vector2i start) {
     while (!todo.empty()) {
         const sf::Vector2i c = todo.front();
         todo.pop();
-        changed |= map->set(c.x, c.y, valueAt(c));
+        changed |= map->set(layer, c.x, c.y, valueAt(c));
         ++count;
         for (sf::Vector2i d : kTileEdgeDirs) {
             const sf::Vector2i n = c + d;
             if (!map->inBounds(n.x, n.y)) continue;
             uint8_t& s = seen[std::size_t(n.y) * map->width() + n.x];
-            if (s || map->get(n.x, n.y) != target) continue;
+            if (s || map->get(layer, n.x, n.y) != target) continue;
             s = 1;
             todo.push(n);
         }
@@ -710,7 +718,7 @@ void TilemapView::updateHover(const QPointF& pos) {
     m_hoveredTile = tile;
     m_hoverValid = valid;
     emit hoveredTileChanged(valid ? tile.x : -1, valid ? tile.y : -1,
-                            valid ? describeCell(*map, map->get(tile.x, tile.y)) : QString());
+                            valid ? describeCell(*map, map->get(m_ctx.activeLayer(), tile.x, tile.y)) : QString());
 }
 
 void TilemapView::wheelEvent(QWheelEvent* e) {

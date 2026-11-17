@@ -82,7 +82,9 @@ public:
             if (entry.tile) { m_target.draw(*entry.tile); continue; }
             std::visit([&](const auto& d) { drawShape(d, entry.transform); }, entry.geo->data);
         }
+        for (const auto& overlay : queue.overlays) overlay();
         queue.items.clear();
+        queue.overlays.clear();
     }
 
 private:

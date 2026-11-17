@@ -23,9 +23,14 @@
 #include <functional>
 
 namespace {
-constexpr int kKindRole = Qt::UserRole + 1;     // 0 = entité, 1 = catégorie
-constexpr int kEntityRole = Qt::UserRole + 2;
+constexpr int kKindRole = Qt::UserRole + 1;     // 0 = entité, 1 = catégorie, 2 = layer
+constexpr int kEntityRole = Qt::UserRole + 2;   // entité, ou tilemap du layer
 constexpr int kCategoryRole = Qt::UserRole + 3; // nom d'origine de la catégorie (pour le renommage)
+constexpr int kLayerRole = Qt::UserRole + 4;
+constexpr int kModeColumn = 1;
+constexpr int kEyeColumn = 2;                   // œil d'un layer, + d'une tilemap
+QIcon layerIcon(const char* name) { return QIcon(QString(":/resources/icons/layers/%1.png").arg(name)); }
+QIcon addIcon() { return QIcon(":/resources/icons/buttons/add.png"); }
 quint64 pack(Entity e) { return (quint64(e.index) << 32) | e.generation; }
 
 // Champ de renommage (double-clic / F2) : le style général des champs (marges, bordure) ne tient pas
@@ -35,7 +40,8 @@ class RenameDelegate : public QStyledItemDelegate {
 public:
     using QStyledItemDelegate::QStyledItemDelegate;
 
-    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex&) const override {
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex& index) const override {
+        if (index.column() != 0) return nullptr;   // colonnes d'icônes
         auto* edit = new QLineEdit(parent);
         edit->setObjectName("hierarchyRename");
         edit->setFrame(true);
@@ -148,6 +154,13 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
     m_tree = tree;
     m_tree->setObjectName("hierarchyTree");
     m_tree->setHeaderHidden(true);
+    m_tree->setColumnCount(3);
+    m_tree->header()->setStretchLastSection(false);
+    m_tree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    for (int c : { kModeColumn, kEyeColumn }) {
+        m_tree->header()->setSectionResizeMode(c, QHeaderView::Fixed);
+        m_tree->header()->resizeSection(c, 22);
+    }
     m_tree->setUniformRowHeights(true);
     m_tree->setIndentation(14);
     m_tree->setSelectionMode(QAbstractItemView::ExtendedSelection);   // plusieurs entités à ranger d'un coup
@@ -162,6 +175,8 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
     layout->addWidget(m_tree, 1);
 
     tree->onDropped = [this](QTreeWidgetItem* target, DropPos pos) {
+        for (QTreeWidgetItem* item : m_tree->selectedItems())
+            if (isLayer(item)) { moveLayers(target, int(pos)); return; }
         const QString category = targetCategory(target);
 
         // catégories glissées : sur une catégorie = dedans, entre deux = à côté, dans le vide = racine
@@ -192,12 +207,12 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
 
         QList<Entity> moved;
         for (QTreeWidgetItem* item : m_tree->selectedItems())
-            if (!isCategory(item)) moved.push_back(entityOf(item));
+            if (isEntity(item)) moved.push_back(entityOf(item));
         Registry& reg = m_ctx.scene();
         for (Entity e : moved) {
             const bool isCamera = reg.hasComponent<Camera2d>(e);
             // Caméra déposée sur une entité : elle la suit (CameraFollow)
-            if (isCamera && target && !isCategory(target) && entityOf(target) != e) {
+            if (isCamera && isEntity(target) && entityOf(target) != e) {
                 setFollowTarget(e, entityOf(target));
                 continue;
             }
@@ -211,7 +226,7 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
     // Fichiers glissés depuis le panneau Project :
     //   comportement (.h) sur une entité -> ajouté ; prefab (.prefab) -> instancié (dans la catégorie visée)
     tree->onFilesDropped = [this](const QStringList& files, QTreeWidgetItem* target) {
-        const Entity onEntity = (target && !isCategory(target)) ? entityOf(target) : NULL_ENTITY;
+        const Entity onEntity = (target && !isCategory(target)) ? entityOf(target) : NULL_ENTITY;   // layer : sa tilemap
         const std::vector<Entity> created = m_ctx.dropFiles(files, onEntity);
         const QString category = targetCategory(target);
         if (!category.isEmpty())
@@ -220,7 +235,7 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
     // Glisser des entités vers le panneau Project = créer un prefab
     tree->entitiesMime = [this](const QList<QTreeWidgetItem*>& items) {
         std::vector<Entity> list;
-        for (QTreeWidgetItem* item : items) if (!isCategory(item)) list.push_back(entityOf(item));
+        for (QTreeWidgetItem* item : items) if (isEntity(item)) list.push_back(entityOf(item));
         return EditorContext::entitiesToMime(list);
     };
 
@@ -236,9 +251,15 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
     connect(m_tree, &QTreeWidget::itemSelectionChanged, this, [this] {
         if (m_updating) return;
         QTreeWidgetItem* current = m_tree->currentItem();
-        if (current && current->isSelected() && !isCategory(current)) { m_ctx.select(entityOf(current)); return; }
+        if (current && current->isSelected() && isLayer(current)) {
+            m_layerFocus = true;
+            m_ctx.setActiveLayer(entityOf(current), layerOf(current));
+            return;
+        }
+        m_layerFocus = false;
+        if (current && current->isSelected() && isEntity(current)) { m_ctx.select(entityOf(current)); return; }
         for (QTreeWidgetItem* item : m_tree->selectedItems())
-            if (!isCategory(item)) { m_ctx.select(entityOf(item)); return; }
+            if (isEntity(item)) { m_ctx.select(entityOf(item)); return; }
         m_ctx.clearSelection();
     });
     connect(m_tree, &QTreeWidget::itemChanged, this, [this](QTreeWidgetItem* item, int) {
@@ -251,19 +272,55 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
             return;
         }
         const Entity e = entityOf(item);
+        if (isLayer(item)) {
+            const TileMapData* map = m_ctx.scene().getComponent<Tilemap>(e).data.get();
+            m_updating = true;
+            if (name.isEmpty() && map && map->layer(layerOf(item))) item->setText(0, QString::fromStdString(map->layer(layerOf(item))->name));
+            m_updating = false;
+            m_ctx.renameLayer(e, layerOf(item), name);
+            return;
+        }
         if (name.isEmpty()) { m_updating = true; item->setText(0, m_ctx.displayName(e)); m_updating = false; return; }
         if (name != m_ctx.displayName(e)) m_ctx.renameEntity(e, name);
     });
     connect(m_tree, &QTreeWidget::itemExpanded, this, [this](QTreeWidgetItem* item) {
-        if (!m_updating && isCategory(item)) m_collapsed.remove(item->data(0, kCategoryRole).toString());
+        if (m_updating) return;
+        if (isCategory(item)) m_collapsed.remove(item->data(0, kCategoryRole).toString());
+        else if (isEntity(item)) m_collapsedMaps.remove(item->data(0, kEntityRole).toULongLong());
     });
     connect(m_tree, &QTreeWidget::itemCollapsed, this, [this](QTreeWidgetItem* item) {
-        if (!m_updating && isCategory(item)) m_collapsed.insert(item->data(0, kCategoryRole).toString());
+        if (m_updating) return;
+        if (isCategory(item)) m_collapsed.insert(item->data(0, kCategoryRole).toString());
+        else if (isEntity(item)) m_collapsedMaps.insert(item->data(0, kEntityRole).toULongLong());
+    });
+    // icônes des layers : œil, mode, et + sur la tilemap
+    connect(m_tree, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem* item, int column) {
+        if (!item || isCategory(item)) return;
+        const Entity e = entityOf(item);
+        if (!isLayer(item)) {
+            if (column == kEyeColumn && m_ctx.scene().hasComponent<Tilemap>(e) && m_ctx.scene().getComponent<Tilemap>(e).data) {
+                m_layerFocus = true;
+                m_collapsedMaps.remove(pack(e));
+                m_ctx.addLayer(e);
+            }
+            return;
+        }
+        const TileMapData* map = m_ctx.scene().getComponent<Tilemap>(e).data.get();
+        const TileLayer* layer = map ? map->layer(layerOf(item)) : nullptr;
+        if (!layer) return;
+        if (column == kEyeColumn) m_ctx.setLayerHidden(e, layerOf(item), !layer->hidden);
+        else if (column == kModeColumn) m_ctx.setLayerMode(e, layerOf(item), TileLayerMode((int(layer->mode) + 1) % 3));
     });
 
     // Différé : un renommage ou une suppression déclenché depuis la liste ne la détruit pas en plein milieu
     connect(&m_ctx, &EditorContext::sceneChanged, this, &HierarchyPanel::rebuild, Qt::QueuedConnection);
     connect(&m_ctx, &EditorContext::selectionChanged, this, &HierarchyPanel::syncSelection);
+    connect(&m_ctx, &EditorContext::activeLayerChanged, this, [this] {
+        refreshLayerItems();
+        syncSelection();
+    });
+    connect(&m_ctx, &EditorContext::layerVisibilityChanged, this, &HierarchyPanel::refreshLayerItems);
+    connect(&m_ctx, &EditorContext::tilemapChanged, this, &HierarchyPanel::refreshLayerItems);
     connect(&m_ctx, &EditorContext::entityModified, this, [this](Entity e, QObject*) {
         if (QTreeWidgetItem* item = itemFor(e)) {
             m_updating = true;
@@ -310,6 +367,22 @@ void HierarchyPanel::rebuild() {
         item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable | Qt::ItemIsDragEnabled |
                        Qt::ItemIsDropEnabled);
         entityItems.insert(pack(e), item);
+
+        // tilemap : la grille et ses layers, le plus haut devant
+        const TileMapData* map = reg.hasComponent<Tilemap>(e) ? reg.getComponent<Tilemap>(e).data.get() : nullptr;
+        if (!map) continue;
+        item->setIcon(0, layerIcon("grid"));
+        item->setIcon(kEyeColumn, addIcon());
+        item->setToolTip(kEyeColumn, tr("layer"));
+        for (int l = map->layerCount() - 1; l >= 0; --l) {
+            auto* row = new QTreeWidgetItem(item, { QString::fromStdString(map->layer(l)->name) });
+            row->setData(0, kKindRole, 2);
+            row->setData(0, kEntityRole, pack(e));
+            row->setData(0, kLayerRole, l);
+            row->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable | Qt::ItemIsDragEnabled |
+                          Qt::ItemIsDropEnabled);
+        }
+        item->setExpanded(!m_collapsedMaps.contains(pack(e)));
     }
     // Une caméra qui suit une entité (CameraFollow::target) s'affiche sous cette entité.
     // Rien n'est ajouté aux entités : c'est seulement la donnée du composant, montrée en arbre.
@@ -338,14 +411,73 @@ void HierarchyPanel::rebuild() {
         it.value()->setExpanded(!m_collapsed.contains(it.key()));
     }
     m_updating = false;
+    refreshLayerItems();
     applyFilter();
     syncSelection();
+}
+
+void HierarchyPanel::refreshLayerItems() {
+    const bool wasUpdating = m_updating;
+    m_updating = true;
+    const QColor text = m_tree->palette().color(QPalette::Text);
+    QColor dim = text;
+    dim.setAlphaF(0.4);
+    std::function<void(QTreeWidgetItem*)> visit = [&](QTreeWidgetItem* item) {
+        if (isLayer(item)) {
+            const Entity e = entityOf(item);
+            const TileMapData* map = (m_ctx.isValid(e) && m_ctx.scene().hasComponent<Tilemap>(e)) ? m_ctx.scene().getComponent<Tilemap>(e).data.get() : nullptr;
+            const TileLayer* layer = map ? map->layer(layerOf(item)) : nullptr;
+            if (!layer) return;
+            const bool active = e == m_ctx.activeTilemap() && m_ctx.activeLayer(e) == layerOf(item);
+            QFont f = item->font(0);
+            f.setBold(active);
+            item->setFont(0, f);
+            item->setForeground(0, layer->hidden ? dim : text);
+            item->setIcon(0, layerIcon(active ? "layer_active" : "layer"));
+            item->setIcon(kModeColumn, layerIcon(layer->mode == TileLayerMode::Below ? "mode_below" : layer->mode == TileLayerMode::YSort ? "mode_ysort" : "mode_above"));
+            item->setToolTip(kModeColumn, layer->mode == TileLayerMode::Below ? tr("sous") : layer->mode == TileLayerMode::YSort ? tr("trié") : tr("dessus"));
+            item->setIcon(kEyeColumn, layerIcon(layer->hidden ? "eye_closed" : "eye_open"));
+            item->setToolTip(kEyeColumn, tr("visible"));
+            return;
+        }
+        for (int i = 0; i < item->childCount(); ++i) visit(item->child(i));
+    };
+    for (int i = 0; i < m_tree->topLevelItemCount(); ++i) visit(m_tree->topLevelItem(i));
+    m_updating = wasUpdating;
+}
+
+QTreeWidgetItem* HierarchyPanel::layerItem(Entity tilemap, int layer) const {
+    QTreeWidgetItem* item = itemFor(tilemap);
+    if (!item) return nullptr;
+    for (int i = 0; i < item->childCount(); ++i)
+        if (isLayer(item->child(i)) && layerOf(item->child(i)) == layer) return item->child(i);
+    return nullptr;
+}
+
+// layer glissé : au-dessus d'une ligne = devant elle (la liste montre le plus haut en premier)
+void HierarchyPanel::moveLayers(QTreeWidgetItem* target, int pos) {
+    QTreeWidgetItem* moved = nullptr;
+    for (QTreeWidgetItem* item : m_tree->selectedItems()) if (isLayer(item)) { moved = item; break; }
+    if (!moved || !target) return;
+    const Entity e = entityOf(moved);
+    if (entityOf(target) != e || isCategory(target)) return;   // pas d'une tilemap à l'autre
+    const TileMapData* map = m_ctx.scene().getComponent<Tilemap>(e).data.get();
+    if (!map) return;
+    const int from = layerOf(moved);
+    int insert = map->layerCount();   // sur la tilemap : tout devant
+    if (isLayer(target)) insert = layerOf(target) + (DropPos(pos) == DropPos::Below ? 0 : 1);
+    const int to = std::clamp(from < insert ? insert - 1 : insert, 0, map->layerCount() - 1);
+    m_layerFocus = true;
+    m_ctx.moveLayer(e, from, to);
 }
 
 void HierarchyPanel::syncSelection() {
     m_updating = true;
     m_tree->clearSelection();
-    if (QTreeWidgetItem* item = itemFor(m_ctx.selected())) {
+    QTreeWidgetItem* item = itemFor(m_ctx.selected());
+    if (m_layerFocus && item)
+        if (QTreeWidgetItem* layer = layerItem(m_ctx.selected(), m_ctx.activeLayer(m_ctx.selected()))) item = layer;
+    if (item) {
         item->setSelected(true);
         m_tree->setCurrentItem(item, 0, QItemSelectionModel::NoUpdate);
         if (item->parent()) item->parent()->setExpanded(true);
@@ -395,9 +527,13 @@ void HierarchyPanel::deleteCurrent() {
         m_ctx.removeCategory(current->data(0, kCategoryRole).toString());
         return;
     }
+    if (current && isLayer(current) && current->isSelected()) {
+        m_ctx.removeLayer(entityOf(current), layerOf(current));
+        return;
+    }
     QList<Entity> doomed;
     for (QTreeWidgetItem* item : m_tree->selectedItems())
-        if (!isCategory(item)) doomed.push_back(entityOf(item));
+        if (isEntity(item)) doomed.push_back(entityOf(item));
     for (Entity e : doomed) m_ctx.destroyEntity(e);
 }
 
@@ -406,6 +542,20 @@ void HierarchyPanel::showContextMenu(const QPoint& pos) {
     QMenu menu(this);
     if (item) m_tree->setCurrentItem(item);
 
+    if (item && isLayer(item)) {
+        const Entity e = entityOf(item);
+        connect(menu.addAction(addIcon(), tr("Nouveau layer")), &QAction::triggered, this, [this, e] {
+            m_layerFocus = true;
+            m_ctx.addLayer(e);
+        });
+        connect(menu.addAction(tr("Renommer")), &QAction::triggered, this, [this, item] { m_tree->editItem(item); });
+        QAction* remove = menu.addAction(tr("Supprimer"));
+        const TileMapData* map = m_ctx.scene().getComponent<Tilemap>(e).data.get();
+        remove->setEnabled(map && map->layerCount() > 1);
+        connect(remove, &QAction::triggered, this, [this, e, layer = layerOf(item)] { m_ctx.removeLayer(e, layer); });
+        menu.exec(m_tree->viewport()->mapToGlobal(pos));
+        return;
+    }
     if (item && isCategory(item)) {
         const QString name = item->data(0, kCategoryRole).toString();
         connect(menu.addAction(tr("Créer une entité dans « %1 »").arg(name)), &QAction::triggered, this,
@@ -421,13 +571,19 @@ void HierarchyPanel::showContextMenu(const QPoint& pos) {
     } else if (item) {
         const Entity e = entityOf(item);
         if (!item->isSelected()) m_ctx.select(e);
+        if (m_ctx.scene().hasComponent<Tilemap>(e) && m_ctx.scene().getComponent<Tilemap>(e).data)
+            connect(menu.addAction(addIcon(), tr("Nouveau layer")), &QAction::triggered, this, [this, e] {
+                m_layerFocus = true;
+                m_collapsedMaps.remove(pack(e));
+                m_ctx.addLayer(e);
+            });
         connect(menu.addAction(tr("Renommer")), &QAction::triggered, this, [this, item] { m_tree->editItem(item); });
 
         QMenu* move = menu.addMenu(tr("Déplacer vers"));
         const QString current = m_ctx.categoryOf(e);
         QList<Entity> selection;
         for (QTreeWidgetItem* it : m_tree->selectedItems())
-            if (!isCategory(it)) selection.push_back(entityOf(it));
+            if (isEntity(it)) selection.push_back(entityOf(it));
         if (selection.isEmpty()) selection.push_back(e);
         auto addTarget = [&](const QString& label, const QString& category) {
             QAction* a = move->addAction(label);
@@ -481,7 +637,7 @@ void HierarchyPanel::showContextMenu(const QPoint& pos) {
 QTreeWidgetItem* HierarchyPanel::itemFor(Entity e) const {
     const quint64 key = pack(e);
     std::function<QTreeWidgetItem*(QTreeWidgetItem*)> search = [&](QTreeWidgetItem* item) -> QTreeWidgetItem* {
-        if (!isCategory(item) && item->data(0, kEntityRole).toULongLong() == key) return item;
+        if (isEntity(item) && item->data(0, kEntityRole).toULongLong() == key) return item;
         for (int i = 0; i < item->childCount(); ++i)
             if (QTreeWidgetItem* found = search(item->child(i))) return found;
         return nullptr;
@@ -493,6 +649,18 @@ QTreeWidgetItem* HierarchyPanel::itemFor(Entity e) const {
 
 bool HierarchyPanel::isCategory(const QTreeWidgetItem* item) {
     return item && item->data(0, kKindRole).toInt() == 1;
+}
+
+bool HierarchyPanel::isLayer(const QTreeWidgetItem* item) {
+    return item && item->data(0, kKindRole).toInt() == 2;
+}
+
+bool HierarchyPanel::isEntity(const QTreeWidgetItem* item) {
+    return item && item->data(0, kKindRole).toInt() == 0;
+}
+
+int HierarchyPanel::layerOf(const QTreeWidgetItem* item) {
+    return item->data(0, kLayerRole).toInt();
 }
 
 Entity HierarchyPanel::entityOf(const QTreeWidgetItem* item) {

@@ -5,6 +5,44 @@
   "map": null,
   "entities": [
     {
+      "id": 7001000000000000001,
+      "components": {
+        "Name": {
+          "name": "Porte donjon"
+        },
+        "Transform2D": {
+          "position": [
+            17.879981994628906,
+            1757.9334716796875
+          ],
+          "rotation": -25.9999942779541,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": true,
+          "restitution": 0.0,
+          "friction": 0.0,
+          "shape": "Box",
+          "halfSize": [
+            47.7022705078125,
+            31.29779052734375
+          ]
+        },
+        "MapTransition": {
+          "scene": "scenes/donjon.scene",
+          "spawn": "entree"
+        }
+      }
+    },
+    {
       "id": 15643577204517526455,
       "components": {
         "Name": {
@@ -44,68 +82,6 @@
             1316.7005615234375,
             16.0
           ]
-        }
-      }
-    },
-    {
-      "id": 17446693936842415062,
-      "components": {
-        "Name": {
-          "name": "tilemap_iso_2"
-        },
-        "Transform2D": {
-          "position": [
-            0.0,
-            0.0
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 1.0
-        },
-        "Tilemap": {
-          "file": "maps/tilemap_iso_2.map",
-          "visible": true
-        }
-      }
-    },
-    {
-      "id": 7001000000000000001,
-      "components": {
-        "Name": {
-          "name": "Porte donjon"
-        },
-        "Transform2D": {
-          "position": [
-            17.879981994628906,
-            1757.9334716796875
-          ],
-          "rotation": -25.999998092651367,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "Collider2D": {
-          "offset": [
-            0.0,
-            0.0
-          ],
-          "isTrigger": true,
-          "restitution": 0.0,
-          "friction": 0.0,
-          "shape": "Box",
-          "halfSize": [
-            47.7022705078125,
-            31.29779052734375
-          ]
-        },
-        "MapTransition": {
-          "scene": "scenes/donjon.scene",
-          "spawn": "entree"
         }
       }
     },
@@ -482,7 +458,6 @@
     "categoryParent": {},
     "entityCategory": {
       "15643577204517526455": "colision",
-      "17446693936842415062": "map",
       "7647194933246917022": "colision",
       "15999493952223515466": "colision",
       "8432238510110025053": "colision",

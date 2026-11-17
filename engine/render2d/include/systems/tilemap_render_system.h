@@ -12,6 +12,8 @@
 //
 // La liste des tilesets de la carte donne l'empilement : un autotile plus bas déborde sur ceux d'avant.
 //
+// Chaque layer est dessiné à part, selon son mode : sous les entités, trié en Y avec elles, ou par-dessus.
+//
 // Tilesets « tri en Y » (Tileset::ySort : arbres, murs...) : leurs tiles partent dans la YSortQueue de la
 // cible et sont dessinées par le RenderSystem, mélangées aux entités selon leur Y (le perso passe devant
 // ou derrière). Sans RenderSystem sur cette cible, elles sont dessinées tout de suite.
@@ -34,9 +36,11 @@ public:
     explicit TilemapRenderer(IResourceLoader& loader) : m_loader(loader) {}
 
     // `offset` : position de la carte dans le monde (Transform2D) ; `time` : secondes, pour les animations
-    void draw(sf::RenderTarget& target, const TileMapData& map, sf::Vector2f offset, float time) {
-        if (map.width() <= 0 || map.height() <= 0 || map.tilesets.empty()) return;
+    void draw(sf::RenderTarget& target, const TileMapData& map, int layer, sf::Vector2f offset, float time) {
+        if (map.width() <= 0 || map.height() <= 0 || map.tilesets.empty() || !map.validLayer(layer)) return;
         begin(target, map, offset);
+        m_layer = layer;
+        m_mode = map.layer(layer)->mode;
         m_queue = &YSortQueue::of(target);
         m_time = time;
 
@@ -91,6 +95,7 @@ public:
 
 private:
     void begin(sf::RenderTarget& target, const TileMapData& map, sf::Vector2f offset) {
+        m_mode = TileLayerMode::Below;
         m_target = &target;
         m_map = &map;
         m_offset = offset;
@@ -192,7 +197,8 @@ private:
             sprite.setPosition(center + m_offset);
             sprite.setScale({ ts.scale, ts.scale });
         }
-        if (ts.ySort && m_queue && m_queue->hasConsumer()) {
+        const bool sorted = m_mode == TileLayerMode::YSort || (ts.ySort && m_mode == TileLayerMode::Below);
+        if (sorted && m_queue && m_queue->hasConsumer()) {
             // point de tri : centre de la case (iso) ou bas de la case (orthogonal)
             float sortY = center.y + m_offset.y + ts.sortOffset;
             if (m_map->orientation == TileMapOrientation::Orthogonal) sortY += m_map->tileSize.y * 0.5f;
@@ -231,7 +237,7 @@ private:
 
     void drawCell(int x, int y) {
         if (!m_visible.contains(m_map->cellCenter(x, y))) return;
-        const TileCell c = m_map->get(x, y);
+        const TileCell c = m_map->get(m_layer, x, y);
         const int slot = cellSlot(c);
         const Tileset* ts = m_map->tileset(slot);
         const bool ortho = m_map->orientation == TileMapOrientation::Orthogonal;
@@ -251,7 +257,7 @@ private:
             const TileCell terrain = makeCell(other, kAutoTile);
             int mask = 0;
             for (int i = 0; i < 4; ++i)
-                if (m_map->get(x + kTileEdgeDirs[i].x, y + kTileEdgeDirs[i].y) == terrain) mask |= 1 << i;
+                if (m_map->get(m_layer, x + kTileEdgeDirs[i].x, y + kTileEdgeDirs[i].y) == terrain) mask |= 1 << i;
             if (mask) drawEdges(*t, other, x, y, mask);
         }
     }
@@ -294,7 +300,7 @@ private:
                 for (int i = 0; i < 4; ++i) {
                     const int cx = std::clamp(vx + dx[i], 0, map.width() - 1);
                     const int cy = std::clamp(vy + dy[i], 0, map.height() - 1);
-                    const TileCell c = map.get(cx, cy);
+                    const TileCell c = map.get(m_layer, cx, cy);
                     const Tileset* t = map.tilesetOf(c);
                     ids[i] = (cellIsAuto(c) && t && !t->missing && t->autotile == AutotileMode::Corners16) ? cellSlot(c) + 1 : 0;
                 }
@@ -322,6 +328,10 @@ private:
         sprite.setColor(m_tint);
         sprite.setPosition(sf::Vector2f{ vx * ts.x - ts.x * 0.5f, vy * ts.y - ts.y * 0.5f } + m_offset);
         sprite.setScale({ ts.x / float(sub.size.x), ts.y / float(sub.size.y) });
+        if (m_mode == TileLayerMode::YSort && m_batching && m_queue && m_queue->hasConsumer()) {
+            m_queue->items.push_back({ vy * ts.y + ts.y * 0.5f + m_offset.y, sprite });
+            return;
+        }
         submit(sprite, slot, true);
     }
 
@@ -338,6 +348,8 @@ private:
     std::vector<std::pair<const Tileset*, const sf::Texture*>> m_tilesetTextures;   // peu de tilesets : une liste suffit
     sf::RenderTarget* m_target = nullptr;
     const TileMapData* m_map = nullptr;
+    int m_layer = 0;
+    TileLayerMode m_mode = TileLayerMode::Below;
     sf::Vector2f m_offset;
     sf::FloatRect m_visible;
     sf::Color m_tint = sf::Color::White;
@@ -345,7 +357,8 @@ private:
     YSortQueue* m_queue = nullptr;
 };
 
-// Système ECS : dessine toutes les entités qui ont un composant Tilemap (sous les entités : priorité 8, après les caméras)
+// Système ECS : dessine les layers de toutes les entités Tilemap (priorité 8, après les caméras)
+// les layers Above passent après les entités, via la YSortQueue
 class TilemapRenderSystem : public ISystem {
 public:
     TilemapRenderSystem(sf::RenderTarget& target, IResourceLoader& loader) : m_target(target), m_renderer(loader) {
@@ -354,7 +367,9 @@ public:
 
     void onUpdate(Registry& registry, float dt) override {
         m_time += dt;
-        YSortQueue::of(m_target).items.clear();   // ce que le RenderSystem n'a pas dessiné (désactivé) est oublié
+        YSortQueue& queue = YSortQueue::of(m_target);
+        queue.items.clear();   // ce que le RenderSystem n'a pas dessiné (désactivé) est oublié
+        queue.overlays.clear();
         m_drawList.clear();
         registry.view<Tilemap>([&](Entity e, Tilemap& tm) {
             if (!tm.visible || !tm.data) return;
@@ -364,13 +379,26 @@ public:
                 entry.depth = t.depth;
                 entry.offset = t.getPosition();
             }
-            m_drawList.push_back(entry);
+            for (int l = 0; l < tm.data->layerCount(); ++l) {
+                if (tm.data->layer(l)->hidden) continue;
+                entry.layer = l;
+                m_drawList.push_back(entry);
+            }
         });
 
-        // depth petit = dessiné en premier (derrière)
+        // depth petit = dessiné en premier (derrière), puis l'ordre des layers
         std::stable_sort(m_drawList.begin(), m_drawList.end(),
                          [](const Entry& a, const Entry& b) { return a.depth < b.depth; });
-        for (const Entry& entry : m_drawList) m_renderer.draw(m_target, *entry.map, entry.offset, m_time);
+        for (const Entry& entry : m_drawList) {
+            if (entry.map->layer(entry.layer)->mode != TileLayerMode::Above) {
+                m_renderer.draw(m_target, *entry.map, entry.layer, entry.offset, m_time);
+                continue;
+            }
+            const float time = m_time;
+            auto draw = [this, entry, time] { m_renderer.draw(m_target, *entry.map, entry.layer, entry.offset, time); };
+            if (queue.hasConsumer()) queue.overlays.push_back(draw);
+            else draw();
+        }
     }
 
     TilemapRenderer& renderer() { return m_renderer; }
@@ -380,6 +408,7 @@ private:
         const TileMapData* map;
         float depth = 0.f;
         sf::Vector2f offset;
+        int layer = 0;
     };
 
     sf::RenderTarget& m_target;

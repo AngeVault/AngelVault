@@ -612,9 +612,7 @@ void TilePalettePanel::removeTileset() {
     TileMapData* map = m_ctx.activeMap();
     const int slot = currentSlot();
     if (!map || !map->tileset(slot)) return;
-    int used = 0;
-    for (int y = 0; y < map->height(); ++y)
-        for (int x = 0; x < map->width(); ++x) used += cellSlot(map->get(x, y)) == slot;
+    const int used = map->usedCells(slot);
     const QString name = qs(map->tileset(slot)->name);
     if (QMessageBox::question(this, tr("Retirer le tileset"),
             tr("Retirer « %1 » de cette carte ?\n%2 case(s) peinte(s) avec deviennent vides.\n"
