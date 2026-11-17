@@ -4,6 +4,7 @@
 
 struct UIButton {
     bool isTrigered = false;
+    bool triggerEvent = false;
     int r = sf::Color::Green.r;
     int g = sf::Color::Green.g;
     int b = sf::Color::Green.b;

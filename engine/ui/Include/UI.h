@@ -14,7 +14,6 @@
 
 class SystemUI : public ISystem {
 private:
-    sf::RectangleShape m_spriteRect;
     sf::Font m_font;
     sf::Text m_text;
     sf::RenderWindow& m_renderTarget;
