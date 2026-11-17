@@ -11,11 +11,12 @@
 #include "scene/scene_transition.h"
 
 
-SystemUI::SystemUI(sf::RenderWindow& renderTarget, Game& game) : m_game(game), m_renderTarget(renderTarget), m_font(sf::Font()), m_text(sf::Text(m_font))
+SystemUI::SystemUI(sf::RenderWindow& renderTarget, Game& game) : m_game(game), m_renderTarget(renderTarget), m_font(new sf::Font()), m_text(new sf::Text(*m_font))
 {
-    m_font.openFromFile("C:/Users/Gamer/repos_Clion/AngelVault/out/build/x64-debug/_deps/harfbuzz-src/util/gpu/default-font.ttf");
-    m_text.setFont(m_font);
-    priority = 13;
+    m_font->openFromFile("C:/Users/n.escande/repo_CLion/AngelVault/out/build/x64-release/_deps/harfbuzz-src/util/gpu/default-font.ttf");
+    m_text->setFont(*m_font);
+    m_text->setCharacterSize(50);
+    priority = 20;
 }
 
 void SystemUI::onUpdate(Registry &registry, float dt) {
@@ -63,12 +64,9 @@ void SystemUI::onUpdate(Registry &registry, float dt) {
            }
        });
     registry.view<UIText, Transform2D>([&](Entity e, UIText& ui, Transform2D transform) {
-        m_text.setString(ui.text);
-        m_renderTarget.draw(m_text, transform.getLocalMatrix());
+        m_text->setString(ui.text);
+        m_text->setPosition(transform.getPosition());
+        m_renderTarget.draw(*m_text);
     });
-}
-
-void SystemUI::Render(Entity& entity, Registry& registry) {
-
 }
 

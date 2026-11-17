@@ -512,6 +512,43 @@
           "name": "sortie_donjon"
         }
       }
+    },
+    {
+      "id": 6090549139278771002,
+      "components": {
+        "Name": {
+          "name": "Nouvelle entité"
+        },
+        "Transform2D": {
+          "position": [
+            -359.7982177734375,
+            803.5081176757813
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": true,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            283.46514892578125,
+            250.79852294921875
+          ]
+        },
+        "UIText": {
+          "text": "skill issue"
+        }
+      }
     }
   ],
   "editor": {
@@ -533,7 +570,8 @@
       "18092514487157541069": "Personnages",
       "18418294981170371368": "test",
       "12929588193896843262": "Personnages",
-      "15643577204517526455": "colision"
+      "15643577204517526455": "colision",
+      "6090549139278771002": "Personnages"
     }
   }
 }
