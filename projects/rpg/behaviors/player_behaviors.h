@@ -6,7 +6,7 @@
 #include "components/rigid_body2d.h"
 #include "input/input.h"
 #include "ecs/behavior_factory.h"
-#include "components/geometry.h"
+#include "../components/life.h"
 #pragma once
 
 class PlayerBehavior : public IBehavior {
@@ -19,13 +19,16 @@ public:
         keyTimer += dt;
 
         auto& rb = registry.getComponent<RigidBody2D>(self);
-
-        // Actions de l'Input Manager (assets/input.cfg) : flèches, ZQSD/WASD et stick gauche par défaut
-        float moveX = Input::getAxis("Horizontal");
-        float moveY = Input::getAxis("Vertical");
-        if (moveX != 0.f && moveY != 0.f){ moveX /= 2.f; moveY /= 2.f; }
-        rb.velocity.x = moveX * speed;
-        rb.velocity.y = moveY * speed;
+        float life = registry.getComponent<Life>(self).actualLife;
+        if (life > 0)
+        {
+            // Actions de l'Input Manager (assets/input.cfg) : flèches, ZQSD/WASD et stick gauche par défaut
+            float moveX = Input::getAxis("Horizontal");
+            float moveY = Input::getAxis("Vertical");
+            if (moveX != 0.f && moveY != 0.f){ moveX /= 2.f; moveY /= 2.f; }
+            rb.velocity.x = moveX * speed;
+            rb.velocity.y = moveY * speed;
+        }
     }
 
 private:

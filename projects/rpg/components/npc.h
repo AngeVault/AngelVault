@@ -6,7 +6,7 @@
 // Après compilation : Inspector > Ajouter un composant > npc, ou glissez ce fichier sur une entité.
 struct Npc {
     bool ennemies = false;
-    float vision = 200.f;
+    float vision = 1000.f;
 };
 
 // Champs visibles dans l'Inspector et enregistrés dans la scène : FIELD(nom) pour chacun

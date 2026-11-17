@@ -22,6 +22,10 @@ public:
                     life.actualLife += life.regenlLife*dt;
                     if (life.actualLife > life.maxLife) life.actualLife = life.maxLife;
                 }
+                if (life.actualLife > life.maxLife)
+                {
+                    life.actualLife = life.maxLife;
+                }
             }
 
         });

@@ -16,13 +16,13 @@ struct Stats {
         TANK
     };
     enum Class classe = Stats::Class::MONSTRE;
-    float force = 0.f;
-    float agilite = 0.f;
-    float constitution = 0.f;
-    float intelligence = 0.f;
-    float sagesse = 0.f;
-    float Volonte = 0.f;
-    float charisme = 0.f;
+    float force = 1.f;
+    float agilite = 1.f;
+    float constitution = 1.f;
+    float intelligence = 1.f;
+    float sagesse = 1.f;
+    float Volonte = 1.f;
+    float charisme = 1.f;
 };
 
 // Champs visibles dans l'Inspector et enregistrés dans la scène : FIELD(nom) pour chacun

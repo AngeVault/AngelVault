@@ -109,6 +109,20 @@
               }
             }
           ]
+        },
+        "Life": {
+          "actualLife": 1000.0,
+          "maxLife": 1000.0,
+          "regenlLife": 0.0
+        },
+        "Stats": {
+          "force": 1.0,
+          "agilite": 1.0,
+          "constitution": 1.0,
+          "intelligence": 1.0,
+          "sagesse": 1.0,
+          "Volonte": 1.0,
+          "charisme": 1.0
         }
       }
     },
@@ -121,7 +135,7 @@
         "Transform2D": {
           "position": [
             401.8966369628906,
-            155.25592041015625
+            156.37136840820313
           ],
           "rotation": 0.0,
           "scale": [
@@ -161,9 +175,27 @@
         "SteeringSeek": {
           "isActif": true,
           "positionCible": [
-            0.0,
-            0.0
+            200.0,
+            100.0
           ]
+        },
+        "Life": {
+          "actualLife": 1000.0,
+          "maxLife": 1000.0,
+          "regenlLife": 0.0
+        },
+        "Npc": {
+          "ennemies": true,
+          "vision": 1000.0
+        },
+        "Stats": {
+          "force": 1.0,
+          "agilite": 1.0,
+          "constitution": 1.0,
+          "intelligence": 1.0,
+          "sagesse": 1.0,
+          "Volonte": 1.0,
+          "charisme": 1.0
         }
       }
     }

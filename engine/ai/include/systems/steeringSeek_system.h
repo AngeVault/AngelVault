@@ -6,10 +6,10 @@
 #include "ecs/system.h"
 
 
-class steeringSeekSystem : public ISystem
+class SteeringSeekSystem : public ISystem
 {
 public:
-    steeringSeekSystem(){priority = -10;};
+    SteeringSeekSystem(){priority = 4;};
     void onStart(Registry& registry) override;
     void onUpdate(Registry& registry, float dt) override;
 private:

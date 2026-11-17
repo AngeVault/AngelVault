@@ -16,6 +16,7 @@ public:
 
     void onUpdate(Registry& registry, float dt) override {
         registry.view<Life, Stats>([&](Entity e, Life& life, Stats& stat) {
+            Stats::Class t = stat.classe;
             switch (stat.classe)
             {
             case Stats::Class::MONSTRE:
