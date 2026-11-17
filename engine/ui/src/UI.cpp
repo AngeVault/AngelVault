@@ -8,9 +8,10 @@
 #include "components/dont_destroy.h"
 #include "components/geometry.h"
 #include "components/map_transition.h"
+#include "scene/scene_transition.h"
 
 
-SystemUI::SystemUI(sf::RenderWindow& renderTarget, Game& game) : m_renderTarget(renderTarget), m_font(sf::Font()), m_text(sf::Text(m_font)), m_game(game)
+SystemUI::SystemUI(sf::RenderWindow& renderTarget, Game& game) : m_game(game), m_renderTarget(renderTarget), m_font(sf::Font()), m_text(sf::Text(m_font))
 {
     m_font.openFromFile("C:/Users/Gamer/repos_Clion/AngelVault/out/build/x64-debug/_deps/harfbuzz-src/util/gpu/default-font.ttf");
     m_text.setFont(m_font);
@@ -30,7 +31,8 @@ void SystemUI::onUpdate(Registry &registry, float dt) {
                 if (!ui.triggerEvent) return;
                 registry.view<DontDestroy>([&](Entity playerEntity, DontDestroy player) {
                     if (player.key != "Player") return ;
-                    std::cout << "ui" << std::endl;
+                    changeScene(registry, m_game.assetDir(), transition.scene, transition.spawn);
+                    ui.triggerEvent = false;
                 });
             });
             if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && (ui.isTrigered || mousePos.x < buttonPos.x + ui.with && mousePos.y < buttonPos.y + ui.height && mousePos.x+ui.with > buttonPos.x && mousePos.y+ui.height > buttonPos.y)) {

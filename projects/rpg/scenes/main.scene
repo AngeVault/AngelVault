@@ -439,8 +439,8 @@
           }
         },
         "MapTransition": {
-          "scene": "donjon.scene",
-          "spawn": "Entree"
+          "scene": "scenes/donjon.scene",
+          "spawn": "entree"
         },
         "UIButton": {
           "Red": 0
