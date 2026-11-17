@@ -157,6 +157,13 @@
             10.0
           ],
           "rapidite": 1000000.0
+        },
+        "SteeringSeek": {
+          "isActif": true,
+          "positionCible": [
+            0.0,
+            0.0
+          ]
         }
       }
     }

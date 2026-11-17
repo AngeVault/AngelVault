@@ -11,6 +11,7 @@
 #include "ecs/game_components.h"
 #include "tilemap/tilemap.h"
 #include "components/steering_component.h"
+#include "components/steeringSeek_component.h"
 
 #include <QColor>
 #include <algorithm>
@@ -756,6 +757,20 @@ std::vector<ComponentDesc> build() {
             std::vector<FieldDesc> f;
             f.push_back(vecRef<SteeringComponent>(r, e, QObject::tr("direction"), [](SteeringComponent& s) -> sf::Vector2f& { return s.direction; } , 0 ));
             f.push_back(floatRef<SteeringComponent>(r, e, QObject::tr("rapidite"), [](SteeringComponent& s) -> float& { return s.rapidite; }, 0));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    {
+        ComponentDesc d{ "SteeringSeek" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<SteeringSeekComponent>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<SteeringSeekComponent>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<SteeringSeekComponent>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(boolRef<SteeringSeekComponent>(r, e, QObject::tr("isActif"), [](SteeringSeekComponent& s) -> bool& { return s.isActif; } ,0));
+            f.push_back(vecRef<SteeringSeekComponent>(r, e, QObject::tr("positionCible"), [](SteeringSeekComponent& s) -> sf::Vector2f& { return s.positionCible; }, 0));
             return f;
         };
         list.push_back(d);
