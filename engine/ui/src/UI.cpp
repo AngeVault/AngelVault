@@ -10,7 +10,7 @@
 #include "components/map_transition.h"
 
 
-SystemUI::SystemUI(sf::RenderWindow& renderTarget) : m_renderTarget(renderTarget), m_font(sf::Font()), m_text(sf::Text(m_font))
+SystemUI::SystemUI(sf::RenderWindow& renderTarget, Game& game) : m_renderTarget(renderTarget), m_font(sf::Font()), m_text(sf::Text(m_font)), m_game(game)
 {
     m_font.openFromFile("C:/Users/Gamer/repos_Clion/AngelVault/out/build/x64-debug/_deps/harfbuzz-src/util/gpu/default-font.ttf");
     m_text.setFont(m_font);
@@ -29,7 +29,7 @@ void SystemUI::onUpdate(Registry &registry, float dt) {
             registry.view<MapTransition, UIButton>([&](Entity buttonEntity, MapTransition transition, UIButton& ui) {
                 if (!ui.triggerEvent) return;
                 registry.view<DontDestroy>([&](Entity playerEntity, DontDestroy player) {
-                    if (player.key != "Player") return;
+                    if (player.key != "Player") return ;
                     std::cout << "ui" << std::endl;
                 });
             });

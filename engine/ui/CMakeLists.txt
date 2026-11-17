@@ -1,1 +1,1 @@
-av_module(Ui DEPS SFML::Graphics AngeVault::Core AngeVault::Scene)
+av_module(Ui DEPS AngeVault::Runtime SFML::Graphics AngeVault::Core AngeVault::Scene)

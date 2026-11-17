@@ -36,7 +36,7 @@ void Game::init() {
     m_systems.addSystem<DayNightSystem>(m_scene);   // composant DayNightCycle : heure + teinte de l'écran
     m_systems.addSystem<RenderCollisionSystem>(m_scene);
     m_systems.addSystem<ForceDebugSystem>(m_scene);
-    m_systems.addSystem<SystemUI>(*m_window);
+    m_systems.addSystem<SystemUI>(*m_window, *this);   // boutons et texte (UIButton + UIText)
     // Systèmes de jeu du projet (REGISTER_SYSTEM, dossier systems/ du projet)
     for (const GameSystemInfo& info : GameSystemRegistry::get().all()) m_systems.add(info.create(*this, m_scene));
     m_systems.start(m_registry);
