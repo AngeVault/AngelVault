@@ -16,7 +16,14 @@
     "assets/tilesets/iso_demo/herbe_seche.tileset",
     "assets/tilesets/fantasy_iso/ground_j.tileset",
     "assets/tilesets/fantasy_iso/ground_h.tileset",
-    "assets/tilesets/fantasy_iso/tree_b.tileset"
+    "assets/tilesets/fantasy_iso/tree_b.tileset",
+    "assets/tilesets/fantasy_iso/ground_a.tileset",
+    "assets/tilesets/fantasy_iso/ground_b.tileset",
+    "assets/tilesets/fantasy_iso/ground_c.tileset",
+    "assets/tilesets/fantasy_iso/ground_d.tileset",
+    "assets/tilesets/fantasy_iso/ground_e.tileset",
+    "assets/tilesets/fantasy_iso/ground_f.tileset",
+    "assets/tilesets/fantasy_iso/ground_g.tileset"
   ],
   "layers": [
     {
@@ -58,7 +65,7 @@
       ]
     },
     {
-      "name": "layer",
+      "name": "wall",
       "mode": "ysort",
       "cells": [
         "1*5:19 30*5:12 1*5:16",
@@ -93,6 +100,82 @@
         "1*5:15 30*0 1*5:13",
         "1*5:15 30*0 1*5:13",
         "1*5:18 30*5:14 1*5:17"
+      ]
+    },
+    {
+      "name": "montagne",
+      "mode": "ysort",
+      "cells": [
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "25*0 1*12:79 2*12:72 1*12:76 3*0",
+        "15*0 1*12:80 4*12:68 5*12:72 3*0 1*12:73 3*0",
+        "15*0 1*12:71 13*0 1*12:76 2*0",
+        "15*0 1*12:71 13*0 1*12:73 2*0",
+        "15*0 1*12:71 14*0 1*12:76 1*0",
+        "15*0 1*12:71 14*0 1*12:73 1*0",
+        "15*0 1*12:71 15*0 1*12:76",
+        "15*0 1*12:83 5*12:70 7*0 3*12:74 1*12:82",
+        "21*0 1*12:78 5*0 1*12:73 1*12:57 3*0",
+        "22*0 1*12:83 3*12:70 1*12:86 1*12:82 1*12:62 3*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0"
+      ]
+    },
+    {
+      "name": "layer",
+      "mode": "above",
+      "cells": [
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0",
+        "32*0"
       ]
     }
   ]

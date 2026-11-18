@@ -12,8 +12,10 @@
   "columns": 4,
   "count": 88,
   "anchor": [
-    128,
-    193
+    128.0,
+    193.0
   ],
+  "solid": true,
+  "ySort": true,
   "autotile": "none"
 }
