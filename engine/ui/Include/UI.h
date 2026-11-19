@@ -18,9 +18,10 @@ private:
     Game& m_game;
     sf::Font* m_font;
     sf::Text* m_text;
-    sf::RenderWindow& m_renderTarget;
+    sf::RenderTarget& m_renderTarget;
+    sf::RenderWindow& m_window;
 public:
-    SystemUI(sf::RenderWindow& renderTarget, Game& game);
+    SystemUI(sf::RenderTarget& renderTarget, Game& game, sf::RenderWindow& window);
     void onUpdate(Registry& registry, float dt) override;
 };
 

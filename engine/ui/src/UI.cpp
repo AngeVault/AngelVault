@@ -11,9 +11,9 @@
 #include "scene/scene_transition.h"
 
 
-SystemUI::SystemUI(sf::RenderWindow& renderTarget, Game& game) : m_game(game), m_renderTarget(renderTarget), m_font(new sf::Font()), m_text(new sf::Text(*m_font))
+SystemUI::SystemUI(sf::RenderTarget& renderTarget, Game& game, sf::RenderWindow& window) : m_game(game), m_renderTarget(renderTarget), m_window(window), m_font(new sf::Font()), m_text(new sf::Text(*m_font))
 {
-    m_font->openFromFile("C:/Users/n.escande/repo_CLion/AngelVault/out/build/x64-release/_deps/harfbuzz-src/util/gpu/default-font.ttf");
+    m_font->openFromFile("C:\\Windows\\Fonts\\arial.ttf");
     m_text->setFont(*m_font);
     m_text->setCharacterSize(50);
     priority = 20;
@@ -23,7 +23,7 @@ void SystemUI::onUpdate(Registry &registry, float dt) {
     registry.view<UIButton, Transform2D>([&](Entity e, UIButton& ui, Transform2D transform) {
             if (!registry.hasComponent<Geometry>(e)) return;
                 auto& geo = registry.getComponent<Geometry>(e);
-            sf::Vector2f mousePos = Camera::screenToWorld(sf::Mouse::getPosition(m_renderTarget));
+            sf::Vector2f mousePos = Camera::screenToWorld(sf::Mouse::getPosition(m_window));
             sf::Vector2f buttonPos = transform.getPosition();
             if (!sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && (ui.isTrigered && mousePos.x < buttonPos.x + ui.with && mousePos.y < buttonPos.y + ui.height && mousePos.x+ui.with > buttonPos.x && mousePos.y+ui.height > buttonPos.y)) {
                 ui.triggerEvent = true;
@@ -65,8 +65,7 @@ void SystemUI::onUpdate(Registry &registry, float dt) {
        });
     registry.view<UIText, Transform2D>([&](Entity e, UIText& ui, Transform2D transform) {
         m_text->setString(ui.text);
-        m_text->setPosition(transform.getPosition());
-        m_renderTarget.draw(*m_text);
+        m_renderTarget.draw(*m_text, transform.getLocalMatrix());
     });
 }
 
