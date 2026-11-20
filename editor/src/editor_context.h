@@ -54,6 +54,7 @@ public:
     Entity activeTilemap();
     TileMapData* activeMap();                 // nullptr : pas de tilemap dans la scène
     sf::Vector2f activeMapOffset();           // position de la carte (Transform2D)
+    sf::Vector2f activeLayerOffset();         // la même, remontée de la hauteur du layer actif
     Entity createTilemap(TileMapOrientation orientation, int width, int height, QString* error = nullptr);
     Entity addTilemapFromFile(const QString& mapPath, QString* error = nullptr);   // .map existant
     void notifyMapEdited();                   // cases peintes : scène « modifiée »
@@ -67,6 +68,7 @@ public:
     void moveLayer(Entity tilemap, int from, int to);
     void renameLayer(Entity tilemap, int layer, const QString& name);
     void setLayerMode(Entity tilemap, int layer, TileLayerMode mode);
+    void setLayerHeight(Entity tilemap, int layer, float height);
     void setLayerHidden(Entity tilemap, int layer, bool hidden);   // éditeur seulement, hors historique
     void notifyTilesChanged();                // liste des tilesets / réglages changés : palette à refaire
     // Un .tileset vient d'être modifié et enregistré : les autres tilemaps de la scène qui l'utilisent suivent

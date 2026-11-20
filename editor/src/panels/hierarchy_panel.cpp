@@ -14,12 +14,14 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
+#include <QPainter>
 #include <QStyle>
 #include <QStyledItemDelegate>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
+#include <cmath>
 #include <functional>
 
 namespace {
@@ -27,9 +29,41 @@ constexpr int kKindRole = Qt::UserRole + 1;     // 0 = entité, 1 = catégorie, 
 constexpr int kEntityRole = Qt::UserRole + 2;   // entité, ou tilemap du layer
 constexpr int kCategoryRole = Qt::UserRole + 3; // nom d'origine de la catégorie (pour le renommage)
 constexpr int kLayerRole = Qt::UserRole + 4;
-constexpr int kModeColumn = 1;
-constexpr int kEyeColumn = 2;                   // œil d'un layer, + d'une tilemap
+constexpr int kHeightColumn = 1;
+constexpr int kModeColumn = 2;
+constexpr int kEyeColumn = 3;                   // œil d'un layer, + d'une tilemap
 QIcon layerIcon(const char* name) { return QIcon(QString(":/resources/icons/layers/%1.png").arg(name)); }
+
+// un cran de hauteur = une demi-case, assez fin pour caler falaises et toits
+float heightStep(const TileMapData& map) { return std::max(1.f, map.tileSize.y * 0.5f); }
+
+// marches empilées, le nombre de crans par-dessus
+QIcon heightIcon(int level, const QColor& color) {
+    QPixmap pm(32, 32);
+    pm.fill(Qt::transparent);
+    QPainter p(&pm);
+    p.setRenderHint(QPainter::Antialiasing);
+    QColor c = color;
+    if (level == 0) c.setAlphaF(0.35);
+    p.setPen(Qt::NoPen);
+    p.setBrush(c);
+    p.drawRoundedRect(QRectF(3, 26, 26, 4), 1.5, 1.5);
+    if (level != 0) {
+        const bool up = level > 0;
+        QPolygonF arrow;
+        if (up) arrow << QPointF(5, 13) << QPointF(11, 5) << QPointF(17, 13);
+        else arrow << QPointF(5, 6) << QPointF(11, 14) << QPointF(17, 6);
+        p.drawPolygon(arrow);
+        p.drawRect(QRectF(9, up ? 12 : 16, 4, 8));
+        QFont f = p.font();
+        f.setPixelSize(15);
+        f.setBold(true);
+        p.setFont(f);
+        p.setPen(c);
+        p.drawText(QRectF(14, 2, 18, 22), Qt::AlignRight | Qt::AlignVCenter, QString::number(std::abs(level)));
+    }
+    return QIcon(pm);
+}
 QIcon addIcon() { return QIcon(":/resources/icons/buttons/add.png"); }
 quint64 pack(Entity e) { return (quint64(e.index) << 32) | e.generation; }
 
@@ -154,10 +188,10 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
     m_tree = tree;
     m_tree->setObjectName("hierarchyTree");
     m_tree->setHeaderHidden(true);
-    m_tree->setColumnCount(3);
+    m_tree->setColumnCount(4);
     m_tree->header()->setStretchLastSection(false);
     m_tree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-    for (int c : { kModeColumn, kEyeColumn }) {
+    for (int c : { kHeightColumn, kModeColumn, kEyeColumn }) {
         m_tree->header()->setSectionResizeMode(c, QHeaderView::Fixed);
         m_tree->header()->resizeSection(c, 22);
     }
@@ -310,6 +344,12 @@ HierarchyPanel::HierarchyPanel(EditorContext& context, QWidget* parent) : QWidge
         if (!layer) return;
         if (column == kEyeColumn) m_ctx.setLayerHidden(e, layerOf(item), !layer->hidden);
         else if (column == kModeColumn) m_ctx.setLayerMode(e, layerOf(item), TileLayerMode((int(layer->mode) + 1) % 3));
+        else if (column == kHeightColumn) {
+            // clic : un cran plus haut, maj + clic : un cran plus bas
+            const float step = heightStep(*map);
+            const int level = int(std::lround(layer->height / step)) + ((QApplication::keyboardModifiers() & Qt::ShiftModifier) ? -1 : 1);
+            m_ctx.setLayerHeight(e, layerOf(item), float(level) * step);
+        }
     });
 
     // Différé : un renommage ou une suppression déclenché depuis la liste ne la détruit pas en plein milieu
@@ -436,6 +476,8 @@ void HierarchyPanel::refreshLayerItems() {
             item->setIcon(0, layerIcon(active ? "layer_active" : "layer"));
             item->setIcon(kModeColumn, layerIcon(layer->mode == TileLayerMode::Below ? "mode_below" : layer->mode == TileLayerMode::YSort ? "mode_ysort" : "mode_above"));
             item->setToolTip(kModeColumn, layer->mode == TileLayerMode::Below ? tr("sous") : layer->mode == TileLayerMode::YSort ? tr("trié") : tr("dessus"));
+            item->setIcon(kHeightColumn, heightIcon(int(std::lround(layer->height / heightStep(*map))), text));
+            item->setToolTip(kHeightColumn, tr("hauteur"));
             item->setIcon(kEyeColumn, layerIcon(layer->hidden ? "eye_closed" : "eye_open"));
             item->setToolTip(kEyeColumn, tr("visible"));
             return;

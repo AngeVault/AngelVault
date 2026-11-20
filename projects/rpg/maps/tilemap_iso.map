@@ -23,7 +23,11 @@
     "assets/tilesets/fantasy_iso/ground_d.tileset",
     "assets/tilesets/fantasy_iso/ground_e.tileset",
     "assets/tilesets/fantasy_iso/ground_f.tileset",
-    "assets/tilesets/fantasy_iso/ground_g.tileset"
+    "assets/tilesets/fantasy_iso/ground_g.tileset",
+    "assets/tilesets/fantasy_iso/wall_a.tileset",
+    "assets/tilesets/fantasy_iso/wall_b.tileset",
+    "assets/tilesets/fantasy_iso/wall_c.tileset",
+    "assets/tilesets/fantasy_iso/wall_d.tileset"
   ],
   "layers": [
     {
@@ -74,7 +78,7 @@
         "1*5:15 30*0 1*5:13",
         "1*5:15 30*0 1*5:13",
         "1*5:15 30*0 1*5:13",
-        "1*5:15 30*0 1*5:13",
+        "1*5:15 10*0 2*16:30 2*0 2*16:30 14*0 1*5:13",
         "1*5:15 30*0 1*5:13",
         "1*5:15 30*0 1*5:13",
         "1*5:15 30*0 1*5:13",

@@ -35,6 +35,7 @@ enum class TileLayerMode {
 struct TileLayer {
     std::string name;
     TileLayerMode mode = TileLayerMode::Below;
+    float height = 0.f;    // dessiné plus haut, en unités monde : relief, étages, toits
     bool hidden = false;   // caché dans l'éditeur seulement, pas enregistré
     std::vector<TileCell> cells;
 };

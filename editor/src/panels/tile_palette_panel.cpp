@@ -589,6 +589,14 @@ void TilePalettePanel::newTilesetFromImages() {
     if (trim->isChecked() || !autoAnchor->isChecked())
         start.anchor = { float(anchor.x() - sheet.cropOffset.x()), float(anchor.y() - sheet.cropOffset.y()) };
     if (map->orientation == TileMapOrientation::Orthogonal && autoAnchor->isChecked()) start.anchor = { -1.f, -1.f };
+    // images numérotées (0001.png...) : les images d'une animation, rangées dans l'ordre
+    static const QRegularExpression frameName(R"(^\d+$)");
+    const bool frames = files.size() > 1 && std::all_of(files.begin(), files.end(), [](const QString& f) { return frameName.match(QFileInfo(f).completeBaseName()).hasMatch(); });
+    if (frames) {
+        TileAnimation anim{ 0, {}, 1.f / 12.f };
+        for (int i = 0; i < int(files.size()) && i < sheet.count; ++i) anim.frames.push_back(i);
+        start.animations.push_back(std::move(anim));
+    }
     if (!runTilesetDialog(start, true, -1)) QFile::remove(png);   // annulé : la feuille créée est retirée
 }
 

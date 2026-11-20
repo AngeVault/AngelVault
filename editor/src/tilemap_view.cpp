@@ -151,7 +151,7 @@ void TilemapView::drawGrid(sf::RenderTarget& target) {
     const TileMapData* map = m_ctx.activeMap();
     if (!map || map->width() <= 0 || map->height() <= 0) return;
     if (m_camera.zoom * std::min(map->tileSize.x, map->tileSize.y) < 6.f) return;   // trop dézoomé : illisible
-    const sf::Vector2f o = m_ctx.activeMapOffset();
+    const sf::Vector2f o = m_ctx.activeLayerOffset();
     const bool iso = map->orientation == TileMapOrientation::Isometric;
     const sf::Vector2f ts = map->tileSize;
     // Sommet (gx, gy) de la grille, dans le monde
@@ -310,7 +310,7 @@ void TilemapView::drawBrush(sf::RenderTarget& target) {
     const EditorTool tool = m_ctx.tool();
     if (!map || tool == EditorTool::Select || tool == EditorTool::Resize) return;
 
-    const sf::Vector2f o = m_ctx.activeMapOffset();
+    const sf::Vector2f o = m_ctx.activeLayerOffset();
     const float px = 1.f / m_camera.zoom;
     auto outlineCell = [&](sf::Vector2i c, sf::Color fill, sf::Color outline, float thickness) {
         if (!map->inBounds(c.x, c.y)) return;
@@ -712,7 +712,7 @@ void TilemapView::updateHover(const QPointF& pos) {
         if (m_hoverValid) { m_hoverValid = false; emit hoveredTileChanged(-1, -1, QString()); }
         return;
     }
-    const sf::Vector2i tile = map->cellAt(toWorld(pos) - m_ctx.activeMapOffset());
+    const sf::Vector2i tile = map->cellAt(toWorld(pos) - m_ctx.activeLayerOffset());
     const bool valid = map->inBounds(tile.x, tile.y);
     if (valid == m_hoverValid && tile == m_hoveredTile) return;
     m_hoveredTile = tile;
@@ -842,7 +842,7 @@ void TilemapView::mouseMoveEvent(QMouseEvent* e) {
     } else if (m_painting && (e->buttons() & Qt::LeftButton)) {
         // hors carte aussi : la ligne est coupée au bord, pas abandonnée
         if (const TileMapData* map = m_ctx.activeMap())
-            strokeTo(map->cellAt(toWorld(e->position()) - m_ctx.activeMapOffset()));
+            strokeTo(map->cellAt(toWorld(e->position()) - m_ctx.activeLayerOffset()));
     }
     SfmlWidget::mouseMoveEvent(e);
 }

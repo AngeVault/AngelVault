@@ -734,6 +734,12 @@ sf::Vector2f EditorContext::activeMapOffset() {
                                                                 : sf::Vector2f{};
 }
 
+sf::Vector2f EditorContext::activeLayerOffset() {
+    sf::Vector2f o = activeMapOffset();
+    if (const TileMapData* map = activeMap(); map && map->validLayer(activeLayer())) o.y -= map->layer(activeLayer())->height;
+    return o;
+}
+
 void EditorContext::refreshActiveTilemap() {
     if (m_restoring) return;   // restoreSnapshot émet tilemapChanged une seule fois à la fin
     const Entity e = activeTilemap();
@@ -836,6 +842,13 @@ void EditorContext::setLayerMode(Entity tilemap, int layer, TileLayerMode mode) 
     TileMapData* map = mapOf(tilemap);
     if (!map || !map->validLayer(layer) || map->layer(layer)->mode == mode) return;
     map->layer(layer)->mode = mode;
+    layersEdited(*map);
+}
+
+void EditorContext::setLayerHeight(Entity tilemap, int layer, float height) {
+    TileMapData* map = mapOf(tilemap);
+    if (!map || !map->validLayer(layer) || map->layer(layer)->height == height) return;
+    map->layer(layer)->height = height;
     layersEdited(*map);
 }
 

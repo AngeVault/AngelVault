@@ -12,7 +12,8 @@
 //
 // La liste des tilesets de la carte donne l'empilement : un autotile plus bas déborde sur ceux d'avant.
 //
-// Chaque layer est dessiné à part, selon son mode : sous les entités, trié en Y avec elles, ou par-dessus.
+// Chaque layer est dessiné à part, selon son mode : sous les entités, trié en Y avec elles, ou par-dessus,
+// et remonté de sa hauteur (relief, toits) tout en restant trié selon sa case au sol.
 //
 // Tilesets « tri en Y » (Tileset::ySort : arbres, murs...) : leurs tiles partent dans la YSortQueue de la
 // cible et sont dessinées par le RenderSystem, mélangées aux entités selon leur Y (le perso passe devant
@@ -38,7 +39,11 @@ public:
     // `offset` : position de la carte dans le monde (Transform2D) ; `time` : secondes, pour les animations
     void draw(sf::RenderTarget& target, const TileMapData& map, int layer, sf::Vector2f offset, float time) {
         if (map.width() <= 0 || map.height() <= 0 || map.tilesets.empty() || !map.validLayer(layer)) return;
+        // un layer surélevé est dessiné plus haut mais trié selon sa case au sol
+        const float lift = map.layer(layer)->height;
+        offset.y -= lift;
         begin(target, map, offset);
+        m_sortLift = lift;
         m_layer = layer;
         m_mode = map.layer(layer)->mode;
         m_queue = &YSortQueue::of(target);
@@ -96,6 +101,7 @@ public:
 private:
     void begin(sf::RenderTarget& target, const TileMapData& map, sf::Vector2f offset) {
         m_mode = TileLayerMode::Below;
+        m_sortLift = 0.f;
         m_target = &target;
         m_map = &map;
         m_offset = offset;
@@ -178,6 +184,7 @@ private:
 
     // La tile `index` de la feuille, posée sur la case (x, y)
     void drawTile(const Tileset& ts, int slot, int index, int x, int y) {
+        index = ts.animatedTile(index, m_time);
         if (!ts.validTile(index)) return;
         const sf::Texture* tex = texture(ts);
         if (!tex) return;
@@ -200,7 +207,7 @@ private:
         const bool sorted = m_mode == TileLayerMode::YSort || (ts.ySort && m_mode == TileLayerMode::Below);
         if (sorted && m_queue && m_queue->hasConsumer()) {
             // point de tri : centre de la case (iso) ou bas de la case (orthogonal)
-            float sortY = center.y + m_offset.y + ts.sortOffset;
+            float sortY = center.y + m_offset.y + m_sortLift + ts.sortOffset;
             if (m_map->orientation == TileMapOrientation::Orthogonal) sortY += m_map->tileSize.y * 0.5f;
             m_queue->items.push_back({ sortY, sprite });
             return;
@@ -319,7 +326,7 @@ private:
     }
 
     void drawCornerPiece(const Tileset& t, int slot, int vx, int vy, int mask, sf::Vector2f ts) {
-        const int index = t.tileIndex(mask, row(t, hash3(vx, vy, slot)));
+        const int index = t.animatedTile(t.tileIndex(mask, row(t, hash3(vx, vy, slot))), m_time);
         if (!t.validTile(index)) return;
         const sf::Texture* tex = texture(t);
         if (!tex) return;
@@ -329,7 +336,7 @@ private:
         sprite.setPosition(sf::Vector2f{ vx * ts.x - ts.x * 0.5f, vy * ts.y - ts.y * 0.5f } + m_offset);
         sprite.setScale({ ts.x / float(sub.size.x), ts.y / float(sub.size.y) });
         if (m_mode == TileLayerMode::YSort && m_batching && m_queue && m_queue->hasConsumer()) {
-            m_queue->items.push_back({ vy * ts.y + ts.y * 0.5f + m_offset.y, sprite });
+            m_queue->items.push_back({ vy * ts.y + ts.y * 0.5f + m_offset.y + m_sortLift, sprite });
             return;
         }
         submit(sprite, slot, true);
@@ -351,6 +358,7 @@ private:
     int m_layer = 0;
     TileLayerMode m_mode = TileLayerMode::Below;
     sf::Vector2f m_offset;
+    float m_sortLift = 0.f;   // hauteur du layer, rendue au point de tri
     sf::FloatRect m_visible;
     sf::Color m_tint = sf::Color::White;
     float m_time = 0.f;

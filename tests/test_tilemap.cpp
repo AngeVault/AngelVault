@@ -73,6 +73,7 @@ int main() {
     for (int x = 10; x < 13; ++x) a.set(1, x, 1, makeCell(1, 4));
     a.set(2, 39, 2, makeCell(1, 7));
     a.layer(2)->hidden = true;
+    a.layer(2)->height = 64.f;
     const std::string file = "test_tilemap_layers.map";
     CHECK(save_map(a, file));
     TileMapData b;
@@ -82,9 +83,24 @@ int main() {
     CHECK(b.orientation == TileMapOrientation::Isometric && b.width() == 40 && b.height() == 3 && b.tilesets.size() == 2);
     CHECK(b.layerCount() == 3 && b.layer(1)->name == "principal" && b.layer(1)->mode == TileLayerMode::YSort);
     CHECK(b.layer(2)->mode == TileLayerMode::Above && !b.layer(2)->hidden);   // caché : éditeur seulement
+    CHECK(b.layer(2)->height == 64.f && b.layer(1)->height == 0.f);
     CHECK(b.get(0, 5, 0) == makeCell(0, kAutoTile) && b.get(1, 11, 1) == makeCell(1, 4) && b.get(1, 9, 1) == 0);
     CHECK(b.get(2, 39, 2) == makeCell(1, 7) && b.get(2, 38, 2) == 0);
     CHECK(tilesToJson(a, 0)[0] == "40*0:a");   // RLE : une rangée de 40 fois la même case
+
+    // ---- Tiles animées : la tile posée affiche ses images en boucle, aller-retour JSON
+    {
+        Tileset t;
+        t.columns = 4;
+        t.count = 8;
+        t.animations.push_back({ 2, { 2, 5, 6 }, 0.1f });
+        CHECK(t.animatedTile(2, 0.f) == 2 && t.animatedTile(2, 0.15f) == 5 && t.animatedTile(2, 0.25f) == 6);
+        CHECK(t.animatedTile(2, 0.35f) == 2 && t.animatedTile(3, 0.15f) == 3);
+        Tileset u;
+        CHECK(u.fromJson(t.toJson()));
+        CHECK(u.animations.size() == 1 && u.animations[0].tile == 2 && u.animations[0].frames.size() == 3);
+        CHECK(std::abs(u.animations[0].frameTime - 0.1f) < 1e-6f);
+    }
 
     // ---- Ancien format v2 : une seule grille devient le layer « fond »
     TileMapData old;

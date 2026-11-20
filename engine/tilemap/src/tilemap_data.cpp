@@ -124,7 +124,10 @@ bool save_map(TileMapData& tileMap, const std::string& path) {
     Json layers = Json::array();
     for (int l = 0; l < tileMap.layerCount(); ++l) {
         const TileLayer& layer = *tileMap.layer(l);
-        layers.push_back({ { "name", layer.name }, { "mode", toString(layer.mode) }, { "cells", tilesToJson(tileMap, l) } });
+        Json entry = { { "name", layer.name }, { "mode", toString(layer.mode) } };
+        if (layer.height != 0.f) entry["height"] = layer.height;
+        entry["cells"] = tilesToJson(tileMap, l);
+        layers.push_back(std::move(entry));
     }
     map_save["layers"] = std::move(layers);
     const fs::path file = toPath(path);
@@ -424,6 +427,7 @@ bool TileMapData::fromJson(const std::string& text, std::string* error, std::vec
             TileLayer& layer = m.m_layers.emplace_back();
             layer.name = l.value("name", std::string("layer"));
             layer.mode = layerModeFrom(l.value("mode", std::string()));
+            layer.height = l.value("height", 0.f);
             readCells(l.value("cells", Json()), layer);
         }
     } else {
