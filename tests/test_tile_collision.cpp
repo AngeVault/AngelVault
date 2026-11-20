@@ -57,6 +57,19 @@ int main() {
         CHECK(areas[0][3] == m.cellCorners(0, 0)[3]);
     }
 
+    {   // layer surélevé : la collision suit le dessin, les deux hauteurs ne fusionnent pas
+        TileMapData m = makeMap(TileMapOrientation::Isometric);
+        m.addLayer("haut");
+        m.layer(2)->height = 64.f;
+        m.set(1, 0, 0, makeCell(1, 0));
+        m.set(2, 1, 0, makeCell(1, 0));
+        const auto areas = m.solidAreas();
+        CHECK(areas.size() == 2);
+        CHECK(areas[0][0] == m.cellCorners(0, 0)[0]);
+        CHECK(areas[1][0] == m.cellCorners(1, 0)[0] - sf::Vector2f(0.f, 64.f));
+        CHECK(areas[1][2] == m.cellCorners(1, 0)[2] - sf::Vector2f(0.f, 64.f));
+    }
+
     if (g_failures == 0) std::printf("test_tile_collision : OK\n");
     return g_failures == 0 ? 0 : 1;
 }

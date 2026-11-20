@@ -294,30 +294,41 @@ std::array<sf::Vector2f, 4> TileMapData::cellCorners(int x, int y) const {
 
 std::vector<std::array<sf::Vector2f, 4>> TileMapData::solidAreas() const {
     std::vector<std::array<sf::Vector2f, 4>> areas;
-    std::vector<char> todo(std::size_t(m_width) * m_height, 0);
+    // une passe par hauteur : la collision suit le dessin du layer
+    std::vector<float> heights;
     for (const TileLayer& layer : m_layers)
-        for (std::size_t i = 0; i < todo.size(); ++i) {
-            const Tileset* t = tilesetOf(layer.cells[i]);
-            todo[i] |= t && t->solid;
-        }
-    auto pending = [&](int x, int y) { return inBounds(x, y) && todo[std::size_t(y) * m_width + x]; };
+        if (std::find(heights.begin(), heights.end(), layer.height) == heights.end()) heights.push_back(layer.height);
 
-    // rectangles gloutons : on étend en x, puis en y tant que toute la ligne suit
-    for (int y = 0; y < m_height; ++y)
-        for (int x = 0; x < m_width; ++x) {
-            if (!pending(x, y)) continue;
-            int x1 = x;
-            while (pending(x1 + 1, y)) ++x1;
-            int y1 = y;
-            auto rowPending = [&](int row) {
-                for (int i = x; i <= x1; ++i) if (!pending(i, row)) return false;
-                return true;
-            };
-            while (rowPending(y1 + 1)) ++y1;
-            for (int j = y; j <= y1; ++j)
-                for (int i = x; i <= x1; ++i) todo[std::size_t(j) * m_width + i] = 0;
-            areas.push_back({ cellCorners(x, y)[0], cellCorners(x1, y)[1], cellCorners(x1, y1)[2], cellCorners(x, y1)[3] });
+    std::vector<char> todo(std::size_t(m_width) * m_height, 0);
+    auto pending = [&](int x, int y) { return inBounds(x, y) && todo[std::size_t(y) * m_width + x]; };
+    for (float height : heights) {
+        std::fill(todo.begin(), todo.end(), 0);
+        for (const TileLayer& layer : m_layers) {
+            if (layer.height != height) continue;
+            for (std::size_t i = 0; i < todo.size(); ++i) {
+                const Tileset* t = tilesetOf(layer.cells[i]);
+                todo[i] |= t && t->solid;
+            }
         }
+        const sf::Vector2f lift{ 0.f, -height };
+
+        // rectangles gloutons : on étend en x, puis en y tant que toute la ligne suit
+        for (int y = 0; y < m_height; ++y)
+            for (int x = 0; x < m_width; ++x) {
+                if (!pending(x, y)) continue;
+                int x1 = x;
+                while (pending(x1 + 1, y)) ++x1;
+                int y1 = y;
+                auto rowPending = [&](int row) {
+                    for (int i = x; i <= x1; ++i) if (!pending(i, row)) return false;
+                    return true;
+                };
+                while (rowPending(y1 + 1)) ++y1;
+                for (int j = y; j <= y1; ++j)
+                    for (int i = x; i <= x1; ++i) todo[std::size_t(j) * m_width + i] = 0;
+                areas.push_back({ cellCorners(x, y)[0] + lift, cellCorners(x1, y)[1] + lift, cellCorners(x1, y1)[2] + lift, cellCorners(x, y1)[3] + lift });
+            }
+    }
     return areas;
 }
 

@@ -81,7 +81,7 @@ public:
     sf::Vector2f localSize() const;                 
     sf::Vector2f localOrigin() const;
 
-    // contour au format de cellCorners, tous layers confondus
+    // contour au format de cellCorners, tous layers confondus, remonté de la hauteur du layer comme au dessin
     std::vector<std::array<sf::Vector2f, 4>> solidAreas() const;
     int usedCells(int slot) const;
 
