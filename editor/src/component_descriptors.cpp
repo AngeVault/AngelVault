@@ -13,6 +13,7 @@
 #include "components/map_transition.h"
 #include "components/name.h"
 #include "components/spawn_point.h"
+#include "components/sprite_animator.h"
 #include "components/rigid_body2d.h"
 #include "components/script_component.h"
 #include "components/transform2d.h"
@@ -885,6 +886,29 @@ std::vector<ComponentDesc> build() {
                 [](MapTransition& c) -> std::string& { return c.scene; }));
             f.push_back(stringRef<MapTransition>(r, e, QObject::tr("Spawn"),
                 [](MapTransition& c) -> std::string& { return c.spawn; }));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- SpriteAnimator
+    {
+        using C = SpriteAnimator;
+        ComponentDesc d{ "SpriteAnimator" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<C>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<C>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<C>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(stringRef<C>(r, e, QObject::tr("Dossier"), [](C& c) -> std::string& { return c.folder; }));
+            f.push_back(stringRef<C>(r, e, QObject::tr("Clip"), [](C& c) -> std::string& { return c.clip; }));
+            f.push_back(vecRef<C>(r, e, QObject::tr("Case"), [](C& c) -> sf::Vector2f& { return c.frameSize; }));
+            f.push_back(intRef<C>(r, e, QObject::tr("Images"), [](C& c) -> int& { return c.frames; }));
+            f.push_back(intRef<C>(r, e, QObject::tr("Directions"), [](C& c) -> int& { return c.directions; }));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Angle ligne 0"), [](C& c) -> float& { return c.startAngle; }, -360, 360, 45));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Images / s"), [](C& c) -> float& { return c.fps; }, 0, 240, 1));
+            f.push_back(boolRef<C>(r, e, QObject::tr("Boucle"), [](C& c) -> bool& { return c.loop; }));
+            f.push_back(vecRef<C>(r, e, QObject::tr("Regard"), [](C& c) -> sf::Vector2f& { return c.facing; }, 0.1));
             return f;
         };
         list.push_back(d);

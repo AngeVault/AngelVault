@@ -29,3 +29,7 @@ add_test(NAME test_scene_transition COMMAND test_scene_transition)
 add_executable(test_interaction test_interaction.cpp)
 target_link_libraries(test_interaction PRIVATE AngeVault::Gameplay)
 add_test(NAME test_interaction COMMAND test_interaction)
+
+add_executable(test_sprite_animation test_sprite_animation.cpp)
+target_link_libraries(test_sprite_animation PRIVATE AngeVault::Render2D)
+add_test(NAME test_sprite_animation COMMAND test_sprite_animation)

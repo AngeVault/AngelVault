@@ -17,19 +17,19 @@
           "rotation": 0.0,
           "scale": [
             1.0,
-            1.1543892621994019
+            1.0
           ],
           "depth": 0.0
         },
         "Geometry": {
           "layer": 1,
           "shape": "Sprite",
-          "texture": "player",
+          "texture": "assets/characters/body/Idle.png",
           "rect": [
             0,
-            0,
-            32,
-            64
+            256,
+            128,
+            128
           ],
           "tint": "#FFFFFFFF"
         },
@@ -61,6 +61,23 @@
         },
         "Interactor": {
           "action": "interagir"
+        },
+        "SpriteAnimator": {
+          "folder": "assets/characters/body",
+          "clip": "Idle",
+          "frameSize": [
+            128.0,
+            128.0
+          ],
+          "frames": 15,
+          "directions": 8,
+          "startAngle": 0.0,
+          "fps": 15.0,
+          "loop": true,
+          "facing": [
+            0.0,
+            1.0
+          ]
         },
         "Script": {
           "behaviors": [

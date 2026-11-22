@@ -11,6 +11,7 @@
 #include "components/geometry.h"
 #include "components/interaction.h"
 #include "components/map_transition.h"
+#include "components/sprite_animator.h"
 #include "components/name.h"
 #include "components/spawn_point.h"
 #include "components/rigid_body2d.h"
@@ -282,6 +283,7 @@ void registerBuiltins(SerializerRegistry& reg) {
     reg.addReflected<MapTransition>("MapTransition");
     reg.addReflected<Interactor>("Interactor");
     reg.addReflected<Interactable>("Interactable");
+    reg.addReflected<SpriteAnimator>("SpriteAnimator");
 
     // ---- Tilemap : seulement le fichier .map (les cases sont dedans) et « visible »
     reg.add<Tilemap>("Tilemap",

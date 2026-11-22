@@ -7,6 +7,7 @@
 #include "input/input.h"
 #include "ecs/behavior_factory.h"
 #include "components/geometry.h"
+#include "components/sprite_animator.h"
 #include "utils/camera_utils.h"
 #pragma once
 
@@ -14,6 +15,8 @@ class PlayerBehavior : public IBehavior {
 public:
     PROPERTY(float, speed, 250.f)
     PROPERTY(float, shakeOnJump, 0.4f)
+    PROPERTY(std::string, idleClip, "Idle")
+    PROPERTY(std::string, moveClip, "Run")
 
         void onUpdate(Entity self, Registry& registry, float dt) override
         {
@@ -28,6 +31,14 @@ public:
 
         rb.velocity.x = moveX * speed;
         rb.velocity.y = moveY * speed;
+
+        // garde la dernière direction à l'arrêt
+        if (registry.hasComponent<SpriteAnimator>(self)) {
+            auto& anim = registry.getComponent<SpriteAnimator>(self);
+            const bool moving = moveX != 0.f || moveY != 0.f;
+            anim.clip = moving ? moveClip : idleClip;
+            if (moving) anim.facing = { moveX, moveY };
+        }
 
         if (Input::getButtonDown("saute")) Camera::shake(registry, shakeOnJump);   // démo CameraShake
     }
