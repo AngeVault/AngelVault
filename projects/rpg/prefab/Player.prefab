@@ -11,13 +11,13 @@
         },
         "Transform2D": {
           "position": [
-            1037.33056640625,
-            647.0990600585938
+            67.22694396972656,
+            920.0737915039063
           ],
           "rotation": 0.0,
           "scale": [
             1.0,
-            1.0
+            1.1543892621994019
           ],
           "depth": 0.0
         },
@@ -45,7 +45,7 @@
         "Collider2D": {
           "offset": [
             0.0,
-            0.0
+            22.0
           ],
           "isTrigger": false,
           "restitution": 0.20000000298023224,
@@ -53,15 +53,19 @@
           "shape": "Box",
           "halfSize": [
             16.0,
-            32.0
+            15.0
           ]
+        },
+        "DontDestroy": {
+          "key": "Player"
         },
         "Script": {
           "behaviors": [
             {
               "name": "PlayerBehavior",
               "properties": {
-                "speed": 250.0
+                "speed": 400.0,
+                "shakeOnJump": 0.4000000059604645
               }
             }
           ]
@@ -76,8 +80,8 @@
         },
         "Transform2D": {
           "position": [
-            1037.33056640625,
-            647.0990600585938
+            67.22694396972656,
+            920.0737915039063
           ],
           "rotation": 0.0,
           "scale": [
@@ -90,20 +94,52 @@
           "zoom": 1.0,
           "minZoom": 0.25,
           "maxZoom": 4.0,
-          "panSpeedKeyboard": 1000.0,
-          "panSpeedGamepad": 100.0,
-          "zoomStep": 0.5,
-          "zoomLerpSpeed": 12.0,
-          "targetZoom": 1.0,
-          "worldMin": [
+          "rotation": 0.0,
+          "priority": 0,
+          "active": true,
+          "blendTime": 0.0
+        },
+        "CameraFollow": {
+          "target": 18092514487157541069,
+          "offset": [
             0.0,
             0.0
           ],
-          "worldMax": [
-            3000.0,
-            3000.0
+          "smoothTime": 0.15000000596046448,
+          "maxSpeed": 0.0,
+          "deadZone": [
+            0.0,
+            0.0
           ],
-          "targetLock": 18092514487157541069
+          "lookAhead": 0.0,
+          "lookAheadTime": 0.30000001192092896,
+          "snapOnStart": true
+        },
+        "CameraBounds": {
+          "min": [
+            -2030.0,
+            -40.0
+          ],
+          "max": [
+            2050.0,
+            2040.0
+          ],
+          "limitZoom": true
+        },
+        "CameraControl": {
+          "actionX": "CameraX",
+          "actionY": "CameraY",
+          "actionZoom": "Zoom",
+          "actionZoomWheel": "ZoomWheel",
+          "panEnabled": true,
+          "zoomEnabled": false,
+          "panSpeed": 800.0,
+          "zoomSpeed": 1.5,
+          "wheelStep": 0.15000000596046448,
+          "zoomSharpness": 12.0
+        },
+        "DontDestroy": {
+          "key": "Camera"
         }
       }
     }
