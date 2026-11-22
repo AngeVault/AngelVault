@@ -9,6 +9,7 @@
 #include "components/day_night_cycle.h"
 #include "components/dont_destroy.h"
 #include "components/geometry.h"
+#include "components/interaction.h"
 #include "components/map_transition.h"
 #include "components/name.h"
 #include "components/spawn_point.h"
@@ -885,6 +886,32 @@ std::vector<ComponentDesc> build() {
             f.push_back(stringRef<MapTransition>(r, e, QObject::tr("Spawn"),
                 [](MapTransition& c) -> std::string& { return c.spawn; }));
             return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- Interactor
+    {
+        ComponentDesc d{ "Interactor" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<Interactor>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<Interactor>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<Interactor>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            return std::vector<FieldDesc>{ stringRef<Interactor>(r, e, QObject::tr("Action"),
+                [](Interactor& c) -> std::string& { return c.action; }) };
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- Interactable
+    {
+        ComponentDesc d{ "Interactable" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<Interactable>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<Interactable>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<Interactable>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            return std::vector<FieldDesc>{ boolRef<Interactable>(r, e, QObject::tr("Actif"),
+                [](Interactable& c) -> bool& { return c.enabled; }) };
         };
         list.push_back(d);
     }

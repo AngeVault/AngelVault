@@ -9,6 +9,7 @@
 #include "components/day_night_cycle.h"
 #include "components/dont_destroy.h"
 #include "components/geometry.h"
+#include "components/interaction.h"
 #include "components/map_transition.h"
 #include "components/name.h"
 #include "components/spawn_point.h"
@@ -279,6 +280,8 @@ void registerBuiltins(SerializerRegistry& reg) {
     reg.addReflected<DontDestroy>("DontDestroy");
     reg.addReflected<SpawnPoint>("SpawnPoint");
     reg.addReflected<MapTransition>("MapTransition");
+    reg.addReflected<Interactor>("Interactor");
+    reg.addReflected<Interactable>("Interactable");
 
     // ---- Tilemap : seulement le fichier .map (les cases sont dedans) et « visible »
     reg.add<Tilemap>("Tilemap",

@@ -10,6 +10,7 @@
 #include "systems/collision_system.h"
 #include "systems/tile_collision_system.h"
 #include "systems/script_system.h"
+#include "systems/interaction_system.h"
 #include "systems/scene_transition_system.h"
 #include "components/name.h"
 #include "components/geometry.h"
@@ -37,6 +38,7 @@ inline void loadRpgEntities(Registry& registry) {
     registry.addComponent<RigidBody2D>(player).useGravity = false;
     registry.addComponent<Collider2D>(player, Collider2D::makeBox({ 16.f, 32.f }));
     registry.addComponent<NameComponent>(player, "Player");
+    registry.addComponent<Interactor>(player);
 
     auto& follow = registry.addComponent<CameraFollow>(cameraEntity);
     follow.setTarget(player);
@@ -69,6 +71,9 @@ inline void defaultRpgInput(InputManager& input) {
     camX.bindings = { { Src::Key, int(Key::J), -1.f }, { Src::Key, int(Key::L), 1.f } };
     auto& camY = input.addAction("CameraY", InputAction::Type::Axis);
     camY.bindings = { { Src::Key, int(Key::I), -1.f }, { Src::Key, int(Key::K), 1.f } };
+
+    auto& interact = input.addAction("interagir", InputAction::Type::Button);
+    interact.bindings = { { Src::Key, int(Key::E), 1.f } };
 }
 
 inline void loadRpgInput(InputManager& input, const std::string& path = "assets/input.cfg") {
@@ -79,7 +84,8 @@ inline void registerRpgSystems(Game& game) {
     game.systems().addSystem<TileCollisionSystem>();  
     game.systems().addSystem<PhysicsSystem>();
     auto& collision = game.systems().addSystem<CollisionSystem>();
-    game.systems().addSystem<SceneTransitionSystem>(game, collision);
+    auto& interaction = game.systems().addSystem<InteractionSystem>(collision);
+    game.systems().addSystem<SceneTransitionSystem>(game, collision, interaction);
     game.systems().addSystem<ScriptSystem>();
     registerCameraSystems(game.systems(), game.target());
 }

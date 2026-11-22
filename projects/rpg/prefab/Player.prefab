@@ -59,6 +59,9 @@
         "DontDestroy": {
           "key": "Player"
         },
+        "Interactor": {
+          "action": "interagir"
+        },
         "Script": {
           "behaviors": [
             {

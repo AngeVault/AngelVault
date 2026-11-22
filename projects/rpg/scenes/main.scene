@@ -9,6 +9,21 @@
       "components": {
         "Name": {
           "name": "cycle"
+        },
+        "DayNightCycle": {
+          "hour": 8.0,
+          "minutesPerGameHour": 10.0,
+          "paused": false,
+          "dawnHour": 5.0,
+          "dayHour": 8.0,
+          "duskHour": 18.0,
+          "nightHour": 21.0,
+          "transitionHours": 1.0,
+          "vignette": 0.5,
+          "dawnColor": "#FFBE96FF",
+          "dayColor": "#FFFFFFFF",
+          "duskColor": "#FF966EFF",
+          "nightColor": "#46508CFF"
         }
       }
     },
@@ -163,6 +178,9 @@
         "DontDestroy": {
           "key": "Player"
         },
+        "Interactor": {
+          "action": "interagir"
+        },
         "Script": {
           "behaviors": [
             {
@@ -248,6 +266,9 @@
         "MapTransition": {
           "scene": "scenes/donjon.scene",
           "spawn": "entree"
+        },
+        "Interactable": {
+          "enabled": true
         }
       }
     },

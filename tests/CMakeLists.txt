@@ -25,3 +25,7 @@ add_test(NAME test_tile_collision COMMAND test_tile_collision)
 add_executable(test_scene_transition test_scene_transition.cpp)
 target_link_libraries(test_scene_transition PRIVATE AngeVault::Scene)
 add_test(NAME test_scene_transition COMMAND test_scene_transition)
+
+add_executable(test_interaction test_interaction.cpp)
+target_link_libraries(test_interaction PRIVATE AngeVault::Gameplay)
+add_test(NAME test_interaction COMMAND test_interaction)
