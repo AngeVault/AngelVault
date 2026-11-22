@@ -203,8 +203,10 @@
             {
               "name": "PlayerBehavior",
               "properties": {
-                "speed": 400.0,
-                "shakeOnJump": 0.4000000059604645
+                "speed": 100.0,
+                "shakeOnJump": 0.4000000059604645,
+                "idleClip": "Idle",
+                "moveClip": "Run"
               }
             }
           ]
