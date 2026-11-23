@@ -1,10 +1,17 @@
 #include "game_settings.h"
 
 #include <algorithm>
+#include <charconv>
 #include <fstream>
 #include <sstream>
 
 namespace {
+// indépendant de la locale : qt met le séparateur décimal en virgule et std::stof lit alors "0.9" comme 0
+bool toFloat(const std::string& s, float& out) {
+    const auto [end, ec] = std::from_chars(s.data(), s.data() + s.size(), out);
+    return ec == std::errc{} && end != s.data();
+}
+
 std::string trim(const std::string& s) {
     const auto first = s.find_first_not_of(" \t\r");
     if (first == std::string::npos) return {};
@@ -54,7 +61,7 @@ void GameSettings::loadFromString(const std::string& text) {
         else if (key == "fpsLimit") fpsLimit = toUnsigned(value, fpsLimit);
         else if (key == "shader") shader = value;
         else if (key.rfind("shader.", 0) == 0) {
-            try { shaderParams[key.substr(7)] = std::stof(value); } catch (...) {}
+            if (float v; toFloat(value, v)) shaderParams[key.substr(7)] = v;
         }
     }
 }
