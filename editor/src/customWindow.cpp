@@ -254,8 +254,7 @@ private:
 
 CustomWindow::CustomWindow(QWidget* parent) : QMainWindow(parent) {
     setObjectName("MainWindow");
-    setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowSystemMenuHint
-                   | Qt::WindowMinMaxButtonsHint);
+    setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowSystemMenuHint | Qt::WindowMinMaxButtonsHint);
 
     m_titleBar = new TitleBar(this);
     setMenuWidget(m_titleBar);

@@ -5,49 +5,86 @@
   "map": null,
   "entities": [
     {
-      "id": 9932720423414607161,
+      "id": 7001000000000000001,
       "components": {
         "Name": {
-          "name": "cycle"
-        },
-        "DayNightCycle": {
-          "hour": 8.0,
-          "minutesPerGameHour": 10.0,
-          "paused": false,
-          "dawnHour": 5.0,
-          "dayHour": 8.0,
-          "duskHour": 18.0,
-          "nightHour": 21.0,
-          "transitionHours": 1.0,
-          "vignette": 0.5,
-          "dawnColor": "#FFBE96FF",
-          "dayColor": "#FFFFFFFF",
-          "duskColor": "#FF966EFF",
-          "nightColor": "#46508CFF"
-        }
-      }
-    },
-    {
-      "id": 5309003831008224062,
-      "components": {
-        "Name": {
-          "name": "map"
+          "name": "Porte donjon"
         },
         "Transform2D": {
           "position": [
-            0.0,
-            0.0
+            28.883468627929688,
+            1635.0484619140625
           ],
-          "rotation": 0.0,
+          "rotation": 18.0,
           "scale": [
             1.0,
             1.0
           ],
           "depth": 0.0
         },
-        "Tilemap": {
-          "file": "maps/tilemap_iso.map",
-          "visible": true
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": true,
+          "restitution": 0.0,
+          "friction": 0.0,
+          "shape": "Box",
+          "halfSize": [
+            27.519807815551758,
+            44.7689208984375
+          ]
+        },
+        "MapTransition": {
+          "scene": "scenes/donjon.scene",
+          "spawn": "entree"
+        },
+        "Interactable": {
+          "enabled": true
+        }
+      }
+    },
+    {
+      "id": 7647194933246917022,
+      "components": {
+        "Name": {
+          "name": "mur bas"
+        },
+        "Transform2D": {
+          "position": [
+            -1005.458251953125,
+            1522.8665771484375
+          ],
+          "rotation": 26.499996185302734,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            1158.716796875,
+            16.0
+          ]
         }
       }
     },
@@ -70,8 +107,8 @@
           "depth": 0.0
         },
         "Camera2d": {
-          "zoom": 1.0,
-          "minZoom": 0.25,
+          "zoom": 2.0,
+          "minZoom": 1.0,
           "maxZoom": 4.0,
           "rotation": 0.0,
           "priority": 0,
@@ -111,7 +148,7 @@
           "actionZoom": "Zoom",
           "actionZoomWheel": "ZoomWheel",
           "panEnabled": true,
-          "zoomEnabled": false,
+          "zoomEnabled": true,
           "panSpeed": 800.0,
           "zoomSpeed": 1.5,
           "wheelStep": 0.15000000596046448,
@@ -163,16 +200,16 @@
         },
         "Collider2D": {
           "offset": [
-            0.0,
-            22.0
+            0.7665443420410156,
+            15.5765380859375
           ],
           "isTrigger": false,
           "restitution": 0.20000000298023224,
           "friction": 0.4000000059604645,
           "shape": "Box",
           "halfSize": [
-            16.0,
-            15.0
+            5.294269561767578,
+            8.5765380859375
           ]
         },
         "DontDestroy": {
@@ -203,7 +240,7 @@
             {
               "name": "PlayerBehavior",
               "properties": {
-                "speed": 100.0,
+                "speed": 120.0,
                 "shakeOnJump": 0.4000000059604645,
                 "idleClip": "Idle",
                 "moveClip": "Run"
@@ -247,47 +284,6 @@
         "Spin": {
           "degreesPerSecond": 90.0,
           "clockwise": true
-        }
-      }
-    },
-    {
-      "id": 7001000000000000001,
-      "components": {
-        "Name": {
-          "name": "Porte donjon"
-        },
-        "Transform2D": {
-          "position": [
-            28.883468627929688,
-            1635.0484619140625
-          ],
-          "rotation": 18.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "Collider2D": {
-          "offset": [
-            0.0,
-            0.0
-          ],
-          "isTrigger": true,
-          "restitution": 0.0,
-          "friction": 0.0,
-          "shape": "Box",
-          "halfSize": [
-            27.519807815551758,
-            44.7689208984375
-          ]
-        },
-        "MapTransition": {
-          "scene": "scenes/donjon.scene",
-          "spawn": "entree"
-        },
-        "Interactable": {
-          "enabled": true
         }
       }
     },
@@ -342,8 +338,8 @@
         },
         "Transform2D": {
           "position": [
-            1321.1802978515625,
-            967.3965454101563
+            -21.074478149414063,
+            1703.940185546875
           ],
           "rotation": 0.0,
           "scale": [
@@ -354,49 +350,6 @@
         },
         "SpawnPoint": {
           "name": "sortie_donjon"
-        }
-      }
-    },
-    {
-      "id": 7647194933246917022,
-      "components": {
-        "Name": {
-          "name": "mur bas"
-        },
-        "Transform2D": {
-          "position": [
-            -1005.458251953125,
-            1522.8665771484375
-          ],
-          "rotation": 26.499996185302734,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            0.0,
-            0.0
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            1158.716796875,
-            16.0
-          ]
         }
       }
     },
@@ -485,6 +438,53 @@
           ]
         }
       }
+    },
+    {
+      "id": 9932720423414607161,
+      "components": {
+        "Name": {
+          "name": "cycle"
+        },
+        "DayNightCycle": {
+          "hour": 8.0,
+          "minutesPerGameHour": 10.0,
+          "paused": false,
+          "dawnHour": 5.0,
+          "dayHour": 8.0,
+          "duskHour": 18.0,
+          "nightHour": 21.0,
+          "transitionHours": 1.0,
+          "vignette": 0.5,
+          "dawnColor": "#FFBE96FF",
+          "dayColor": "#FFFFFFFF",
+          "duskColor": "#FF966EFF",
+          "nightColor": "#46508CFF"
+        }
+      }
+    },
+    {
+      "id": 5309003831008224062,
+      "components": {
+        "Name": {
+          "name": "map"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso.map",
+          "visible": true
+        }
+      }
     }
   ],
   "editor": {
@@ -497,14 +497,14 @@
     ],
     "categoryParent": {},
     "entityCategory": {
-      "9932720423414607161": "jours nuit",
-      "5309003831008224062": "map",
+      "7647194933246917022": "colision",
       "18092514487157541069": "Personnages",
       "18418294981170371368": "test",
       "15643577204517526455": "colision",
-      "7647194933246917022": "colision",
       "15999493952223515466": "colision",
-      "8432238510110025053": "colision"
+      "8432238510110025053": "colision",
+      "9932720423414607161": "jours nuit",
+      "5309003831008224062": "map"
     }
   }
 }

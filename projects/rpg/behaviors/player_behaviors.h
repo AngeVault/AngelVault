@@ -26,10 +26,9 @@ public:
 
         auto& rb = registry.getComponent<RigidBody2D>(self);
 
-        // Actions de l'Input Manager (assets/input.cfg) : flèches, ZQSD/WASD et stick gauche par défaut
+        // Input Manager (assets/input.cfg) : flèches, ZQSD/WASD et stick gauche par défaut
         float moveX = Input::getAxis("Horizontal");
         float moveY = Input::getAxis("Vertical");
-        // même vitesse en diagonale, le stick garde son dosage
         const float len = std::hypot(moveX, moveY);
         if (len > 1.f) { moveX /= len; moveY /= len; }
 
