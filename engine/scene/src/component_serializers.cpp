@@ -9,6 +9,7 @@
 #include "components/transform2d.h"
 #include "components/steering_component.h"
 #include "components/steeringSeek_component.h"
+#include "components/steeringFlee_component.h"
 #include "tilemap/tilemap.h"
 #include "ecs/behavior_factory.h"
 #include "ecs/game_components.h"
@@ -232,6 +233,13 @@ void registerBuiltins(SerializerRegistry& reg) {
         [](SteeringSeekComponent& s, const Json& j, const LoadContext&) {
             s.isActif  = value(j, "isActif", s.isActif);
             s.positionCible = vec2(j.value("positionCible", Json()), s.positionCible);
+        });
+
+    reg.add<SteeringFleeComponent>("SteeringFlee",[](SteeringFleeComponent& s, const SaveContext&) {
+            return Json{ { "isActif",  s.isActif } };
+        },
+        [](SteeringFleeComponent& s, const Json& j, const LoadContext&) {
+            s.isActif  = value(j, "isActif", s.isActif);
         });
 
     // ---- Script : liste de comportements, chacun = son nom (BehaviorFactory) + ses PROPERTY

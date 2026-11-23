@@ -135,7 +135,7 @@
         "Transform2D": {
           "position": [
             401.8966369628906,
-            156.37136840820313
+            157.48681640625
           ],
           "rotation": 0.0,
           "scale": [
@@ -179,6 +179,9 @@
             100.0
           ]
         },
+        "SteeringFlee": {
+          "isActif": true
+        },
         "Life": {
           "actualLife": 1000.0,
           "maxLife": 1000.0,
@@ -189,8 +192,8 @@
           "vision": 1000.0
         },
         "Stats": {
-          "force": 1.0,
-          "agilite": 1.0,
+          "force": 5.0,
+          "agilite": 5.0,
           "constitution": 1.0,
           "intelligence": 1.0,
           "sagesse": 1.0,
