@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include "system/Dialog_system.h"
 #include "../../Include/components/Dialog.h"
 #include "utils/camera_utils.h"
@@ -25,14 +27,22 @@ void DialogSystem::onUpdate(Registry &registry, float dt) {
     registry.view<Dialog, UIText, Transform2D>([&](Entity e, Dialog dialog, UIText ui, Transform2D transform) {
         if (dialog.dialogs.empty())
         {
-            const Json j = Json::parse( "dialogs/dialog.dialog" /*+ dialog.filePath*/, nullptr, false);
+            std::ifstream in("C:/Users/n.escande/repo_CLion/AngelVault/projects/rpg/dialogs/dialog.dialog");
+            if (!in) return;
+            std::ostringstream ss;
+            ss << in.rdbuf();
+            const Json j = Json::parse( ss.str(), nullptr, false);
             if (j.is_discarded() || !j.is_object()) return;
             if (j.value("format", std::string()) != "angeVault.dialog")return;
-            Json J = Json::array();
-            J = j["dialogs"];
-            for (int i = 0; i <= J.size(); ++i)
-            {
-                dialog.dialogs.push_back(std::to_string(i));
+             // = Json::array();
+            if (j.contains("dialog")) {
+                Json J = j["dialog"];
+                for (int i = 0; i < J.size(); ++i)
+                {
+                    // if (J[i].is_string())
+                        dialog.dialogs.emplace_back(J[i].get<std::string>());
+                    ui.text = dialog.dialogs.front();
+                }
             }
         }
         m_text->setString(ui.text);
