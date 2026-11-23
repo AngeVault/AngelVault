@@ -24,6 +24,8 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "components/Dialog.h"
+
 using namespace SceneJson;
 
 // ---- Aides JSON --------------------------------------------------------------------------------
@@ -292,17 +294,24 @@ void registerBuiltins(SerializerRegistry& reg) {
         });
 
     reg.add<UIText>("UIText",
-        [](UIText& t, const SaveContext&) { return Json{ { "text", t.text } };
-        },[](UIText& t, const Json& j, const LoadContext&) {t.text = j.value("text", std::string()); });
+        [](UIText& t, const SaveContext&) { return Json{ { "text", t.text }, {"isRelativeToCamera", t.isRelativeToCamera} };
+        },[](UIText& t, const Json& j, const LoadContext&) {
+            t.text = j.value("text", std::string());
+            t.isRelativeToCamera = j.value("text", bool());
+        });
 
     reg.add<UIButton>("UIButton",
-        [](UIButton& t, const SaveContext&) { return Json{ { "Red", t.r } };
+        [](UIButton& t, const SaveContext&) { return Json{ { "With", t.with}, { "Height", t.height } };
         },[](UIButton& t, const Json& j, const LoadContext&) {
-            t.r = j.value("Red", 255);
-            t.g = j.value("Green", 255);
-            t.b = j.value("Blue", 255);
             t.with = j.value("With", 70);
-            t.height = j.value("Height", 40); });
+            t.height = j.value("Height", 40);
+    });
+
+    reg.add<Dialog>("Dialog",
+        [](Dialog& t, const SaveContext&) { return Json{ { "text", t.dialog} };
+        },[](Dialog& t, const Json& j, const LoadContext&) {
+            t.dialog = j.value("dialog", "");
+    });
 
     // ---- Script : liste de comportements, chacun = son nom (BehaviorFactory) + ses PROPERTY
     //   "Script": { "behaviors": [ { "name": "PlayerBehavior", "properties": { "speed": 250 } } ] }

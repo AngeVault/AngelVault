@@ -1,14 +1,8 @@
 #pragma once
 #include "ecs/system.h"
-#include "ecs/registry.h"
-#include "components/transform2d.h"
-#include "../../core/include/components/transform2d.h"
 #include <SFML/Graphics.hpp>
-#include <cfloat>
-#include <algorithm>
-#include "components/UIButton.h"
-#include "components/UIText.h"
 #include "game_loop.h"
+#include "systems/collision_system.h"
 
 
 
@@ -22,6 +16,7 @@ private:
     sf::RenderWindow& m_window;
 public:
     SystemUI(sf::RenderTarget& renderTarget, Game& game, sf::RenderWindow& window);
+    void onTrigger(Registry& registry, CollisionInfo info);
     void onUpdate(Registry& registry, float dt) override;
 };
 

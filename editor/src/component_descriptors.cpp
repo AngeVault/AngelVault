@@ -26,6 +26,7 @@
 #include <cmath>
 #include <typeinfo>
 
+#include "components/Dialog.h"
 #include "components/UIButton.h"
 
 
@@ -550,6 +551,7 @@ std::vector<ComponentDesc> build() {
         d.fields = [](Registry& r, Entity e) {
             std::vector<FieldDesc> f;
             f.push_back(stringRef<UIText>(r,e, QObject::tr("Text"), [](UIText& t) -> std::string& {return t.text;}));
+            f.push_back(boolRef<UIText>(r,e, QObject::tr("Relative to camera"), [](UIText& t) -> bool& {return t.isRelativeToCamera;}));
             return f;
         };
         list.push_back(d);
@@ -563,11 +565,22 @@ std::vector<ComponentDesc> build() {
         d.remove = [](Registry& r, Entity e) { r.removeComponent<UIButton>(e); };
         d.fields = [](Registry& r, Entity e) {
             std::vector<FieldDesc> f;
-            f.push_back(intRef<UIButton>(r,e, QObject::tr("Red"), [](UIButton& t) -> int& {return t.r;}));
-            f.push_back(intRef<UIButton>(r,e, QObject::tr("Green"), [](UIButton& t) -> int& {return t.g;}));
-            f.push_back(intRef<UIButton>(r,e, QObject::tr("Blue"), [](UIButton& t) -> int& {return t.b;}));
             f.push_back(intRef<UIButton>(r,e, QObject::tr("With"), [](UIButton& t) -> int& {return t.with;}));
             f.push_back(intRef<UIButton>(r,e, QObject::tr("Height"), [](UIButton& t) -> int& {return t.height;}));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- UIButton
+    {
+        ComponentDesc d{ "Dialog" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<Dialog>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<Dialog>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<Dialog>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(stringRef<Dialog>(r,e, QObject::tr("Text"), [](Dialog& t) -> std::string& {return t.dialog;}));
             return f;
         };
         list.push_back(d);

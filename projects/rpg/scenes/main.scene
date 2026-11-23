@@ -36,8 +36,8 @@
         },
         "Transform2D": {
           "position": [
-            17.879981994628906,
-            1757.9334716796875
+            7.944467544555664,
+            1761.245361328125
           ],
           "rotation": -25.999990463256836,
           "scale": [
@@ -355,7 +355,8 @@
           "key": "Player"
         },
         "UIButton": {
-          "Red": 13
+          "With": 70,
+          "Height": 40
         },
         "Script": {
           "behaviors": [
@@ -415,7 +416,7 @@
         },
         "Transform2D": {
           "position": [
-            200.08523559570313,
+            195.12234497070313,
             1024.584228515625
           ],
           "rotation": 0.0,
@@ -443,7 +444,8 @@
           "spawn": "entree"
         },
         "UIButton": {
-          "Red": 0
+          "With": 70,
+          "Height": 40
         }
       }
     },
@@ -521,32 +523,59 @@
         },
         "Transform2D": {
           "position": [
-            -359.7982177734375,
-            803.5081176757813
+            -251.69964599609375,
+            765.034423828125
           ],
           "rotation": 0.0,
           "scale": [
-            2.5,
-            3.200000047683716
+            1.0,
+            1.0
           ],
           "depth": 0.0
         },
-        "Collider2D": {
-          "offset": [
-            0.0,
-            0.0
+        "UIText": {
+          "text": "skill issue",
+          "isRelativeToCamera": false
+        }
+      }
+    },
+    {
+      "id": 6263980535966278584,
+      "components": {
+        "Name": {
+          "name": "Nouvelle entité"
+        },
+        "Transform2D": {
+          "position": [
+            80.68225860595703,
+            747.9913940429688
           ],
-          "isTrigger": true,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
           "shape": "Box",
           "halfSize": [
-            283.46514892578125,
-            250.79852294921875
-          ]
+            16.0,
+            16.0
+          ],
+          "style": {
+            "fill": "#505050FF",
+            "outline": "#1E1E1E00",
+            "outlineThickness": 2.0
+          }
         },
         "UIText": {
-          "text": "skill issue"
+          "text": "ui",
+          "isRelativeToCamera": false
+        },
+        "Dialog": {
+          "text": "this is a dialog trust"
         }
       }
     }
@@ -571,7 +600,8 @@
       "18418294981170371368": "test",
       "12929588193896843262": "Personnages",
       "15643577204517526455": "colision",
-      "6090549139278771002": "Personnages"
+      "6090549139278771002": "Personnages",
+      "6263980535966278584": "Personnages"
     }
   }
 }

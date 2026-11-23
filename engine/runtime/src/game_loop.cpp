@@ -10,6 +10,8 @@
 #include <filesystem>
 #include <iostream>
 
+#include "../../ui/Include/components/Dialog.h"
+
 Game::Game() : Game({ 1920u, 1080u }, "AngeVault") {}
 
 Game::Game(sf::Vector2u size, const std::string& title, const GameSettings& settings)
@@ -37,6 +39,7 @@ void Game::init() {
     m_systems.addSystem<RenderCollisionSystem>(m_scene);
     m_systems.addSystem<ForceDebugSystem>(m_scene);
     m_systems.addSystem<SystemUI>(m_scene, *this, *m_window);   // boutons et texte (UIButton + UIText)
+    m_systems.addSystem<DialogSystem>(m_scene, *this);   //
     // Systèmes de jeu du projet (REGISTER_SYSTEM, dossier systems/ du projet)
     for (const GameSystemInfo& info : GameSystemRegistry::get().all()) m_systems.add(info.create(*this, m_scene));
     m_systems.start(m_registry);
