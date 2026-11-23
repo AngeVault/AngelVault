@@ -1,0 +1,5 @@
+{
+  "format": "angeVault.dialog",
+  "version": 2,
+  "dialog": [["oui"], ["non"]]
+}

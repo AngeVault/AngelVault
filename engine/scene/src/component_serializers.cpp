@@ -294,10 +294,9 @@ void registerBuiltins(SerializerRegistry& reg) {
         });
 
     reg.add<UIText>("UIText",
-        [](UIText& t, const SaveContext&) { return Json{ { "text", t.text }, {"isRelativeToCamera", t.isRelativeToCamera} };
+        [](UIText& t, const SaveContext&) { return Json{ { "text", t.text } };
         },[](UIText& t, const Json& j, const LoadContext&) {
             t.text = j.value("text", std::string());
-            t.isRelativeToCamera = j.value("text", bool());
         });
 
     reg.add<UIButton>("UIButton",
@@ -306,11 +305,11 @@ void registerBuiltins(SerializerRegistry& reg) {
             t.with = j.value("With", 70);
             t.height = j.value("Height", 40);
     });
-
+    //
     reg.add<Dialog>("Dialog",
-        [](Dialog& t, const SaveContext&) { return Json{ { "text", t.dialog} };
-        },[](Dialog& t, const Json& j, const LoadContext&) {
-            t.dialog = j.value("dialog", "");
+        [](Dialog& d, const SaveContext&) { return Json{ {"json", d.filePath } };
+        },[](Dialog& d, const Json& j, const LoadContext&) {
+            d.filePath = j.value("json", "");
     });
 
     // ---- Script : liste de comportements, chacun = son nom (BehaviorFactory) + ses PROPERTY

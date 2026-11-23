@@ -4,13 +4,14 @@
 #include "systems/day_night_system.h"
 #include "systems/render_collision_system.h"
 #include "systems/force_debug_system.h"
-#include "UI.h"
+#include "system/UI.h"
+#include "system/Dialog_system.h"
 #include "game_systems.h"
+
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
 
-#include "../../ui/Include/components/Dialog.h"
 
 Game::Game() : Game({ 1920u, 1080u }, "AngeVault") {}
 

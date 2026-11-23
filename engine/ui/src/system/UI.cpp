@@ -1,12 +1,14 @@
-#include "Ui.h"
+#include "../../Include/system/UI.h"
 
 #include "utils/camera_utils.h"
 #include "scene/component_serializer.h"
 #include  <iostream>
+#include <numbers>
 
 #include "components/UIButton.h"
 #include "components/UIText.h"
 #include "components/collider2d.h"
+#include "components/Dialog.h"
 #include "components/dont_destroy.h"
 #include "components/geometry.h"
 #include "components/map_transition.h"
@@ -78,7 +80,8 @@ void SystemUI::onUpdate(Registry &registry, float dt) {
            }
        });
     registry.view<UIText, Transform2D>([&](Entity e, UIText& ui, Transform2D transform) {
-        if (registry.hasComponent<Collider2D>(e)) {
+          if (registry.hasComponent<Dialog>(e)) return;
+  if (registry.hasComponent<Collider2D>(e)) {
             Collider2D& collider = registry.getComponent<Collider2D>(e);
             if (collider.isTrigger) {
                 if (ui.isHidden)

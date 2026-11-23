@@ -12,9 +12,7 @@ add_subdirectory(ui)          # ui de nat
 # Modules prévus, pas encore créés (un README par dossier) :
 #   assets  animation  audio  ui  ai
 
-add_library(av_engine INTERFACE
-        ui/Include/components/Dialog.h
-        ui/src/Dialog.cpp)
+add_library(av_engine INTERFACE)
 add_library(AngeVault::Engine ALIAS av_engine)
 target_link_libraries(av_engine INTERFACE
     AngeVault::Core AngeVault::Physics2D AngeVault::Particles AngeVault::Tilemap

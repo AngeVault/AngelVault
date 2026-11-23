@@ -551,7 +551,6 @@ std::vector<ComponentDesc> build() {
         d.fields = [](Registry& r, Entity e) {
             std::vector<FieldDesc> f;
             f.push_back(stringRef<UIText>(r,e, QObject::tr("Text"), [](UIText& t) -> std::string& {return t.text;}));
-            f.push_back(boolRef<UIText>(r,e, QObject::tr("Relative to camera"), [](UIText& t) -> bool& {return t.isRelativeToCamera;}));
             return f;
         };
         list.push_back(d);
@@ -580,7 +579,7 @@ std::vector<ComponentDesc> build() {
         d.remove = [](Registry& r, Entity e) { r.removeComponent<Dialog>(e); };
         d.fields = [](Registry& r, Entity e) {
             std::vector<FieldDesc> f;
-            f.push_back(stringRef<Dialog>(r,e, QObject::tr("Text"), [](Dialog& t) -> std::string& {return t.dialog;}));
+            f.push_back(stringRef<Dialog>(r,e, QObject::tr("Fichie json"), [](Dialog& t) -> std::string& {return t.filePath;}));
             return f;
         };
         list.push_back(d);

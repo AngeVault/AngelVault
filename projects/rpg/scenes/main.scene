@@ -534,8 +534,7 @@
           "depth": 0.0
         },
         "UIText": {
-          "text": "skill issue",
-          "isRelativeToCamera": false
+          "text": "skill issue"
         }
       }
     },
@@ -571,11 +570,10 @@
           }
         },
         "UIText": {
-          "text": "ui",
-          "isRelativeToCamera": false
+          "text": "ui"
         },
         "Dialog": {
-          "text": "this is a dialog trust"
+          "json": "dialog.dialog"
         }
       }
     }
