@@ -33,3 +33,7 @@ add_test(NAME test_interaction COMMAND test_interaction)
 add_executable(test_sprite_animation test_sprite_animation.cpp)
 target_link_libraries(test_sprite_animation PRIVATE AngeVault::Render2D)
 add_test(NAME test_sprite_animation COMMAND test_sprite_animation)
+
+add_executable(test_inventory test_inventory.cpp)
+target_link_libraries(test_inventory PRIVATE AngeVault::Scene)
+add_test(NAME test_inventory COMMAND test_inventory)

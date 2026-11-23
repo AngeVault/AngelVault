@@ -303,7 +303,11 @@ QWidget* InspectorPanel::createEditor(const FieldDesc& f, Entity e) {
         s->setReadOnly(readOnly);
         s->setValue(get().toInt());
         if (!readOnly)
-            connect(s, &QSpinBox::valueChanged, this, [this, e, set](int v) { set(v); edited(e); });
+            connect(s, &QSpinBox::valueChanged, this, [this, e, set, rebuild = f.rebuildOnChange](int v) {
+                set(v);
+                edited(e);
+                if (rebuild) QMetaObject::invokeMethod(this, &InspectorPanel::rebuild, Qt::QueuedConnection);
+            });
         m_refreshers.push_back([s, get] { if (!s->hasFocus()) { QSignalBlocker b(s); s->setValue(get().toInt()); } });
         return s;
     }
@@ -349,7 +353,12 @@ QWidget* InspectorPanel::createEditor(const FieldDesc& f, Entity e) {
         auto* l = new QLineEdit(get().toString());
         l->setReadOnly(readOnly);
         if (!readOnly)
-            connect(l, &QLineEdit::editingFinished, this, [this, e, set, l] { set(l->text()); edited(e); });
+            connect(l, &QLineEdit::editingFinished, this, [this, e, get, set, l, rebuild = f.rebuildOnChange] {
+                const bool changed = l->text() != get().toString();
+                set(l->text());
+                edited(e);
+                if (rebuild && changed) QMetaObject::invokeMethod(this, &InspectorPanel::rebuild, Qt::QueuedConnection);
+            });
         m_refreshers.push_back([l, get] { if (!l->hasFocus()) l->setText(get().toString()); });
         return l;
     }

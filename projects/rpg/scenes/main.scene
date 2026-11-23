@@ -107,8 +107,8 @@
           "depth": 0.0
         },
         "Camera2d": {
-          "zoom": 2.0,
-          "minZoom": 1.0,
+          "zoom": 3.0,
+          "minZoom": 2.0,
           "maxZoom": 4.0,
           "rotation": 0.0,
           "priority": 0,

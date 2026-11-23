@@ -10,6 +10,7 @@
 #include "components/dont_destroy.h"
 #include "components/geometry.h"
 #include "components/interaction.h"
+#include "components/inventory.h"
 #include "components/map_transition.h"
 #include "components/name.h"
 #include "components/spawn_point.h"
@@ -936,6 +937,58 @@ std::vector<ComponentDesc> build() {
         d.fields = [](Registry& r, Entity e) {
             return std::vector<FieldDesc>{ boolRef<Interactable>(r, e, QObject::tr("Actif"),
                 [](Interactable& c) -> bool& { return c.enabled; }) };
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- Inventory
+    {
+        using C = Inventory;
+        ComponentDesc d{ "Inventory" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<C>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<C>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<C>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(intRef<C>(r, e, QObject::tr("Cases"), [](C& c) -> int& { return c.capacity; }));
+            f.back().min = 0;
+            f.push_back(intRef<C>(r, e, QObject::tr("Pile max"), [](C& c) -> int& { return c.maxStack; }));
+            f.back().min = 0;
+            // une ligne par case, nom vide ou quantité 0 : la case est retirée
+            const std::size_t n = r.getComponent<C>(e).stacks.size();
+            for (std::size_t i = 0; i < n; ++i) {
+                FieldDesc item{ QString::number(i + 1), FieldKind::String };
+                item.get = [&r, e, i] { auto& s = r.getComponent<C>(e).stacks; return QVariant(i < s.size() ? QString::fromStdString(s[i].item) : QString()); };
+                item.set = [&r, e, i](const QVariant& v) {
+                    auto& s = r.getComponent<C>(e).stacks;
+                    if (i >= s.size()) return;
+                    s[i].item = v.toString().trimmed().toStdString();
+                    if (s[i].item.empty()) s.erase(s.begin() + std::ptrdiff_t(i));
+                };
+                item.rebuildOnChange = true;
+                f.push_back(item);
+                FieldDesc count{ QStringLiteral("×"), FieldKind::Int };
+                count.min = 0;
+                count.get = [&r, e, i] { auto& s = r.getComponent<C>(e).stacks; return QVariant(i < s.size() ? s[i].count : 0); };
+                count.set = [&r, e, i](const QVariant& v) {
+                    auto& s = r.getComponent<C>(e).stacks;
+                    if (i >= s.size()) return;
+                    s[i].count = v.toInt();
+                    if (s[i].count <= 0) s.erase(s.begin() + std::ptrdiff_t(i));
+                };
+                count.rebuildOnChange = true;
+                f.push_back(count);
+            }
+            // case vide en bas pour ajouter un objet
+            FieldDesc add{ QStringLiteral("+"), FieldKind::String };
+            add.get = [] { return QVariant(QString()); };
+            add.set = [&r, e](const QVariant& v) {
+                const std::string item = v.toString().trimmed().toStdString();
+                if (!item.empty()) r.getComponent<C>(e).add(item, 1);
+            };
+            add.rebuildOnChange = true;
+            f.push_back(add);
+            return f;
         };
         list.push_back(d);
     }
