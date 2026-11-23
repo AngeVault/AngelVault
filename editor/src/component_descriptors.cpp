@@ -579,7 +579,7 @@ std::vector<ComponentDesc> build() {
         d.remove = [](Registry& r, Entity e) { r.removeComponent<Dialog>(e); };
         d.fields = [](Registry& r, Entity e) {
             std::vector<FieldDesc> f;
-            f.push_back(stringRef<Dialog>(r,e, QObject::tr("Fichie json"), [](Dialog& t) -> std::string& {return t.filePath;}));
+            f.push_back(stringRef<Dialog>(r,e, QObject::tr("Fichier json"), [](Dialog& di) -> std::string& {return di.filePath;}));
             return f;
         };
         list.push_back(d);

@@ -12,7 +12,7 @@ struct Dialog
 {
     std::vector<std::string> dialogs;
     std::string filePath;
-    bool nextLine = 0;
+    int currentLine = 0;
 };
 
 template<>

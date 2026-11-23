@@ -24,10 +24,10 @@ DialogSystem::DialogSystem(sf::RenderTarget &renderTarget, Game &game) : m_game(
 };
 
 void DialogSystem::onUpdate(Registry &registry, float dt) {
-    registry.view<Dialog, UIText, Transform2D>([&](Entity e, Dialog dialog, UIText ui, Transform2D transform) {
+    registry.view<Dialog, UIText, Transform2D>([&](Entity e, Dialog& dialog, UIText& ui, Transform2D& transform) {
         if (dialog.dialogs.empty())
         {
-            std::ifstream in("C:/Users/n.escande/repo_CLion/AngelVault/projects/rpg/dialogs/dialog.dialog");
+            std::ifstream in(m_game.assetDir()+"/dialogs/"+dialog.filePath);
             if (!in) return;
             std::ostringstream ss;
             ss << in.rdbuf();
@@ -39,12 +39,13 @@ void DialogSystem::onUpdate(Registry &registry, float dt) {
                 Json J = j["dialog"];
                 for (int i = 0; i < J.size(); ++i)
                 {
-                    // if (J[i].is_string())
                         dialog.dialogs.emplace_back(J[i].get<std::string>());
-                    ui.text = dialog.dialogs.front();
                 }
             }
         }
+
+        if (dialog.currentLine >= dialog.dialogs.size())dialog.currentLine = 0;
+        ui.text = dialog.dialogs[dialog.currentLine++];
         m_text->setString(ui.text);
         m_renderTarget.draw(*m_text, transform.getLocalMatrix());
         });

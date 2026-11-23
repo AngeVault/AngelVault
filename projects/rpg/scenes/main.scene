@@ -573,7 +573,8 @@
           "text": "ui"
         },
         "Dialog": {
-          "json": "dialog.dialog"
+          "json": "dialog.dialog",
+          "current line": 1
         }
       }
     }

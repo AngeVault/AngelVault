@@ -307,7 +307,7 @@ void registerBuiltins(SerializerRegistry& reg) {
     });
     //
     reg.add<Dialog>("Dialog",
-        [](Dialog& d, const SaveContext&) { return Json{ {"json", d.filePath } };
+        [](Dialog& d, const SaveContext&) { return Json{ {"json", d.filePath }};
         },[](Dialog& d, const Json& j, const LoadContext&) {
             d.filePath = j.value("json", "");
     });
