@@ -326,6 +326,11 @@
           ],
           "openTime": 0.44999998807907104
         },
+        "QuestObjective": {
+          "quest": "epee_perdue",
+          "reward": "potion_soin",
+          "rewardCount": 1
+        },
         "Inventory": {
           "capacity": 20,
           "maxStack": 99,

@@ -1,7 +1,7 @@
 #include <fstream>
 
-#include "system/Dialog_system.h"
-#include "../../Include/components/Dialog.h"
+#include "system/dialog_system.h"
+#include "components/Dialog.h"
 #include "utils/camera_utils.h"
 #include "scene/component_serializer.h"
 #include "ecs/registry.h"

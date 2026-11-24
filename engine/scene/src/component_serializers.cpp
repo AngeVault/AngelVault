@@ -13,6 +13,7 @@
 #include "components/chest.h"
 #include "components/inventory.h"
 #include "components/pickup.h"
+#include "components/quest.h"
 #include "components/map_transition.h"
 #include "components/sprite_animator.h"
 #include "components/name.h"
@@ -293,6 +294,8 @@ void registerBuiltins(SerializerRegistry& reg) {
     reg.addReflected<SpriteAnimator>("SpriteAnimator");
     reg.addReflected<Pickup>("Pickup");
     reg.addReflected<Chest>("Chest");
+    reg.addReflected<QuestGiver>("QuestGiver");
+    reg.addReflected<QuestObjective>("QuestObjective");
 
     // "Inventory": { "capacity": 20, "maxStack": 99, "stacks": [ { "item": "potion", "count": 3 } ] }
     reg.add<Inventory>("Inventory",

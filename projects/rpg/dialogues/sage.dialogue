@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "id": "sage",
+
+  "styles": {
+    "bulle": { "type": "world", "anchor": "speaker", "offset": [0, -48], "maxWidth": 180, "padding": 6, "background": "#000000c0", "tail": true, "font": "assets/fonts/pixel.ttf", "fontSize": 14, "textColor": "#f0e6d2" },
+    "pensee": { "type": "world", "anchor": "player", "offset": [0, -40], "maxWidth": 140, "tail": false, "advance": "auto", "delay": 1.5, "speed": 25, "textColor": "#a0a8c0" },
+    "panneau_portail": { "type": "world", "anchor": "Portail", "offset": [0, -64], "maxWidth": 200, "background": "#20103080", "tail": false },
+    "boite": { "type": "hud", "position": "bottom", "size": [0.9, 0.25], "margin": 16, "portrait": "left", "nameplate": true, "frame": "assets/ui/cadre.png", "frameBorder": 8, "fontSize": 18 },
+    "boite_haut": { "type": "hud", "position": "top", "size": [0.9, 0.2], "margin": 16, "portrait": "right", "nameplate": false, "background": "#1a1020e0", "voice": "assets/sounds/blip_heros.wav" },
+    "narration": { "type": "hud", "position": "center", "size": [0.7, 0.15], "portrait": "none", "nameplate": false, "background": "#00000000", "advance": "auto", "delay": 2, "speed": 20 },
+    "titre_boss": { "type": "titre", "advance": "auto", "delay": 2.5, "font": "assets/fonts/gothic.ttf", "fontSize": 64, "textColor": "#ffffff", "glow": "#d04040", "fadeIn": 0.6, "fadeOut": 0.8 }
+  },
+
+  "settings": { "style": "boite", "speed": 40, "skippable": true, "camera": "focus" },
+
+  "speakers": {
+    "sage": {
+      "name": "Aldric",
+      "color": "#c9a96e",
+      "voice": "assets/sounds/blip_grave.wav",
+      "style": "bulle",
+      "portraits": { "neutre": "assets/portraits/sage.png", "content": "assets/portraits/sage_content.png", "inquiet": "assets/portraits/sage_inquiet.png", "endormi": "assets/portraits/sage_dort.png" }
+    },
+    "joueur": {
+      "name": "{player}",
+      "color": "#8fb3ff",
+      "style": "boite_haut",
+      "portraits": { "neutre": "assets/portraits/heros.png", "determine": "assets/portraits/heros_determine.png" }
+    },
+    "narrateur": { "name": "", "style": "narration" }
+  },
+
+  "entries": [
+    { "when": { "quest": "epee_perdue", "state": "done" }, "node": "apres_quete" },
+    { "when": { "all": [{ "quest": "epee_perdue", "state": "active" }, { "item": "epee", "min": 1 }] }, "node": "rendu" },
+    { "when": { "quest": "epee_perdue", "state": "active" }, "node": "rappel" },
+    { "when": { "all": [{ "hour": [20, 6] }, { "not": { "flag": "sage_reveille", "is": true } }] }, "node": "nuit" },
+    { "when": { "any": [{ "var": "reputation", "op": "<", "value": 0 }, { "flag": "vole_sage", "is": true }] }, "node": "mefiant" },
+    { "when": { "all": [{ "quest": "epee_perdue", "state": "none" }, { "not": { "seen": "intro" } }] }, "node": "intro" },
+    { "node": "accueil" }
+  ],
+
+  "nodes": {
+    "intro": {
+      "editor": { "x": -320, "y": 0 },
+      "speaker": "narrateur",
+      "lines": ["Le village dort sous un ciel de cendres.", "Seul le vieil Aldric veille encore."],
+      "next": "accueil"
+    },
+    "accueil": {
+      "editor": { "x": 0, "y": 0 },
+      "speaker": "sage",
+      "expression": "neutre",
+      "lines": ["Ah... un voyageur. Ça faisait longtemps.", "[wait=0.4]Les loups rôdent depuis que l'[color=#d04040]épée[/color] a disparu.", "[shake]Même les murs tremblent la nuit.[/shake]"],
+      "next": "demande"
+    },
+    "demande": {
+      "editor": { "x": 320, "y": 0 },
+      "speaker": "sage",
+      "style": "boite",
+      "lines": ["Tu veux bien la retrouver, {player} ? Elle est quelque part dans le donjon."],
+      "choices": [
+        { "text": "J'y vais.", "next": "accepte", "actions": [{ "quest": "epee_perdue", "state": "active" }] },
+        { "text": "Pourquoi moi ?", "next": "pourquoi", "once": true },
+        { "text": "Donner 10 or pour un indice", "when": { "all": [{ "item": "or", "min": 10 }, { "not": { "seen": "indice" } }] }, "show": "disabled", "next": "indice", "actions": [{ "take": "or", "count": 10 }] },
+        { "text": "Menacer", "when": { "var": "courage", "op": ">=", "value": 2 }, "show": "hidden", "next": "menace" },
+        { "text": "Non merci.", "next": "refus" }
+      ]
+    },
+    "pourquoi": {
+      "editor": { "x": 320, "y": 200 },
+      "speaker": "sage",
+      "expression": "inquiet",
+      "lines": ["Parce que tu as une lame, et moi des genoux en ruine."],
+      "next": "demande"
+    },
+    "indice": {
+      "editor": { "x": 320, "y": 360 },
+      "speaker": "sage",
+      "lines": ["Le coffre du donjon est verrouillé. La clé traîne près de l'arbre mort."],
+      "actions": [{ "set": "indice_cle", "value": true }],
+      "next": "demande"
+    },
+    "menace": {
+      "editor": { "x": 640, "y": 360 },
+      "speaker": "joueur",
+      "expression": "determine",
+      "lines": ["Donne-moi ce que tu sais, vieillard."],
+      "actions": [{ "add": "reputation", "value": -1 }, { "set": "vole_sage", "value": true }],
+      "next": "menace_reponse"
+    },
+    "menace_reponse": {
+      "editor": { "x": 960, "y": 360 },
+      "speaker": "sage",
+      "expression": "inquiet",
+      "lines": ["[shake]Va-t'en ![/shake]"],
+      "end": true
+    },
+    "accepte": {
+      "editor": { "x": 640, "y": -200 },
+      "speaker": "sage",
+      "expression": "content",
+      "lines": ["Merci, {player}. J'ouvre la barrière, reviens vite."],
+      "actions": [{ "sound": "assets/sounds/barriere.wav" }, { "disable": "BarriereDonjon" }],
+      "next": "pensee_depart"
+    },
+    "pensee_depart": {
+      "editor": { "x": 960, "y": -200 },
+      "speaker": "joueur",
+      "style": "pensee",
+      "lines": ["Le donjon... à l'est."],
+      "end": true
+    },
+    "refus": {
+      "editor": { "x": 640, "y": 0 },
+      "speaker": "sage",
+      "lines": ["Comme tu veux. Les loups, eux, ne demanderont pas."],
+      "end": true
+    },
+    "rappel": {
+      "editor": { "x": 0, "y": 600 },
+      "if": { "item": "cle" },
+      "then": "rappel_cle",
+      "else": "rappel_sans_cle"
+    },
+    "rappel_cle": {
+      "editor": { "x": 320, "y": 560 },
+      "speaker": "sage",
+      "lines": ["Tu as la clé ! Le donjon est à l'est."],
+      "end": true
+    },
+    "rappel_sans_cle": {
+      "editor": { "x": 320, "y": 680 },
+      "speaker": "sage",
+      "pick": "random",
+      "lines": ["Sans la clé, ce coffre ne s'ouvrira pas.", "Tu as vérifié près de l'arbre mort ?", "[shake]Hrm.[/shake] Toujours rien ?"],
+      "end": true
+    },
+    "rendu": {
+      "editor": { "x": 0, "y": 900 },
+      "speaker": "joueur",
+      "lines": ["La voilà."],
+      "next": "recompense"
+    },
+    "recompense": {
+      "editor": { "x": 320, "y": 900 },
+      "speaker": "sage",
+      "expression": "content",
+      "lines": ["[speed=15]Incroyable...[/speed] Tiens, tu l'as mérité.", "Tu as maintenant {item:or} pièces."],
+      "actions": [
+        { "take": "epee", "count": 1 },
+        { "give": "or", "count": 100 },
+        { "give": "potion", "count": 2 },
+        { "quest": "epee_perdue", "state": "done" },
+        { "add": "reputation", "value": 1 },
+        { "sound": "assets/sounds/quest_done.wav" },
+        { "event": "ouvrir_portail" }
+      ],
+      "next": "portail"
+    },
+    "portail": {
+      "editor": { "x": 640, "y": 900 },
+      "style": "panneau_portail",
+      "lines": ["Le portail de la montagne s'illumine."],
+      "choices": [
+        { "text": "Partir", "next": "titre_boss" },
+        { "text": "Plus tard", "next": "au_revoir" }
+      ]
+    },
+    "titre_boss": {
+      "editor": { "x": 960, "y": 900 },
+      "style": "titre_boss",
+      "lines": ["Le Roi des Loups"],
+      "actions": [{ "scene": "scenes/montagne.scene", "spawn": "portail" }, { "event": "musique_boss" }],
+      "end": true
+    },
+    "apres_quete": {
+      "editor": { "x": 0, "y": 1100 },
+      "speaker": "sage",
+      "pick": "sequence",
+      "lines": ["Les loups se font rares grâce à toi.", "Ta réputation grandit : {var:reputation}.", "Le village te doit beaucoup."],
+      "end": true
+    },
+    "nuit": {
+      "editor": { "x": 0, "y": -400 },
+      "speaker": "sage",
+      "expression": "endormi",
+      "lines": ["Zzz... reviens demain..."],
+      "choices": [
+        { "text": "Le réveiller", "next": "reveil" },
+        { "text": "Le laisser dormir", "next": "au_revoir" }
+      ]
+    },
+    "reveil": {
+      "editor": { "x": 320, "y": -400 },
+      "speaker": "sage",
+      "expression": "inquiet",
+      "lines": ["[shake]Hein ?![/shake] [wait=0.5]Ah, c'est toi."],
+      "actions": [{ "set": "sage_reveille", "value": true }, { "enable": "LanterneSage" }],
+      "next": "accueil"
+    },
+    "mefiant": {
+      "editor": { "x": 0, "y": -700 },
+      "speaker": "sage",
+      "expression": "inquiet",
+      "lines": ["Toi... je n'ai rien à te dire."],
+      "choices": [
+        { "text": "Pardon", "when": { "var": "reputation", "op": ">=", "value": -2 }, "show": "disabled", "next": "excuse" },
+        { "text": "Partir", "next": "au_revoir" }
+      ]
+    },
+    "excuse": {
+      "editor": { "x": 320, "y": -700 },
+      "speaker": "sage",
+      "lines": ["Hm. Soit, je t'écoute."],
+      "actions": [{ "add": "reputation", "value": 1 }, { "set": "vole_sage", "value": false }],
+      "next": "demande"
+    },
+    "au_revoir": {
+      "editor": { "x": 1280, "y": 0 },
+      "speaker": "sage",
+      "lines": ["Hm."],
+      "end": true
+    }
+  }
+}

@@ -5,7 +5,7 @@
 #include "systems/render_collision_system.h"
 #include "systems/force_debug_system.h"
 #include "system/UI.h"
-#include "system/Dialog_system.h"
+#include "system/dialog_system.h"
 #include "systems/sprite_animation_system.h"
 #include "game_systems.h"
 
@@ -55,6 +55,7 @@ void Game::setAssetDir(const std::string& dir) {
     m_assetDir = dir;
     m_textureLoader.setBaseDir(dir);
     loadPostProcess();   // le chemin du shader est relatif au projet
+    loadFont();
 }
 
 void Game::applySettings(const GameSettings& settings) {
@@ -65,21 +66,33 @@ void Game::applySettings(const GameSettings& settings) {
             applyFrameRate(settings);
     }
     const bool newShader = settings.shader != m_settings.shader;
+    const bool newFont = settings.font != m_settings.font;
     m_settings = settings;
+    if (newFont) loadFont();
     if (newShader) loadPostProcess();
     else m_postProcess.setParams(m_settings.shaderParams);   // curseurs de l'éditeur : pas de recompilation
 }
 
-void Game::loadPostProcess() {
+std::string Game::resolve(const std::string& relative) const {
     namespace fs = std::filesystem;
     auto u8 = [](const std::string& s) { return fs::path(std::u8string(s.begin(), s.end())); };
-    fs::path path = u8(m_settings.shader);
+    fs::path path = u8(relative);
     if (!path.empty() && path.is_relative()) path = u8(m_assetDir) / path;
     const std::u8string full = path.lexically_normal().generic_u8string();
+    return std::string(full.begin(), full.end());
+}
 
+void Game::loadPostProcess() {
     std::string error;
-    if (!m_postProcess.load(std::string(full.begin(), full.end()), &error)) std::cerr << "[Post-process] " << error << "\n";
+    if (!m_postProcess.load(resolve(m_settings.shader), &error)) std::cerr << "[Post-process] " << error << "\n";
     m_postProcess.setParams(m_settings.shaderParams);
+}
+
+// même objet : les sf::Text qui pointent dessus suivent
+void Game::loadFont() {
+    if (m_settings.font.empty()) return;
+    const std::string path = resolve(m_settings.font);
+    if (!m_font.openFromFile(std::filesystem::path(std::u8string(path.begin(), path.end())))) std::cerr << "[Game] police introuvable : " << path << "\n";
 }
 
 // recrée dans le même objet : m_window garde son adresse

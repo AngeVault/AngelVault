@@ -1,7 +1,7 @@
 #pragma once
 #include "ecs/system.h"
 #include "game_loop.h"
-#include "../../../engine/gameplay/include/systems/interaction_system.h"
+#include "systems/interaction_system.h"
 
 class DialogSystem : public ISystem
 {
