@@ -23,6 +23,7 @@
     ]
   },
   "systems": {
-    "ForceDebugSystem": false
+    "ForceDebugSystem": false,
+    "RenderCollisionSystem": false
   }
 }

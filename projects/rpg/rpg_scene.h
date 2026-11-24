@@ -11,6 +11,7 @@
 #include "systems/tile_collision_system.h"
 #include "systems/script_system.h"
 #include "systems/interaction_system.h"
+#include "systems/pickup_system.h"
 #include "systems/scene_transition_system.h"
 #include "components/name.h"
 #include "components/geometry.h"
@@ -39,6 +40,7 @@ inline void loadRpgEntities(Registry& registry) {
     registry.addComponent<Collider2D>(player, Collider2D::makeBox({ 16.f, 32.f }));
     registry.addComponent<NameComponent>(player, "Player");
     registry.addComponent<Interactor>(player);
+    registry.addComponent<Inventory>(player);
 
     auto& follow = registry.addComponent<CameraFollow>(cameraEntity);
     follow.setTarget(player);
@@ -85,6 +87,7 @@ inline void registerRpgSystems(Game& game) {
     game.systems().addSystem<PhysicsSystem>();
     auto& collision = game.systems().addSystem<CollisionSystem>();
     auto& interaction = game.systems().addSystem<InteractionSystem>(collision);
+    game.systems().addSystem<PickupSystem>(collision, interaction);
     game.systems().addSystem<SceneTransitionSystem>(game, collision, interaction);
     game.systems().addSystem<ScriptSystem>();
     registerCameraSystems(game.systems(), game.target());

@@ -11,6 +11,7 @@
 #include "components/geometry.h"
 #include "components/interaction.h"
 #include "components/inventory.h"
+#include "components/pickup.h"
 #include "components/map_transition.h"
 #include "components/name.h"
 #include "components/spawn_point.h"
@@ -937,6 +938,23 @@ std::vector<ComponentDesc> build() {
         d.fields = [](Registry& r, Entity e) {
             return std::vector<FieldDesc>{ boolRef<Interactable>(r, e, QObject::tr("Actif"),
                 [](Interactable& c) -> bool& { return c.enabled; }) };
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- Pickup
+    {
+        using C = Pickup;
+        ComponentDesc d{ "Pickup" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<C>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<C>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<C>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(stringRef<C>(r, e, QObject::tr("Objet"), [](C& c) -> std::string& { return c.item; }));
+            f.push_back(intRef<C>(r, e, QObject::tr("Nombre"), [](C& c) -> int& { return c.count; }));
+            f.back().min = 1;
+            return f;
         };
         list.push_back(d);
     }
