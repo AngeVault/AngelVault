@@ -1,11 +1,17 @@
 #include "input/input_manager.h"
 
 #include <algorithm>
+#include <charconv>
 #include <cmath>
 #include <fstream>
 #include <sstream>
 
 namespace {
+// indépendant de la locale : qt met le séparateur décimal en virgule et std::stof lit alors "0.2" comme 0
+bool toFloat(const std::string& s, float& out) {
+    const auto [end, ec] = std::from_chars(s.data(), s.data() + s.size(), out);
+    return ec == std::errc{} && end != s.data();
+}
 
 /**
  * @brief Tableau de correspondance entre codes clavier SFML et libellés lisibles.
@@ -188,7 +194,7 @@ bool InputManager::loadFromString(const std::string& text) {
                 if (word == "axis") a.type = InputAction::Type::Axis;
                 else if (word == "button") a.type = InputAction::Type::Button;
                 else if (word.rfind("deadzone=", 0) == 0) {
-                    try { a.deadZone = std::clamp(std::stof(word.substr(9)), 0.f, 0.99f); } catch (...) {}
+                    if (float v; toFloat(word.substr(9), v)) a.deadZone = std::clamp(v, 0.f, 0.99f);
                 }
             }
             if (!a.name.empty()) actions.push_back(a);

@@ -1,7 +1,7 @@
 #include "scene/prefab.h"
 #include "scene/project.h"
 
-#include "components/camera2d.h"
+#include "components/camera_follow.h"
 #include "components/transform2d.h"
 
 #include <algorithm>
@@ -14,8 +14,8 @@ std::vector<Entity> prefabGroup(Registry& registry, Entity root) {
     // Caméras qui suivent une entité du groupe (et ce qui les suit), sans boucle
     for (std::size_t i = 0; i < group.size(); ++i) {
         const Entity target = group[i];
-        registry.view<Camera2d>([&](Entity cam, Camera2d& c) {
-            if (c.targetLock == target && std::find(group.begin(), group.end(), cam) == group.end())
+        registry.view<CameraFollow>([&](Entity cam, CameraFollow& c) {
+            if (c.target == target && std::find(group.begin(), group.end(), cam) == group.end())
                 group.push_back(cam);
         });
     }

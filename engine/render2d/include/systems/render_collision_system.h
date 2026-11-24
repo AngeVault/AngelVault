@@ -13,7 +13,7 @@
 class RenderCollisionSystem : public ISystem {
 public:
 	explicit RenderCollisionSystem(sf::RenderTarget& target) : m_target(target) {
-        priority = 11; // s'exécute en dernier, après physique et script et après render
+        priority = 12; // après le rendu (10) et le jour / nuit (11) : jamais assombri
     }
 
     // Contours des collisions, exactement comme la physique les voit (utils/collider_shape.h) :

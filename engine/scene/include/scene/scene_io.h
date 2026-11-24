@@ -51,3 +51,6 @@ SceneLoadResult entitiesFromJson(Registry& registry, const Json& entities, bool 
 
 // Détruit toutes les entités (tout de suite)
 void clearRegistry(Registry& registry);
+
+// détruit tout sauf les DontDestroy
+void clearTransientEntities(Registry& registry);

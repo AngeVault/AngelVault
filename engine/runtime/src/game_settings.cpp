@@ -1,10 +1,17 @@
 #include "game_settings.h"
 
 #include <algorithm>
+#include <charconv>
 #include <fstream>
 #include <sstream>
 
 namespace {
+// indépendant de la locale : qt met le séparateur décimal en virgule et std::stof lit alors "0.9" comme 0
+bool toFloat(const std::string& s, float& out) {
+    const auto [end, ec] = std::from_chars(s.data(), s.data() + s.size(), out);
+    return ec == std::errc{} && end != s.data();
+}
+
 std::string trim(const std::string& s) {
     const auto first = s.find_first_not_of(" \t\r");
     if (first == std::string::npos) return {};
@@ -52,6 +59,10 @@ void GameSettings::loadFromString(const std::string& text) {
         else if (key == "vsync") vsync = toBool(value, vsync);
         else if (key == "antialiasing") antialiasing = std::min(toUnsigned(value, antialiasing), 16u);
         else if (key == "fpsLimit") fpsLimit = toUnsigned(value, fpsLimit);
+        else if (key == "shader") shader = value;
+        else if (key.rfind("shader.", 0) == 0) {
+            if (float v; toFloat(value, v)) shaderParams[key.substr(7)] = v;
+        }
     }
 }
 
@@ -61,6 +72,8 @@ std::string GameSettings::toString() const {
         << "fullscreen = " << (fullscreen ? "true" : "false") << "\n"
         << "vsync = " << (vsync ? "true" : "false") << "\n"
         << "antialiasing = " << antialiasing << "\n"
-        << "fpsLimit = " << fpsLimit << "\n";
+        << "fpsLimit = " << fpsLimit << "\n"
+        << "shader = " << shader << "\n";
+    for (const auto& [name, value] : shaderParams) out << "shader." << name << " = " << value << "\n";
     return out.str();
 }

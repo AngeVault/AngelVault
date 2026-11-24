@@ -12,4 +12,5 @@
 void loadTilemaps(Registry& registry, const std::string& projectDir, std::vector<std::string>* warnings = nullptr);
 
 // Nouvelle carte vide avec des réglages par défaut (orthogonale 32x32, ou isométrique 128x64)
+// et trois layers : fond, principal (trié avec les entités), supérieur
 std::shared_ptr<TileMapData> makeTileMap(TileMapOrientation orientation, int width, int height, const std::string& projectDir);

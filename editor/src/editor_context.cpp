@@ -1,6 +1,7 @@
 #include "editor_context.h"
 
 #include "components/camera2d.h"
+#include "components/camera_follow.h"
 #include "components/name.h"
 #include "components/persistent_id.h"
 #include "components/script_component.h"
@@ -185,17 +186,21 @@ void EditorContext::notifyEntityModified(Entity e, QObject* source) {
 }
 
 Entity EditorContext::followTarget(Entity camera) {
-    if (!isValid(camera) || !m_scene.hasComponent<Camera2d>(camera)) return NULL_ENTITY;
-    const Entity target = m_scene.getComponent<Camera2d>(camera).targetLock;
+    if (!isValid(camera) || !m_scene.hasComponent<CameraFollow>(camera)) return NULL_ENTITY;
+    const Entity target = m_scene.getComponent<CameraFollow>(camera).target;
     return (target != camera && isValid(target)) ? target : NULL_ENTITY;
 }
 
 void EditorContext::setFollowTarget(Entity camera, Entity target) {
     if (!isValid(camera) || !m_scene.hasComponent<Camera2d>(camera)) return;
-    if (m_scene.getComponent<Camera2d>(camera).targetLock == target) return;
-    m_scene.getComponent<Camera2d>(camera).targetLock = target;   // même donnée que Camera2d::setTarget()
+    if (followTarget(camera) == target) return;
+    if (target == NULL_ENTITY && !m_scene.hasComponent<CameraFollow>(camera)) return;
+    // CameraFollow ajouté au besoin ; libérer garde ses réglages (cible vide)
+    if (!m_scene.hasComponent<CameraFollow>(camera)) m_scene.addComponent<CameraFollow>(camera);
+    CameraFollow& follow = m_scene.getComponent<CameraFollow>(camera);
+    follow.setTarget(target);
     if (isValid(target) && m_scene.hasComponent<Transform2D>(target) && m_scene.hasComponent<Transform2D>(camera))
-        m_scene.getComponent<Transform2D>(camera).setPosition(m_scene.getComponent<Transform2D>(target).getPosition());
+        m_scene.getComponent<Transform2D>(camera).setPosition(m_scene.getComponent<Transform2D>(target).getPosition() + follow.offset);
     emit followTargetChanged(camera);
     emit entityModified(camera, nullptr);
     snapFollowers(camera);
@@ -204,10 +209,11 @@ void EditorContext::setFollowTarget(Entity camera, Entity target) {
 
 void EditorContext::snapFollowers(Entity target, int depth) {
     if (depth > 8 || !m_scene.hasComponent<Transform2D>(target)) return;   // garde-fou : chaîne/boucle de caméras
-    const sf::Vector2f pos = m_scene.getComponent<Transform2D>(target).getPosition();
+    const sf::Vector2f targetPos = m_scene.getComponent<Transform2D>(target).getPosition();
     std::vector<Entity> moved;
-    m_scene.view<Camera2d, Transform2D>([&](Entity cam, Camera2d& c, Transform2D& t) {
-        if (cam == target || c.targetLock != target || t.getPosition() == pos) return;
+    m_scene.view<CameraFollow, Transform2D>([&](Entity cam, CameraFollow& c, Transform2D& t) {
+        const sf::Vector2f pos = targetPos + c.offset;
+        if (cam == target || c.target != target || t.getPosition() == pos) return;
         t.setPosition(pos);
         moved.push_back(cam);
     });
@@ -467,6 +473,13 @@ void EditorContext::restoreSnapshot(const Snapshot& s) {
     // La sélection actuelle est gardée si l'entité existe encore après le retour en arrière
     const uint64_t keepSelected = (isValid(m_selected) && m_scene.hasComponent<PersistentId>(m_selected))
                                       ? m_scene.getComponent<PersistentId>(m_selected).value : 0;
+    // les layers cachés le restent : ce n'est pas une modification de la scène
+    std::vector<std::pair<uint64_t, std::string>> hidden;
+    m_scene.view<Tilemap>([&](Entity e, Tilemap& tm) {
+        if (!tm.data || !m_scene.hasComponent<PersistentId>(e)) return;
+        for (int l = 0; l < tm.data->layerCount(); ++l)
+            if (tm.data->layer(l)->hidden) hidden.emplace_back(m_scene.getComponent<PersistentId>(e).value, tm.data->layer(l)->name);
+    });
     resetScene();
     m_activeTilemap = NULL_ENTITY;   // entité de l'ancienne scène
     SceneMeta meta;
@@ -479,6 +492,11 @@ void EditorContext::restoreSnapshot(const Snapshot& s) {
         const uint64_t id = m_scene.getComponent<PersistentId>(e).value;
         for (const auto& [mapId, data] : s.maps)
             if (mapId == id) { tm.data = std::make_shared<TileMapData>(*data); break; }
+        if (!tm.data) return;
+        for (int l = 0; l < tm.data->layerCount(); ++l) {
+            TileLayer& layer = *tm.data->layer(l);
+            layer.hidden = std::find(hidden.begin(), hidden.end(), std::make_pair(id, layer.name)) != hidden.end();
+        }
     });
     loadTilemaps(m_scene, toUtf8(projectDir()));   // tilemap sans instantané : depuis son fichier
     // Les cartes restaurées gardent leur numéro de version : l'instantané courant les reconnaît
@@ -716,6 +734,12 @@ sf::Vector2f EditorContext::activeMapOffset() {
                                                                 : sf::Vector2f{};
 }
 
+sf::Vector2f EditorContext::activeLayerOffset() {
+    sf::Vector2f o = activeMapOffset();
+    if (const TileMapData* map = activeMap(); map && map->validLayer(activeLayer())) o.y -= map->layer(activeLayer())->height;
+    return o;
+}
+
 void EditorContext::refreshActiveTilemap() {
     if (m_restoring) return;   // restoreSnapshot émet tilemapChanged une seule fois à la fin
     const Entity e = activeTilemap();
@@ -727,6 +751,112 @@ void EditorContext::refreshActiveTilemap() {
 void EditorContext::notifyMapEdited() {
     if (!m_loading) setDirty(true);
     markChanged();
+}
+
+// ---- Layers ------------------------------------------------------------------------------------
+
+
+TileMapData* EditorContext::mapOf(Entity tilemap) {
+    return (isValid(tilemap) && m_scene.hasComponent<Tilemap>(tilemap)) ? m_scene.getComponent<Tilemap>(tilemap).data.get() : nullptr;
+}
+
+// PersistentId : le layer actif survit à un Ctrl+Z, qui recrée les entités
+quint64 EditorContext::layerKey(Entity tilemap) {
+    if (m_scene.hasComponent<PersistentId>(tilemap)) return m_scene.getComponent<PersistentId>(tilemap).value;
+    return entityKey(tilemap);
+}
+
+int EditorContext::activeLayer() { return activeLayer(activeTilemap()); }
+
+int EditorContext::activeLayer(Entity tilemap) {
+    const TileMapData* map = mapOf(tilemap);
+    if (!map || map->layerCount() == 0) return -1;
+    return std::clamp(m_activeLayers.value(layerKey(tilemap), 0), 0, map->layerCount() - 1);
+}
+
+void EditorContext::setActiveLayer(Entity tilemap, int layer) {
+    const TileMapData* map = mapOf(tilemap);
+    if (!map || !map->validLayer(layer)) return;
+    const bool changed = activeLayer(tilemap) != layer;
+    m_activeLayers.insert(layerKey(tilemap), layer);
+    if (m_selected != tilemap) select(tilemap);
+    if (changed) emit activeLayerChanged(tilemap, layer);
+}
+
+// les layers font partie de la carte : une étape d'historique et la Hierarchy à refaire
+void EditorContext::layersEdited(TileMapData& map) {
+    map.modified = true;
+    ++map.version;
+    setDirty(true);
+    emit sceneChanged();
+    emit tilemapChanged();
+}
+
+int EditorContext::addLayer(Entity tilemap) {
+    TileMapData* map = mapOf(tilemap);
+    if (!map) return -1;
+    QStringList names;
+    for (int l = 0; l < map->layerCount(); ++l) names << fromUtf8(map->layer(l)->name);
+    QString name = "layer";
+    for (int i = 2; names.contains(name); ++i) name = QString("layer %1").arg(i);
+    const int layer = map->addLayer(toUtf8(name), TileLayerMode::Below, activeLayer(tilemap) + 1);
+    m_activeLayers.insert(layerKey(tilemap), layer);
+    layersEdited(*map);
+    emit activeLayerChanged(tilemap, layer);
+    return layer;
+}
+
+void EditorContext::removeLayer(Entity tilemap, int layer) {
+    TileMapData* map = mapOf(tilemap);
+    if (!map || !map->validLayer(layer) || map->layerCount() <= 1) return;   // une carte garde au moins un layer
+    const int active = activeLayer(tilemap);
+    map->removeLayer(layer);
+    m_activeLayers.insert(layerKey(tilemap), std::max(0, active > layer ? active - 1 : std::min(active, map->layerCount() - 1)));
+    layersEdited(*map);
+    emit activeLayerChanged(tilemap, activeLayer(tilemap));
+}
+
+void EditorContext::moveLayer(Entity tilemap, int from, int to) {
+    TileMapData* map = mapOf(tilemap);
+    if (!map || !map->validLayer(from) || !map->validLayer(to) || from == to) return;
+    // le layer actif reste le même layer
+    int active = activeLayer(tilemap);
+    if (active == from) active = to;
+    else if (from < active && to >= active) --active;
+    else if (from > active && to <= active) ++active;
+    map->moveLayer(from, to);
+    m_activeLayers.insert(layerKey(tilemap), active);
+    layersEdited(*map);
+    emit activeLayerChanged(tilemap, active);
+}
+
+void EditorContext::renameLayer(Entity tilemap, int layer, const QString& name) {
+    TileMapData* map = mapOf(tilemap);
+    const QString trimmed = name.trimmed();
+    if (!map || !map->validLayer(layer) || trimmed.isEmpty() || fromUtf8(map->layer(layer)->name) == trimmed) return;
+    map->layer(layer)->name = toUtf8(trimmed);
+    layersEdited(*map);
+}
+
+void EditorContext::setLayerMode(Entity tilemap, int layer, TileLayerMode mode) {
+    TileMapData* map = mapOf(tilemap);
+    if (!map || !map->validLayer(layer) || map->layer(layer)->mode == mode) return;
+    map->layer(layer)->mode = mode;
+    layersEdited(*map);
+}
+
+void EditorContext::setLayerHeight(Entity tilemap, int layer, float height) {
+    TileMapData* map = mapOf(tilemap);
+    if (!map || !map->validLayer(layer) || map->layer(layer)->height == height) return;
+    map->layer(layer)->height = height;
+    layersEdited(*map);
+}
+
+void EditorContext::setLayerHidden(Entity tilemap, int layer, bool hidden) {
+    TileMapData* map = mapOf(tilemap);
+    if (!map || !map->validLayer(layer)) return;
+    map->layer(layer)->hidden = hidden;
+    emit layerVisibilityChanged(tilemap, layer);
 }
 
 void EditorContext::notifyTilesChanged() {

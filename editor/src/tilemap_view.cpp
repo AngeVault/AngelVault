@@ -1,6 +1,7 @@
 #include "tilemap_view.h"
 
 #include "components/camera2d.h"
+#include "components/camera_bounds.h"
 #include "components/collider2d.h"
 #include "components/geometry.h"
 #include "components/transform2d.h"
@@ -150,7 +151,7 @@ void TilemapView::drawGrid(sf::RenderTarget& target) {
     const TileMapData* map = m_ctx.activeMap();
     if (!map || map->width() <= 0 || map->height() <= 0) return;
     if (m_camera.zoom * std::min(map->tileSize.x, map->tileSize.y) < 6.f) return;   // trop dézoomé : illisible
-    const sf::Vector2f o = m_ctx.activeMapOffset();
+    const sf::Vector2f o = m_ctx.activeLayerOffset();
     const bool iso = map->orientation == TileMapOrientation::Isometric;
     const sf::Vector2f ts = map->tileSize;
     // Sommet (gx, gy) de la grille, dans le monde
@@ -169,12 +170,24 @@ void TilemapView::drawGrid(sf::RenderTarget& target) {
 void TilemapView::drawCameras(sf::RenderTarget& target) {
     Registry& reg = m_ctx.scene();
     const float px = 1.f / m_camera.zoom;   // 1 pixel écran en unités monde
-    reg.view<Camera2d, Transform2D>([&](Entity, Camera2d& cam, Transform2D& t) {
+    reg.view<Camera2d, Transform2D>([&](Entity e, Camera2d& cam, Transform2D& t) {
+        // Zone de CameraBounds (orange)
+        if (reg.hasComponent<CameraBounds>(e) && reg.getComponent<CameraBounds>(e).valid()) {
+            const CameraBounds& b = reg.getComponent<CameraBounds>(e);
+            sf::RectangleShape zone(b.max - b.min);
+            zone.setPosition(b.min);
+            zone.setFillColor(sf::Color::Transparent);
+            zone.setOutlineColor(sf::Color(255, 170, 60, 140));
+            zone.setOutlineThickness(1.5f * px);
+            target.draw(zone);
+        }
+
         const float zoom = cam.zoom > 0.f ? cam.zoom : 1.f;
         const sf::Vector2f size = sf::Vector2f(m_ctx.gameScreenSize()) / zoom;
         sf::RectangleShape frame(size);
         frame.setOrigin(size / 2.f);
         frame.setPosition(t.getPosition());
+        frame.setRotation(sf::degrees(cam.rotation));
         frame.setFillColor(sf::Color(120, 200, 255, 12));
         frame.setOutlineColor(sf::Color(120, 200, 255, 170));
         frame.setOutlineThickness(1.5f * px);
@@ -297,7 +310,7 @@ void TilemapView::drawBrush(sf::RenderTarget& target) {
     const EditorTool tool = m_ctx.tool();
     if (!map || tool == EditorTool::Select || tool == EditorTool::Resize) return;
 
-    const sf::Vector2f o = m_ctx.activeMapOffset();
+    const sf::Vector2f o = m_ctx.activeLayerOffset();
     const float px = 1.f / m_camera.zoom;
     auto outlineCell = [&](sf::Vector2i c, sf::Color fill, sf::Color outline, float thickness) {
         if (!map->inBounds(c.x, c.y)) return;
@@ -575,8 +588,14 @@ QString TilemapView::describeCell(const TileMapData& map, TileCell cell) const {
 void TilemapView::pickAt(sf::Vector2i cell) {
     const TileMapData* map = m_ctx.activeMap();
     if (!map) return;
-    const TileCell c = map->get(cell.x, cell.y);
+    // le layer actif d'abord, sinon le plus haut layer visible qui a une tile ici
+    int layer = m_ctx.activeLayer();
+    if (!map->tilesetOf(map->get(layer, cell.x, cell.y)))
+        for (int l = map->layerCount() - 1; l >= 0; --l)
+            if (!map->layer(l)->hidden && map->tilesetOf(map->get(l, cell.x, cell.y))) { layer = l; break; }
+    const TileCell c = map->get(layer, cell.x, cell.y);
     if (!map->tilesetOf(c)) { emit statusText(tr("Pipette : case vide")); return; }
+    m_ctx.setActiveLayer(m_ctx.activeTilemap(), layer);
     TileBrush b;
     b.slot = cellSlot(c);
     b.autotile = cellIsAuto(c);
@@ -588,7 +607,8 @@ void TilemapView::pickAt(sf::Vector2i cell) {
 
 bool TilemapView::dab(sf::Vector2i cell) {
     TileMapData* map = m_ctx.activeMap();
-    if (!map) return false;
+    const int layer = m_ctx.activeLayer();
+    if (!map || !map->validLayer(layer)) return false;
     const bool erase = m_ctx.tool() == EditorTool::Erase;
     const TileBrush& brush = m_ctx.brush();
     const Tileset* ts = map->tileset(brush.slot);
@@ -606,13 +626,13 @@ bool TilemapView::dab(sf::Vector2i cell) {
         for (int j = 0; j < brush.height; ++j)
             for (int i = 0; i < brush.width; ++i) {
                 const int index = ts->tileIndex(first.x + i, first.y + j);
-                if (index >= 0) changed |= map->set(aligned.x + i, aligned.y + j, makeCell(brush.slot, index));
+                if (index >= 0) changed |= map->set(layer, aligned.x + i, aligned.y + j, makeCell(brush.slot, index));
             }
         return changed;
     }
     const TileCell value = erase ? 0 : makeCell(brush.slot, brush.autotile ? int(kAutoTile) : brush.tile);
     for (sf::Vector2i d : brushFootprint(m_ctx.brushSize(), m_ctx.brushShape()))
-        changed |= map->set(cell.x + d.x, cell.y + d.y, value);   // hors carte : ignoré
+        changed |= map->set(layer, cell.x + d.x, cell.y + d.y, value);   // hors carte : ignoré
     return changed;
 }
 
@@ -635,11 +655,12 @@ void TilemapView::strokeTo(sf::Vector2i cell) {
 // Remplir : la zone de cases identiques (4 voisines) sous la souris prend le pinceau
 void TilemapView::floodFill(sf::Vector2i start) {
     TileMapData* map = m_ctx.activeMap();
-    if (!map || !map->inBounds(start.x, start.y)) return;
+    const int layer = m_ctx.activeLayer();
+    if (!map || !map->validLayer(layer) || !map->inBounds(start.x, start.y)) return;
     const TileBrush& brush = m_ctx.brush();
     const Tileset* ts = map->tileset(brush.slot);
     if (!ts) return;
-    const TileCell target = map->get(start.x, start.y);
+    const TileCell target = map->get(layer, start.x, start.y);
     const sf::Vector2i first = ts->tileCoords(brush.tile);
     auto valueAt = [&](sf::Vector2i c) -> TileCell {
         if (brush.autotile) return makeCell(brush.slot, kAutoTile);
@@ -661,13 +682,13 @@ void TilemapView::floodFill(sf::Vector2i start) {
     while (!todo.empty()) {
         const sf::Vector2i c = todo.front();
         todo.pop();
-        changed |= map->set(c.x, c.y, valueAt(c));
+        changed |= map->set(layer, c.x, c.y, valueAt(c));
         ++count;
         for (sf::Vector2i d : kTileEdgeDirs) {
             const sf::Vector2i n = c + d;
             if (!map->inBounds(n.x, n.y)) continue;
             uint8_t& s = seen[std::size_t(n.y) * map->width() + n.x];
-            if (s || map->get(n.x, n.y) != target) continue;
+            if (s || map->get(layer, n.x, n.y) != target) continue;
             s = 1;
             todo.push(n);
         }
@@ -691,13 +712,13 @@ void TilemapView::updateHover(const QPointF& pos) {
         if (m_hoverValid) { m_hoverValid = false; emit hoveredTileChanged(-1, -1, QString()); }
         return;
     }
-    const sf::Vector2i tile = map->cellAt(toWorld(pos) - m_ctx.activeMapOffset());
+    const sf::Vector2i tile = map->cellAt(toWorld(pos) - m_ctx.activeLayerOffset());
     const bool valid = map->inBounds(tile.x, tile.y);
     if (valid == m_hoverValid && tile == m_hoveredTile) return;
     m_hoveredTile = tile;
     m_hoverValid = valid;
     emit hoveredTileChanged(valid ? tile.x : -1, valid ? tile.y : -1,
-                            valid ? describeCell(*map, map->get(tile.x, tile.y)) : QString());
+                            valid ? describeCell(*map, map->get(m_ctx.activeLayer(), tile.x, tile.y)) : QString());
 }
 
 void TilemapView::wheelEvent(QWheelEvent* e) {
@@ -821,7 +842,7 @@ void TilemapView::mouseMoveEvent(QMouseEvent* e) {
     } else if (m_painting && (e->buttons() & Qt::LeftButton)) {
         // hors carte aussi : la ligne est coupée au bord, pas abandonnée
         if (const TileMapData* map = m_ctx.activeMap())
-            strokeTo(map->cellAt(toWorld(e->position()) - m_ctx.activeMapOffset()));
+            strokeTo(map->cellAt(toWorld(e->position()) - m_ctx.activeLayerOffset()));
     }
     SfmlWidget::mouseMoveEvent(e);
 }

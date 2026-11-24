@@ -182,17 +182,3 @@ void TitleBar::updateTitleGeometry() {
     m_title->setGeometry(x, 0, w, height());
     m_title->show();
 }
-
-#ifndef Q_OS_WIN
-void TitleBar::mousePressEvent(QMouseEvent* e) {
-    if (e->button() == Qt::LeftButton && isDraggableAt(e->position().toPoint()))
-        if (QWindow* h = window()->windowHandle()) h->startSystemMove();
-    QWidget::mousePressEvent(e);
-}
-
-void TitleBar::mouseDoubleClickEvent(QMouseEvent* e) {
-    if (e->button() == Qt::LeftButton && isDraggableAt(e->position().toPoint()))
-        emit maximizeRequested();
-    QWidget::mouseDoubleClickEvent(e);
-}
-#endif

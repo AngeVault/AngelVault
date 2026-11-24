@@ -114,7 +114,7 @@ QString systemTemplate(const QString& className) {
 class %1 : public ISystem {
 public:
     %1() { priority = 3; }   // ordre : physique 0, collisions 1, scripts 2, ... rendu 10
-    // Pour dessiner : un constructeur %1(sf::RenderWindow& window) est appelé à la place.
+    // Pour dessiner : un constructeur %1(sf::RenderTarget& target) est appelé à la place.
 
     void onStart(Registry& registry) override {
     }

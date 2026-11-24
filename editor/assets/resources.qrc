@@ -48,6 +48,23 @@
         <file>icons/buttons/brush_square@2x.png</file>
         <file>icons/buttons/brush_circle.png</file>
         <file>icons/buttons/brush_circle@2x.png</file>
+        <!-- tilemaps et layers dans la hierarchy -->
+        <file>icons/layers/grid.png</file>
+        <file>icons/layers/grid@2x.png</file>
+        <file>icons/layers/layer.png</file>
+        <file>icons/layers/layer@2x.png</file>
+        <file>icons/layers/layer_active.png</file>
+        <file>icons/layers/layer_active@2x.png</file>
+        <file>icons/layers/eye_open.png</file>
+        <file>icons/layers/eye_open@2x.png</file>
+        <file>icons/layers/eye_closed.png</file>
+        <file>icons/layers/eye_closed@2x.png</file>
+        <file>icons/layers/mode_below.png</file>
+        <file>icons/layers/mode_below@2x.png</file>
+        <file>icons/layers/mode_ysort.png</file>
+        <file>icons/layers/mode_ysort@2x.png</file>
+        <file>icons/layers/mode_above.png</file>
+        <file>icons/layers/mode_above@2x.png</file>
         <!-- vue de scène (dessinées en double résolution) -->
         <file>icons/scene/camera.png</file>
         <file>icons/scene/lock.png</file>
