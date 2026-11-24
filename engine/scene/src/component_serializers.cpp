@@ -20,12 +20,16 @@
 #include "components/rigid_body2d.h"
 #include "components/script_component.h"
 #include "components/transform2d.h"
+#include "components/UIText.h"
+#include "components/UIButton.h"
 #include "tilemap/tilemap.h"
 #include "ecs/behavior_factory.h"
 #include "ecs/game_components.h"
 
 #include <cstdio>
 #include <cstdlib>
+
+#include "components/Dialog.h"
 
 using namespace SceneJson;
 
@@ -317,6 +321,26 @@ void registerBuiltins(SerializerRegistry& reg) {
             t.visible = value(j, "visible", t.visible);
             t.data.reset();   // rechargée par loadTilemaps()
         });
+
+    reg.add<UIText>("UIText",
+        [](UIText& t, const SaveContext&) { return Json{ { "text", t.text } };
+        },[](UIText& t, const Json& j, const LoadContext&) {
+            t.text = j.value("text", std::string());
+            t.defaultText = j.value("text", std::string());
+        });
+
+    reg.add<UIButton>("UIButton",
+        [](UIButton& t, const SaveContext&) { return Json{ { "With", t.with}, { "Height", t.height } };
+        },[](UIButton& t, const Json& j, const LoadContext&) {
+            t.with = j.value("With", 70);
+            t.height = j.value("Height", 40);
+    });
+    //
+    reg.add<Dialog>("Dialog",
+        [](Dialog& d, const SaveContext&) { return Json{ {"json", d.filePath }};
+        },[](Dialog& d, const Json& j, const LoadContext&) {
+            d.filePath = j.value("json", "");
+    });
 
     // ---- Script : liste de comportements, chacun = son nom (BehaviorFactory) + ses PROPERTY
     //   "Script": { "behaviors": [ { "name": "PlayerBehavior", "properties": { "speed": 250 } } ] }

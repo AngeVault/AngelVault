@@ -20,6 +20,7 @@
 #include "components/rigid_body2d.h"
 #include "components/script_component.h"
 #include "components/transform2d.h"
+#include "components/UIText.h"
 #include "ecs/behavior_factory.h"
 #include "ecs/game_components.h"
 #include "tilemap/tilemap.h"
@@ -29,6 +30,10 @@
 #include <QPointF>
 #include <cmath>
 #include <typeinfo>
+
+#include "components/Dialog.h"
+#include "components/UIButton.h"
+
 
 /**
  * @file component_descriptors.cpp
@@ -538,6 +543,49 @@ std::vector<ComponentDesc> build() {
                 vecRef<RB>(r, e, QObject::tr("Vitesse"), [](RB& b) -> sf::Vector2f& { return b.velocity; }),
                 boolRef<RB>(r, e, QObject::tr("Au sol"), [](RB& b) -> bool& { return b.isGrounded; }, true),
             };
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- UIText
+    {
+        ComponentDesc d{ "UIText" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<UIText>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<UIText>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<UIText>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(stringRef<UIText>(r,e, QObject::tr("Text"), [](UIText& t) -> std::string& {return t.text;}));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- UIButton
+    {
+        ComponentDesc d{ "UIButton" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<UIButton>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<UIButton>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<UIButton>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(intRef<UIButton>(r,e, QObject::tr("With"), [](UIButton& t) -> int& {return t.with;}));
+            f.push_back(intRef<UIButton>(r,e, QObject::tr("Height"), [](UIButton& t) -> int& {return t.height;}));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- UIButton
+    {
+        ComponentDesc d{ "Dialog" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<Dialog>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<Dialog>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<Dialog>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(stringRef<Dialog>(r,e, QObject::tr("Fichier json"), [](Dialog& di) -> std::string& {return di.filePath;}));
+            return f;
         };
         list.push_back(d);
     }

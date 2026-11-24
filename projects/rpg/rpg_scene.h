@@ -25,6 +25,7 @@
 #include "components/camera_shake.h"
 #include "rpg_game_code.h"
 #include "input/input_manager.h"
+#include "system/dialog_system.h"
 
 inline void loadRpgEntities(Registry& registry) {
     Entity cameraEntity = registry.createEntity();
@@ -95,6 +96,7 @@ inline void registerRpgSystems(Game& game) {
     game.systems().addSystem<ChestSystem>(interaction);
     game.systems().addSystem<InventoryLogSystem>();
     game.systems().addSystem<SceneTransitionSystem>(game, collision, interaction);
+    game.systems().addSystem<DialogSystem>(game, interaction);   //
     game.systems().addSystem<ScriptSystem>();
     registerCameraSystems(game.systems(), game.target());
 }

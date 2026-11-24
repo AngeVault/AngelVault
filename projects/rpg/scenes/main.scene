@@ -567,6 +567,82 @@
           "clockwise": true
         }
       }
+    },
+    {
+      "id": 3642113923053432003,
+      "components": {
+        "Name": {
+          "name": "pnj(tkt c'est pas just un caré)"
+        },
+        "Transform2D": {
+          "position": [
+            43.288116455078125,
+            685.024169921875
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Box",
+          "halfSize": [
+            16.0,
+            16.0
+          ],
+          "style": {
+            "fill": "#FFFFFFFF",
+            "outline": "#00000000",
+            "outlineThickness": 0.0
+          }
+        }
+      }
+    },
+    {
+      "id": 9555228195466771090,
+      "components": {
+        "Name": {
+          "name": "le text"
+        },
+        "Transform2D": {
+          "position": [
+            44.776885986328125,
+            636.4674682617188
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Collider2D": {
+          "offset": [
+            -1.6150054931640625,
+            45.463409423828125
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            95.44820404052734,
+            89.73757934570313
+          ]
+        },
+        "Interactable": {
+          "enabled": true
+        },
+        "UIText": {
+          "text": "?"
+        },
+        "Dialog": {
+          "json": "dialog.dialog"
+        }
+      }
     }
   ],
   "editor": {

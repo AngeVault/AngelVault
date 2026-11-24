@@ -8,6 +8,7 @@ add_subdirectory(gameplay)    # interactions, plus tard dialogues et quêtes
 add_subdirectory(render2d)    # rendu SFML : seul module qui dessine
 add_subdirectory(scene)       # sauvegarde : scènes .scene, projet .angproj (JSON)
 add_subdirectory(runtime)     # boucle de jeu (Game)
+add_subdirectory(ui)          # ui de nat
 
 # Modules prévus, pas encore créés (un README par dossier) :
 #   assets  animation  audio  ui  ai
@@ -16,4 +17,6 @@ add_library(av_engine INTERFACE)
 add_library(AngeVault::Engine ALIAS av_engine)
 target_link_libraries(av_engine INTERFACE
     AngeVault::Core AngeVault::Physics2D AngeVault::Particles AngeVault::Tilemap
-    AngeVault::Render2D AngeVault::Runtime AngeVault::Input AngeVault::Scene AngeVault::Gameplay)
+
+    AngeVault::Render2D AngeVault::Runtime AngeVault::Input AngeVault::Scene AngeVault::Gameplay AngeVault::Ui)
+
