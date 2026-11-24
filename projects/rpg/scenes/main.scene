@@ -528,31 +528,8 @@
         },
         "Transform2D": {
           "position": [
-            -251.69964599609375,
-            765.034423828125
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "UIText": {
-          "text": "skill issue"
-        }
-      }
-    },
-    {
-      "id": 6263980535966278584,
-      "components": {
-        "Name": {
-          "name": "Nouvelle entité"
-        },
-        "Transform2D": {
-          "position": [
-            80.68225860595703,
-            747.9913940429688
+            103.24858856201172,
+            823.47509765625
           ],
           "rotation": 0.0,
           "scale": [
@@ -569,23 +546,43 @@
             16.0
           ],
           "style": {
-            "fill": "#505050FF",
-            "outline": "#1E1E1E00",
-            "outlineThickness": 2.0
+            "fill": "#FFFFFFFF",
+            "outline": "#00000000",
+            "outlineThickness": 0.0
           }
+        }
+      }
+    },
+    {
+      "id": 6263980535966278584,
+      "components": {
+        "Name": {
+          "name": "Nouvelle entité"
+        },
+        "Transform2D": {
+          "position": [
+            99.9813232421875,
+            769.7589111328125
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
         },
         "Collider2D": {
           "offset": [
-            2.65557861328125,
-            -4.255279541015625
+            2.5849761962890625,
+            51.919830322265625
           ],
           "isTrigger": false,
           "restitution": 0.20000000298023224,
           "friction": 0.4000000059604645,
           "shape": "Box",
           "halfSize": [
-            135.4931640625,
-            119.88662719726563
+            92.22047424316406,
+            84.41720581054688
           ]
         },
         "Interactor": {
@@ -595,7 +592,7 @@
           "enabled": true
         },
         "UIText": {
-          "text": ""
+          "text": "?"
         },
         "Dialog": {
           "json": "dialog.dialog"

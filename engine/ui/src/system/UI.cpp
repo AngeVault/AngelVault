@@ -79,7 +79,7 @@ void SystemUI::onUpdate(Registry &registry, float dt) {
                ui.isTrigered = false;
            }
        });
-    registry.view<UIText, Transform2D>([&](Entity e, UIText& ui, Transform2D transform) {
+    registry.view<UIText, Transform2D>([&](Entity e, UIText& ui, Transform2D& transform) {
   if (registry.hasComponent<Collider2D>(e)) {
             Collider2D& collider = registry.getComponent<Collider2D>(e);
             if (collider.isTrigger) {
@@ -89,7 +89,9 @@ void SystemUI::onUpdate(Registry &registry, float dt) {
             }
         }
         m_text->setString(ui.text);
+        transform.setPosition({transform.getPosition().x-m_text->getGlobalBounds().size.x/2, transform.getPosition().y-m_text->getGlobalBounds().size.y/2});
         m_renderTarget.draw(*m_text, transform.getLocalMatrix());
+        transform.setPosition({transform.getPosition().x+m_text->getGlobalBounds().size.x/2, transform.getPosition().y+m_text->getGlobalBounds().size.y/2});
     });
 }
 

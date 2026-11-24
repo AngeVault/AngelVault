@@ -49,7 +49,7 @@ void DialogSystem::onUpdate(Registry &registry, float dt) {
                 }
             }
         }
-        if (dialog.currentLine < 0){ui.text = "?";return;}
+        if (dialog.currentLine < 0){ui.text = ui.defaultText;return;}
         if (dialog.currentLine >= dialog.dialogs.size()){dialog.currentLine = -1;return;}
         ui.text = dialog.dialogs[dialog.currentLine];
         });

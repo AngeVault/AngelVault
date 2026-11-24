@@ -322,6 +322,7 @@ void registerBuiltins(SerializerRegistry& reg) {
         [](UIText& t, const SaveContext&) { return Json{ { "text", t.text } };
         },[](UIText& t, const Json& j, const LoadContext&) {
             t.text = j.value("text", std::string());
+            t.defaultText = j.value("text", std::string());
         });
 
     reg.add<UIButton>("UIButton",
