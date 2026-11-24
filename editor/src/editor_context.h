@@ -54,9 +54,22 @@ public:
     Entity activeTilemap();
     TileMapData* activeMap();                 // nullptr : pas de tilemap dans la scène
     sf::Vector2f activeMapOffset();           // position de la carte (Transform2D)
+    sf::Vector2f activeLayerOffset();         // la même, remontée de la hauteur du layer actif
     Entity createTilemap(TileMapOrientation orientation, int width, int height, QString* error = nullptr);
     Entity addTilemapFromFile(const QString& mapPath, QString* error = nullptr);   // .map existant
     void notifyMapEdited();                   // cases peintes : scène « modifiée »
+
+    // --- Layers : le layer actif est celui que l'on peint, retenu pour chaque tilemap ---
+    int activeLayer();                        // -1 : pas de tilemap active
+    int activeLayer(Entity tilemap);
+    void setActiveLayer(Entity tilemap, int layer);   // sélectionne aussi la tilemap
+    int addLayer(Entity tilemap);             // au-dessus du layer actif, devient actif
+    void removeLayer(Entity tilemap, int layer);
+    void moveLayer(Entity tilemap, int from, int to);
+    void renameLayer(Entity tilemap, int layer, const QString& name);
+    void setLayerMode(Entity tilemap, int layer, TileLayerMode mode);
+    void setLayerHeight(Entity tilemap, int layer, float height);
+    void setLayerHidden(Entity tilemap, int layer, bool hidden);   // éditeur seulement, hors historique
     void notifyTilesChanged();                // liste des tilesets / réglages changés : palette à refaire
     // Un .tileset vient d'être modifié et enregistré : les autres tilemaps de la scène qui l'utilisent suivent
     void notifyTilesetSaved(const std::shared_ptr<Tileset>& tileset);
@@ -184,6 +197,8 @@ signals:
     void toolChanged(EditorTool tool);
     void brushChanged(const TileBrush& brush);
     void tilemapChanged();                        // autre tilemap active, ou ses tiles / réglages ont changé
+    void activeLayerChanged(Entity tilemap, int layer);
+    void layerVisibilityChanged(Entity tilemap, int layer);
     void brushSizeChanged(int size);
     void brushShapeChanged(BrushShape shape);
     void resizeTargetChanged(ResizeTarget target);
@@ -231,6 +246,10 @@ private:
     EditorTool m_tool = EditorTool::Select;
     TileBrush m_brush;
     Entity m_activeTilemap = NULL_ENTITY;
+    QHash<quint64, int> m_activeLayers;
+    quint64 layerKey(Entity tilemap);
+    TileMapData* mapOf(Entity tilemap);
+    void layersEdited(TileMapData& map);
     void refreshActiveTilemap();   // émet tilemapChanged si la tilemap active change
     int m_brushSize = 1;
     BrushShape m_brushShape = BrushShape::Square;

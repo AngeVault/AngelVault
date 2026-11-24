@@ -158,7 +158,7 @@ void TilesetView::mousePressEvent(QMouseEvent* e) {
     const QPoint t = tileAt(e->position().toPoint());
     if (t.x() < 0) return;
     if (m_mode == Mode::Click) {
-        emit tileClicked(m_ts.tileIndex(t.x(), t.y()));
+        emit tileClicked(m_ts.tileIndex(t.x(), t.y()), e->modifiers());
         return;
     }
     m_dragStart = t;

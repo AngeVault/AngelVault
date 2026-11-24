@@ -19,7 +19,9 @@
 #include <QRegularExpression>
 #include <QScrollArea>
 #include <QSignalBlocker>
+#include <QPainter>
 #include <QSpinBox>
+#include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -28,6 +30,21 @@
 namespace {
 QString qs(const std::string& s) { return QString::fromUtf8(s.data(), qsizetype(s.size())); }
 std::string utf8(const QString& s) { return s.toUtf8().toStdString(); }
+
+// bouton lecture dessiné : pas besoin d'une image de plus dans les ressources
+QIcon playIcon() {
+    QPixmap pm(32, 32);
+    pm.fill(Qt::transparent);
+    QPainter p(&pm);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(QPen(QColor(230, 230, 230), 2.5));
+    p.setBrush(Qt::NoBrush);
+    p.drawRoundedRect(QRectF(3, 6, 26, 20), 3, 3);
+    p.setPen(Qt::NoPen);
+    p.setBrush(QColor(255, 200, 80));
+    p.drawPolygon(QPolygonF{ QPointF(12, 10), QPointF(22, 16), QPointF(12, 22) });
+    return QIcon(pm);
+}
 
 void toggle(std::vector<int>& list, int index) {
     const auto it = std::find(list.begin(), list.end(), index);
@@ -145,6 +162,34 @@ TilesetDialog::TilesetDialog(const QString& projectDir, const Tileset& tileset, 
     tv->addWidget(m_cornersBox);
     left->addWidget(typeBox);
 
+    // animations : outil + durée d'une image + aperçu qui tourne
+    auto* animRow = new QHBoxLayout;
+    m_animTool = new QToolButton;
+    m_animTool->setCheckable(true);
+    m_animTool->setIcon(playIcon());
+    m_animTool->setIconSize(QSize(24, 24));
+    m_animTool->setToolTip(tr("animer"));
+    m_animTime = new QDoubleSpinBox;
+    m_animTime->setRange(0.01, 10.0);
+    m_animTime->setSingleStep(0.02);
+    m_animTime->setDecimals(2);
+    m_animTime->setSuffix(" s");
+    m_animTime->setValue(0.08);
+    m_animTime->setToolTip(tr("durée image"));
+    m_animDelete = new QToolButton;
+    m_animDelete->setIcon(QIcon(":/resources/icons/buttons/remove.png"));
+    m_animDelete->setToolTip(tr("supprimer"));
+    m_animPreview = new QLabel;
+    m_animPreview->setFixedSize(72, 72);
+    m_animPreview->setAlignment(Qt::AlignCenter);
+    m_animPreview->setStyleSheet("background: rgba(0, 0, 0, 60); border-radius: 4px;");
+    animRow->addWidget(m_animTool);
+    animRow->addWidget(m_animTime);
+    animRow->addWidget(m_animDelete);
+    animRow->addStretch(1);
+    animRow->addWidget(m_animPreview);
+    left->addLayout(animRow);
+
     auto* placeBox = new QGroupBox(tr("Placement"));
     auto* pf = new QFormLayout(placeBox);
     m_autoAnchor = new QCheckBox(m_iso ? tr("Centre de la tile") : tr("Remplir la case (étirer la tile)"));
@@ -255,6 +300,25 @@ TilesetDialog::TilesetDialog(const QString& projectDir, const Tileset& tileset, 
     connect(m_name, &QLineEdit::textChanged, this, &TilesetDialog::updateFileLabel);
     connect(m_mode, &QComboBox::currentIndexChanged, this, &TilesetDialog::updateMode);
     connect(m_view, &TilesetView::tileClicked, this, &TilesetDialog::onTileClicked);
+    connect(m_animTool, &QToolButton::toggled, this, [this](bool on) {
+        if (!on) m_anim = -1;
+        updateAnimation();
+        updateLabels();
+    });
+    connect(m_animTime, &QDoubleSpinBox::valueChanged, this, [this](double v) {
+        if (m_anim >= 0) m_ts.animations[std::size_t(m_anim)].frameTime = float(v);
+    });
+    connect(m_animDelete, &QToolButton::clicked, this, [this] {
+        if (m_anim < 0) return;
+        m_ts.animations.erase(m_ts.animations.begin() + m_anim);
+        m_anim = -1;
+        updateAnimation();
+        updateLabels();
+    });
+    auto* animTimer = new QTimer(this);
+    connect(animTimer, &QTimer::timeout, this, &TilesetDialog::drawAnimationPreview);
+    animTimer->start(30);
+    m_animClock.start();
     connect(standard, &QPushButton::clicked, this, [this] { m_ts.applyStandardLayout(); updateLabels(); });
     connect(clearRoles, &QPushButton::clicked, this, [this] {
         m_ts.full.clear(); m_ts.ring.clear(); m_ts.under.clear();
@@ -266,6 +330,8 @@ TilesetDialog::TilesetDialog(const QString& projectDir, const Tileset& tileset, 
     updateGrid();
     updateMode();
     updateFileLabel();
+    if (!m_ts.animations.empty()) m_anim = 0;   // une animation existe : on la montre tout de suite
+    updateAnimation();
     // la feuille tient en largeur au départ
     m_view->fitWidth(std::max(300, scroll->viewport()->width()));
 }
@@ -316,7 +382,11 @@ void TilesetDialog::updateGrid() {
     keep(m_ts.full); keep(m_ts.ring); keep(m_ts.under);
     for (int& i : m_ts.edge) if (!m_ts.validTile(i)) i = -1;
     for (int& i : m_ts.corner) if (!m_ts.validTile(i)) i = -1;
+    for (TileAnimation& a : m_ts.animations) keep(a.frames);
+    std::erase_if(m_ts.animations, [this](const TileAnimation& a) { return !m_ts.validTile(a.tile) || a.frames.empty(); });
+    if (m_anim >= int(m_ts.animations.size())) m_anim = -1;
 
+    if (path != m_sheetPath) { m_sheetPath = path; m_sheet = QPixmap(path); }
     m_view->setTileset(&m_ts, path);
     updateMode();
 }
@@ -339,7 +409,17 @@ void TilesetDialog::updateMode() {
 
 void TilesetDialog::updateLabels() {
     QHash<int, QString> labels;
-    if (AutotileMode(m_mode->currentIndex()) == AutotileMode::Edges16) {
+    if (m_animTool && m_animTool->isChecked()) {
+        // ▶ = tile animée, numéros = images de l'animation choisie
+        for (const TileAnimation& a : m_ts.animations) labels[a.tile] = "▶";
+        if (m_anim >= 0) {
+            const TileAnimation& a = m_ts.animations[std::size_t(m_anim)];
+            for (std::size_t i = 0; i < a.frames.size(); ++i) {
+                const QString n = QString::number(i + 1);
+                labels[a.frames[i]] = labels.contains(a.frames[i]) ? labels[a.frames[i]] + " " + n : n;
+            }
+        }
+    } else if (AutotileMode(m_mode->currentIndex()) == AutotileMode::Edges16) {
         const QStringList dirs = m_iso ? QStringList{ "NE", "SE", "SO", "NO" } : QStringList{ "H", "D", "B", "G" };
         auto add = [&](int index, const QString& text) {
             if (index < 0) return;
@@ -356,7 +436,8 @@ void TilesetDialog::updateLabels() {
     m_view->setLabels(labels);
 }
 
-void TilesetDialog::onTileClicked(int index) {
+void TilesetDialog::onTileClicked(int index, Qt::KeyboardModifiers modifiers) {
+    if (m_animTool->isChecked()) { onAnimationClicked(index, modifiers); return; }
     if (AutotileMode(m_mode->currentIndex()) != AutotileMode::Edges16 || index < 0) return;
     const int role = m_role->currentIndex();
     auto setSingle = [&](int& slot) { slot = (slot == index) ? -1 : index; };
@@ -372,6 +453,61 @@ void TilesetDialog::onTileClicked(int index) {
         break;
     }
     updateLabels();
+}
+
+// clic sur une tile libre : nouvelle animation ; ensuite chaque clic ajoute ou retire une image,
+// maj + clic ajoute toute la suite jusqu'à la tile, un clic sur la tile animée termine
+void TilesetDialog::onAnimationClicked(int index, Qt::KeyboardModifiers modifiers) {
+    if (index < 0) return;
+    if (m_anim < 0) {
+        const auto it = std::find_if(m_ts.animations.begin(), m_ts.animations.end(), [index](const TileAnimation& a) { return a.tile == index; });
+        if (it != m_ts.animations.end()) {
+            m_anim = int(it - m_ts.animations.begin());
+        } else {
+            m_ts.animations.push_back({ index, { index }, float(m_animTime->value()) });
+            m_anim = int(m_ts.animations.size()) - 1;
+        }
+    } else {
+        TileAnimation& a = m_ts.animations[std::size_t(m_anim)];
+        if (index == a.tile && !(modifiers & Qt::ShiftModifier)) {
+            m_anim = -1;
+        } else if ((modifiers & Qt::ShiftModifier) && !a.frames.empty()) {
+            const int last = a.frames.back();
+            const int step = index >= last ? 1 : -1;
+            for (int i = last + step; i != index + step; i += step) a.frames.push_back(i);
+        } else if (const auto it = std::find(a.frames.begin(), a.frames.end(), index); it != a.frames.end()) {
+            a.frames.erase(it);
+            if (a.frames.empty()) { m_ts.animations.erase(m_ts.animations.begin() + m_anim); m_anim = -1; }
+        } else {
+            a.frames.push_back(index);
+        }
+    }
+    updateAnimation();
+    updateLabels();
+}
+
+void TilesetDialog::updateAnimation() {
+    const bool has = m_anim >= 0 && m_anim < int(m_ts.animations.size());
+    m_animDelete->setEnabled(has);
+    if (has) {
+        const QSignalBlocker block(m_animTime);
+        m_animTime->setValue(m_ts.animations[std::size_t(m_anim)].frameTime);
+    }
+    drawAnimationPreview();
+}
+
+void TilesetDialog::drawAnimationPreview() {
+    if (!m_animPreview) return;
+    const bool has = m_anim >= 0 && m_anim < int(m_ts.animations.size());
+    if (!has || m_sheet.isNull()) {
+        if (!m_animPreview->pixmap().isNull()) m_animPreview->setPixmap(QPixmap());
+        return;
+    }
+    const int tile = m_ts.animatedTile(m_ts.animations[std::size_t(m_anim)].tile, float(m_animClock.elapsed()) / 1000.f);
+    if (!m_ts.validTile(tile)) return;
+    const sf::IntRect r = m_ts.rect(tile);
+    const QPixmap frame = m_sheet.copy(r.position.x, r.position.y, r.size.x, r.size.y);
+    m_animPreview->setPixmap(frame.scaled(m_animPreview->size() - QSize(4, 4), Qt::KeepAspectRatio, Qt::SmoothTransformation));
 }
 
 void TilesetDialog::updateFileLabel() {

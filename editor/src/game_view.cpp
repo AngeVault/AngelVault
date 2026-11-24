@@ -8,6 +8,7 @@
 #include "systems/camera_system.h"
 
 #include <QEvent>
+#include <QKeyEvent>
 
 #include <algorithm>
 #include <iostream>
@@ -53,6 +54,15 @@ void GameView::applySettings(const GameSettings& settings) {
 }
 
 bool GameView::event(QEvent* e) {
+    // les raccourcis d'outils (e gomme, i pipette) ne volent plus les touches du jeu
+    if (e->type() == QEvent::ShortcutOverride) {
+        const auto* k = static_cast<QKeyEvent*>(e);
+        const bool fKey = k->key() >= Qt::Key_F1 && k->key() <= Qt::Key_F35;
+        if (!fKey && !(k->modifiers() & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))) {
+            e->accept();
+            return true;
+        }
+    }
     if (m_game) {
         if (const std::optional<sf::Event> ev = QtSfml::toSfmlEvent(e, devicePixelRatioF())) {
             m_game->input().handleEvent(*ev);

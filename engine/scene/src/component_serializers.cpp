@@ -9,7 +9,12 @@
 #include "components/day_night_cycle.h"
 #include "components/dont_destroy.h"
 #include "components/geometry.h"
+#include "components/interaction.h"
+#include "components/chest.h"
+#include "components/inventory.h"
+#include "components/pickup.h"
 #include "components/map_transition.h"
+#include "components/sprite_animator.h"
 #include "components/name.h"
 #include "components/spawn_point.h"
 #include "components/rigid_body2d.h"
@@ -279,6 +284,30 @@ void registerBuiltins(SerializerRegistry& reg) {
     reg.addReflected<DontDestroy>("DontDestroy");
     reg.addReflected<SpawnPoint>("SpawnPoint");
     reg.addReflected<MapTransition>("MapTransition");
+    reg.addReflected<Interactor>("Interactor");
+    reg.addReflected<Interactable>("Interactable");
+    reg.addReflected<SpriteAnimator>("SpriteAnimator");
+    reg.addReflected<Pickup>("Pickup");
+    reg.addReflected<Chest>("Chest");
+
+    // "Inventory": { "capacity": 20, "maxStack": 99, "stacks": [ { "item": "potion", "count": 3 } ] }
+    reg.add<Inventory>("Inventory",
+        [](Inventory& inv, const SaveContext&) {
+            Json stacks = Json::array();
+            for (const ItemStack& s : inv.stacks) stacks.push_back({ { "item", s.item }, { "count", s.count } });
+            return Json{ { "capacity", inv.capacity }, { "maxStack", inv.maxStack }, { "stacks", stacks } };
+        },
+        [](Inventory& inv, const Json& j, const LoadContext&) {
+            inv.capacity = value(j, "capacity", inv.capacity);
+            inv.maxStack = value(j, "maxStack", inv.maxStack);
+            inv.stacks.clear();
+            const auto it = j.find("stacks");
+            if (it == j.end() || !it->is_array()) return;
+            for (const Json& s : *it) {
+                ItemStack st{ value<std::string>(s, "item", ""), value(s, "count", 1) };
+                if (!st.item.empty() && st.count > 0) inv.stacks.push_back(st);
+            }
+        });
 
     // ---- Tilemap : seulement le fichier .map (les cases sont dedans) et « visible »
     reg.add<Tilemap>("Tilemap",

@@ -9,9 +9,14 @@
 #include "components/day_night_cycle.h"
 #include "components/dont_destroy.h"
 #include "components/geometry.h"
+#include "components/interaction.h"
+#include "components/chest.h"
+#include "components/inventory.h"
+#include "components/pickup.h"
 #include "components/map_transition.h"
 #include "components/name.h"
 #include "components/spawn_point.h"
+#include "components/sprite_animator.h"
 #include "components/rigid_body2d.h"
 #include "components/script_component.h"
 #include "components/transform2d.h"
@@ -884,6 +889,148 @@ std::vector<ComponentDesc> build() {
                 [](MapTransition& c) -> std::string& { return c.scene; }));
             f.push_back(stringRef<MapTransition>(r, e, QObject::tr("Spawn"),
                 [](MapTransition& c) -> std::string& { return c.spawn; }));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- SpriteAnimator
+    {
+        using C = SpriteAnimator;
+        ComponentDesc d{ "SpriteAnimator" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<C>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<C>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<C>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(stringRef<C>(r, e, QObject::tr("Dossier"), [](C& c) -> std::string& { return c.folder; }));
+            f.push_back(stringRef<C>(r, e, QObject::tr("Clip"), [](C& c) -> std::string& { return c.clip; }));
+            f.push_back(vecRef<C>(r, e, QObject::tr("Case"), [](C& c) -> sf::Vector2f& { return c.frameSize; }));
+            f.push_back(intRef<C>(r, e, QObject::tr("Images"), [](C& c) -> int& { return c.frames; }));
+            f.push_back(intRef<C>(r, e, QObject::tr("Directions"), [](C& c) -> int& { return c.directions; }));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Angle ligne 0"), [](C& c) -> float& { return c.startAngle; }, -360, 360, 45));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Images / s"), [](C& c) -> float& { return c.fps; }, 0, 240, 1));
+            f.push_back(boolRef<C>(r, e, QObject::tr("Boucle"), [](C& c) -> bool& { return c.loop; }));
+            f.push_back(vecRef<C>(r, e, QObject::tr("Regard"), [](C& c) -> sf::Vector2f& { return c.facing; }, 0.1));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- Interactor
+    {
+        ComponentDesc d{ "Interactor" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<Interactor>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<Interactor>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<Interactor>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            return std::vector<FieldDesc>{ stringRef<Interactor>(r, e, QObject::tr("Action"),
+                [](Interactor& c) -> std::string& { return c.action; }) };
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- Interactable
+    {
+        ComponentDesc d{ "Interactable" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<Interactable>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<Interactable>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<Interactable>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            return std::vector<FieldDesc>{ boolRef<Interactable>(r, e, QObject::tr("Actif"),
+                [](Interactable& c) -> bool& { return c.enabled; }) };
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- Pickup
+    {
+        using C = Pickup;
+        ComponentDesc d{ "Pickup" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<C>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<C>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<C>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(stringRef<C>(r, e, QObject::tr("Objet"), [](C& c) -> std::string& { return c.item; }));
+            f.push_back(intRef<C>(r, e, QObject::tr("Nombre"), [](C& c) -> int& { return c.count; }));
+            f.back().min = 1;
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- Chest
+    {
+        using C = Chest;
+        ComponentDesc d{ "Chest" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<C>(e); };
+        // le contenu est l'Inventory, l'action passe par Interactable
+        d.add = [](Registry& r, Entity e) {
+            r.addComponent<C>(e);
+            if (!r.hasComponent<Inventory>(e)) r.addComponent<Inventory>(e);
+            if (!r.hasComponent<Interactable>(e)) r.addComponent<Interactable>(e);
+        };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<C>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(stringRef<C>(r, e, QObject::tr("Clé"), [](C& c) -> std::string& { return c.key; }));
+            f.push_back(boolRef<C>(r, e, QObject::tr("Ouvert"), [](C& c) -> bool& { return c.opened; }));
+            f.push_back(stringRef<C>(r, e, QObject::tr("Texture ouverte"), [](C& c) -> std::string& { return c.openTexture; }));
+            f.push_back(vecRef<C>(r, e, QObject::tr("Décalage ouvert"), [](C& c) -> sf::Vector2f& { return c.openOffset; }));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Animation (s)"), [](C& c) -> float& { return c.openTime; }, 0, 5, 0.05));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- Inventory
+    {
+        using C = Inventory;
+        ComponentDesc d{ "Inventory" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<C>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<C>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<C>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(intRef<C>(r, e, QObject::tr("Cases"), [](C& c) -> int& { return c.capacity; }));
+            f.back().min = 0;
+            f.push_back(intRef<C>(r, e, QObject::tr("Pile max"), [](C& c) -> int& { return c.maxStack; }));
+            f.back().min = 0;
+            // une ligne par case, nom vide ou quantité 0 : la case est retirée
+            const std::size_t n = r.getComponent<C>(e).stacks.size();
+            for (std::size_t i = 0; i < n; ++i) {
+                FieldDesc item{ QString::number(i + 1), FieldKind::String };
+                item.get = [&r, e, i] { auto& s = r.getComponent<C>(e).stacks; return QVariant(i < s.size() ? QString::fromStdString(s[i].item) : QString()); };
+                item.set = [&r, e, i](const QVariant& v) {
+                    auto& s = r.getComponent<C>(e).stacks;
+                    if (i >= s.size()) return;
+                    s[i].item = v.toString().trimmed().toStdString();
+                    if (s[i].item.empty()) s.erase(s.begin() + std::ptrdiff_t(i));
+                };
+                item.rebuildOnChange = true;
+                f.push_back(item);
+                FieldDesc count{ QStringLiteral("×"), FieldKind::Int };
+                count.min = 0;
+                count.get = [&r, e, i] { auto& s = r.getComponent<C>(e).stacks; return QVariant(i < s.size() ? s[i].count : 0); };
+                count.set = [&r, e, i](const QVariant& v) {
+                    auto& s = r.getComponent<C>(e).stacks;
+                    if (i >= s.size()) return;
+                    s[i].count = v.toInt();
+                    if (s[i].count <= 0) s.erase(s.begin() + std::ptrdiff_t(i));
+                };
+                count.rebuildOnChange = true;
+                f.push_back(count);
+            }
+            // case vide en bas pour ajouter un objet
+            FieldDesc add{ QStringLiteral("+"), FieldKind::String };
+            add.get = [] { return QVariant(QString()); };
+            add.set = [&r, e](const QVariant& v) {
+                const std::string item = v.toString().trimmed().toStdString();
+                if (!item.empty()) r.getComponent<C>(e).add(item, 1);
+            };
+            add.rebuildOnChange = true;
+            f.push_back(add);
             return f;
         };
         list.push_back(d);

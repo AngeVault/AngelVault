@@ -589,6 +589,14 @@ void TilePalettePanel::newTilesetFromImages() {
     if (trim->isChecked() || !autoAnchor->isChecked())
         start.anchor = { float(anchor.x() - sheet.cropOffset.x()), float(anchor.y() - sheet.cropOffset.y()) };
     if (map->orientation == TileMapOrientation::Orthogonal && autoAnchor->isChecked()) start.anchor = { -1.f, -1.f };
+    // images numérotées (0001.png...) : les images d'une animation, rangées dans l'ordre
+    static const QRegularExpression frameName(R"(^\d+$)");
+    const bool frames = files.size() > 1 && std::all_of(files.begin(), files.end(), [](const QString& f) { return frameName.match(QFileInfo(f).completeBaseName()).hasMatch(); });
+    if (frames) {
+        TileAnimation anim{ 0, {}, 1.f / 12.f };
+        for (int i = 0; i < int(files.size()) && i < sheet.count; ++i) anim.frames.push_back(i);
+        start.animations.push_back(std::move(anim));
+    }
     if (!runTilesetDialog(start, true, -1)) QFile::remove(png);   // annulé : la feuille créée est retirée
 }
 
@@ -612,9 +620,7 @@ void TilePalettePanel::removeTileset() {
     TileMapData* map = m_ctx.activeMap();
     const int slot = currentSlot();
     if (!map || !map->tileset(slot)) return;
-    int used = 0;
-    for (int y = 0; y < map->height(); ++y)
-        for (int x = 0; x < map->width(); ++x) used += cellSlot(map->get(x, y)) == slot;
+    const int used = map->usedCells(slot);
     const QString name = qs(map->tileset(slot)->name);
     if (QMessageBox::question(this, tr("Retirer le tileset"),
             tr("Retirer « %1 » de cette carte ?\n%2 case(s) peinte(s) avec deviennent vides.\n"

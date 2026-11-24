@@ -523,7 +523,10 @@ int main(int argc, char** argv) {
         if (gameView) return;
         GameView::MapCopies maps;   // tilemaps telles qu'elles sont dans l'éditeur (même non enregistrées)
         ctx.scene().view<Tilemap>([&](Entity, Tilemap& tm) {
-            if (tm.data) maps[tm.file] = std::make_shared<TileMapData>(*tm.data);
+            if (!tm.data) return;
+            auto copy = std::make_shared<TileMapData>(*tm.data);
+            for (int l = 0; l < copy->layerCount(); ++l) copy->layer(l)->hidden = false;   // caché dans l'éditeur seulement
+            maps[tm.file] = std::move(copy);
         });
         gameView = new GameView(ctx.sceneSnapshot(), inputPath(), ctx.projectDir(), std::move(maps), ctx.project().systems,
                                 ctx.gameScreenSize());   // une COPIE de la scène
