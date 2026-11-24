@@ -348,6 +348,7 @@ void registerBuiltins(SerializerRegistry& reg) {
         [](SteeringFleeComponent& s, const Json& j, const LoadContext&) {
             s.isActif  = value(j, "isActif", s.isActif);
         });
+
     reg.add<UIText>("UIText",
         [](UIText& t, const SaveContext&) { return Json{ { "text", t.text } };
         },[](UIText& t, const Json& j, const LoadContext&) {
