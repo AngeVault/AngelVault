@@ -57,7 +57,7 @@ void SteeringFleeSystem::onUpdate(Registry& registry, float dt)
                                 }
                                 if (temp->next != nullptr)temp = temp->next;
                             }while (temp->next != nullptr );
-                            if (direction.x == 0 && direction.y == 0)
+                            if (direction.x != 0 || direction.y != 0)
                             {
                                 float norme = direction.x*direction.x + direction.y*direction.y;
                                 norme = sqrt(norme);
@@ -69,7 +69,7 @@ void SteeringFleeSystem::onUpdate(Registry& registry, float dt)
                                 }else{
                                     steeringCoponent.rapidite = norme/100.f;
                                 }
-                                steeringCoponent.direction = direction;
+                                steeringCoponent.direction = direction * -1.f;
                             }
                         }else{
                             do
@@ -78,13 +78,17 @@ void SteeringFleeSystem::onUpdate(Registry& registry, float dt)
                                 sf::Vector2f evitablePos = temp->position;
                                 evitablePos.x -= pos.x;
                                 evitablePos.y -= pos.y;
+                                evitablePos.x *= -1.f;
+                                evitablePos.y *= -1.f;
                                 float norme = evitablePos.x*evitablePos.x + evitablePos.y*evitablePos.y;
                                 norme = sqrt(norme);
-                                evitablePos.x /= norme;
-                                evitablePos.y /= norme;
+                                if (norme > 0.f)evitablePos.x /= norme;
+                                if (norme > 0.f)evitablePos.y /= norme;
 
-                                float degres = evitablePos.x*steeringCoponent.direction.x + evitablePos.y*steeringCoponent.direction.y;
-                                degres = std::acosf(degres);
+                                float cross = steeringCoponent.direction.x * evitablePos.y - steeringCoponent.direction.y * evitablePos.x;
+                                float dot   = steeringCoponent.direction.x * evitablePos.x + steeringCoponent.direction.y * evitablePos.y;
+                                float degres = std::atan2f(cross, dot) * 180.0f / 3.14159265f; // degrés signés
+
 
                                 if (temp->distanfceAdaptable)
                                 {
@@ -116,7 +120,9 @@ void SteeringFleeSystem::onUpdate(Registry& registry, float dt)
                                         direction.x += evitablePos.x;
                                         direction.y += evitablePos.y;
                                     }else{
-                                        float rad = degres * 3.14159265f / 180.0f;
+                                        float rad = std::atan2f(cross, dot);
+                                        float maxAngle = temp->angle * 3.14159265f / 180.0f;
+                                        rad = std::max(-maxAngle, std::min(maxAngle, rad));
                                         float c = std::cosf(rad);
                                         float s = std::sinf(rad);
                                         direction.x += steeringCoponent.direction.x * c - steeringCoponent.direction.y * s;
@@ -125,11 +131,12 @@ void SteeringFleeSystem::onUpdate(Registry& registry, float dt)
                                 }
                                 if (temp->next != nullptr)temp = temp->next;
                             }while (temp->next != nullptr );
+                            float norme = direction.x*direction.x + direction.y*direction.y;
+                            norme = sqrt(norme);
+                            if (norme > 0.f)direction.x /= norme;
+                            if (norme > 0.f)direction.y /= norme;
+                            steeringCoponent.direction = direction;
                         }
-                        float norme = direction.x*direction.x + direction.y*direction.y;
-                        norme = sqrt(norme);
-                        direction.x /= norme;
-                        direction.y /= norme;
                     }
                 }
             }else

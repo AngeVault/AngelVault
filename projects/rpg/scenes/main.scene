@@ -134,7 +134,7 @@
         },
         "Transform2D": {
           "position": [
-            401.8966369628906,
+            401.156494140625,
             157.48681640625
           ],
           "rotation": 0.0,
@@ -167,16 +167,16 @@
         },
         "Steering": {
           "direction": [
-            1.0,
-            10.0
+            0.0,
+            0.0
           ],
           "rapidite": 1000000.0
         },
         "SteeringSeek": {
-          "isActif": true,
+          "isActif": false,
           "positionCible": [
-            200.0,
-            100.0
+            1000.0,
+            1000.0
           ]
         },
         "SteeringFlee": {
@@ -188,7 +188,7 @@
           "regenlLife": 0.0
         },
         "Npc": {
-          "ennemies": true,
+          "ennemies": false,
           "vision": 1000.0
         },
         "Stats": {

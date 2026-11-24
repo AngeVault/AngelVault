@@ -12,10 +12,13 @@ struct SteeringFleeComponent
 {
     struct Cible
     {
-        Cible(sf::Vector2f _position, bool _distanfceAdaptable, float _distanfceAdaptableDebut)
+        Cible(sf::Vector2f _position, bool _distanfceAdaptable, float _distanfceAdaptableDebut, float _angle)
         {
             id=idNext; idNext++;
             position = _position;
+            distanfceAdaptable = _distanfceAdaptable;
+            distanfceAdaptableDebut = _distanfceAdaptableDebut;
+            angle = _angle;
         }
         sf::Vector2f position;
         unsigned id;
@@ -27,11 +30,11 @@ struct SteeringFleeComponent
     };
     bool isActif = true;
     Cible* listeCible = nullptr;
-    unsigned addCible(sf::Vector2f _position, bool _distanfceAdaptable, float _distanfceAdaptableDebut)
+    unsigned addCible(sf::Vector2f _position, bool _distanfceAdaptable, float _distanfceAdaptableDebut, float _angle)
     {
         if (listeCible == nullptr)
         {
-            listeCible = new Cible(_position, _distanfceAdaptable, _distanfceAdaptableDebut);
+            listeCible = new Cible(_position, _distanfceAdaptable, _distanfceAdaptableDebut, _angle);
             return listeCible -> id;
         }
         else
@@ -41,7 +44,7 @@ struct SteeringFleeComponent
             {
                 temp = temp->next;
             }
-            temp->next = new Cible(_position, _distanfceAdaptable, _distanfceAdaptableDebut);
+            temp->next = new Cible(_position, _distanfceAdaptable, _distanfceAdaptableDebut, _angle);
             return temp -> next -> id;
         }
 
