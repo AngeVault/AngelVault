@@ -6,6 +6,7 @@
 #include "systems/force_debug_system.h"
 #include "system/UI.h"
 #include "system/Dialog_system.h"
+#include "systems/sprite_animation_system.h"
 #include "game_systems.h"
 
 #include <algorithm>
@@ -35,6 +36,7 @@ void Game::init() {
     InputManager::setCurrent(&m_input);   // Input::getAxis(...) lit ce Game
     syncScene();                          // taille valide dès onStart
     m_systems.addSystem<TilemapRenderSystem>(m_scene, m_textureLoader);   // cartes (composant Tilemap), sous les entités
+    m_systems.addSystem<SpriteAnimationSystem>();
     m_systems.addSystem<RenderSystem>(m_scene, m_textureLoader);
     m_systems.addSystem<DayNightSystem>(m_scene);   // composant DayNightCycle : heure + teinte de l'écran
     m_systems.addSystem<RenderCollisionSystem>(m_scene);

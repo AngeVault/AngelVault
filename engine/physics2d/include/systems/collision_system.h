@@ -37,6 +37,9 @@ public:
 
     CollisionSystem() { priority = 1; } // après Physics (0), avant Render (10)
 
+    // contacts de la dernière image, un par paire
+    const std::vector<CollisionInfo>& contacts() const { return m_contacts; }
+
     // après une téléportation
     void forgetPositions() { m_lastPositions.clear(); }
 
@@ -80,6 +83,7 @@ public:
             for (size_t i = 0; i < m_entries.size(); ++i) m_entries[i].tr->move(-m_moves[i]);   // retour au début de l'image
 
         m_reported.clear();
+        m_contacts.clear();
         for (int s = 0; s < steps; ++s) {
             if (steps > 1)
                 for (size_t i = 0; i < m_entries.size(); ++i) m_entries[i].tr->move(m_moves[i] / float(steps));
@@ -148,9 +152,10 @@ private:
 
                         // Une seule notification par paire et par image (même avec plusieurs sous-étapes)
                         const uint64_t pair = pairKey(A.e, B.e);
-                        if (onCollision && std::find(m_reported.begin(), m_reported.end(), pair) == m_reported.end()) {
+                        if (std::find(m_reported.begin(), m_reported.end(), pair) == m_reported.end()) {
                             m_reported.push_back(pair);
-                            onCollision(info);
+                            m_contacts.push_back(info);
+                            if (onCollision) onCollision(info);
                         }
 
                         if (!info.isTrigger)
@@ -176,6 +181,7 @@ private:
     std::vector<sf::Vector2f> m_moves;                          // déplacement de l'image (sous-étapes)
     std::unordered_map<uint64_t, sf::Vector2f> m_lastPositions; // position à la fin de l'image précédente
     std::vector<uint64_t> m_reported;                           // paires déjà notifiées cette image
+    std::vector<CollisionInfo> m_contacts;
 
     static uint64_t entityKey(Entity e) { return (uint64_t(e.index) << 32) | e.generation; }
     static uint64_t pairKey(Entity a, Entity b) {

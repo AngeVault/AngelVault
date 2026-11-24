@@ -4,12 +4,18 @@
 #include <SFML/Graphics/View.hpp>
 #include <SFML/System/Time.hpp>
 
+#include <charconv>
 #include <filesystem>
 #include <fstream>
 #include <regex>
 #include <sstream>
 
 namespace {
+// indépendant de la locale : qt met le séparateur décimal en virgule et std::stof lit alors "0.9" comme 0
+bool toFloat(const std::string& s, float& out) {
+    const auto [end, ec] = std::from_chars(s.data(), s.data() + s.size(), out);
+    return ec == std::errc{} && end != s.data();
+}
 // uniform <type> <nom>;
 const std::regex kUniform(R"(uniform\s+\w+\s+(\w+)\s*;)");
 // uniform float <nom>; // @param <défaut> <min> <max>
@@ -32,10 +38,9 @@ std::vector<PostProcess::Param> PostProcess::parseParams(const std::string& sour
     std::smatch m;
     while (std::getline(in, line)) {
         if (!std::regex_search(line, m, kParam)) continue;
-        try {
-            Param p{ m[1].str(), std::stof(m[2].str()), std::stof(m[3].str()), std::stof(m[4].str()) };
-            if (p.max > p.min) params.push_back(p);
-        } catch (...) {}   // nombre illisible : réglage ignoré
+        Param p{ m[1].str() };
+        if (!toFloat(m[2].str(), p.value) || !toFloat(m[3].str(), p.min) || !toFloat(m[4].str(), p.max)) continue;   // nombre illisible : réglage ignoré
+        if (p.max > p.min) params.push_back(p);
     }
     return params;
 }

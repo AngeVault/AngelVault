@@ -60,11 +60,6 @@ signals:
 protected:
     void resizeEvent(QResizeEvent* e) override;
     bool eventFilter(QObject* watched, QEvent* e) override;
-#ifndef Q_OS_WIN
-    // Hors Windows : déplacement via Qt (sous Windows c'est le système qui gère, via HTCAPTION)
-    void mousePressEvent(QMouseEvent* e) override;
-    void mouseDoubleClickEvent(QMouseEvent* e) override;
-#endif
 
 private:
     QIcon captionIcon(const QString& path) const;   // icône teintée avec m_iconColor

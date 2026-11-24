@@ -31,6 +31,9 @@ std::shared_ptr<TileMapData> makeTileMap(TileMapOrientation orientation, int wid
     map->tileSize = orientation == TileMapOrientation::Isometric ? sf::Vector2f{ 128.f, 64.f } : sf::Vector2f{ 32.f, 32.f };
     map->baseDir = projectDir;
     map->resize(width, height);
+    map->addLayer("fond", TileLayerMode::Below);
+    map->addLayer("principal", TileLayerMode::YSort);
+    map->addLayer("supérieur", TileLayerMode::Above);
     map->modified = true;
     return map;
 }

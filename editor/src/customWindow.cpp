@@ -6,7 +6,9 @@
 #include <QEvent>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMouseEvent>
 #include <QPushButton>
+#include <QWindow>
 #include <QtMath>
 
 #include <algorithm>
@@ -117,12 +119,142 @@ private:
 };
 #endif // Q_OS_WIN
 
+#ifndef Q_OS_WIN
+namespace {
+constexpr int kResizeMargin = 6;
+}
+
+// hors windows : bords et barre de titre gérés sur la fenêtre native, qui voit passer toute la souris
+// avant les widgets (pas de marge visible, et le vide de la barre de menus déplace aussi la fenêtre)
+// posé sur l'appli : la fenêtre native peut être recréée, on compare à celle du moment
+// x11 : géométrie suivie à la main, startSystemMove y est capricieux ; wayland : le compositeur s'en charge
+class FrameFilter : public QObject {
+public:
+    explicit FrameFilter(CustomWindow* window) : QObject(window), m_window(window) {}
+
+    bool eventFilter(QObject* watched, QEvent* e) override {
+        if (watched != m_window->windowHandle() || !watched) return false;
+        switch (e->type()) {
+        case QEvent::MouseMove: return mouseMove(static_cast<QMouseEvent*>(e));
+        case QEvent::MouseButtonPress: return mousePress(static_cast<QMouseEvent*>(e));
+        case QEvent::MouseButtonRelease: return mouseRelease(static_cast<QMouseEvent*>(e));
+        case QEvent::MouseButtonDblClick: return doubleClick(static_cast<QMouseEvent*>(e));
+        case QEvent::Leave: if (m_drag == Drag::None) setEdgeCursor({}); return false;
+        default: return false;
+        }
+    }
+
+private:
+    enum class Drag { None, Move, Resize };
+
+    bool mouseMove(QMouseEvent* e) {
+        const QPoint global = e->globalPosition().toPoint();
+        if (m_drag == Drag::None) {
+            setEdgeCursor(e->buttons() == Qt::NoButton ? edgesAt(m_window->mapFromGlobal(global)) : Qt::Edges{});
+            return false;
+        }
+        const QPoint delta = global - m_pressGlobal;
+        if (m_drag == Drag::Move) {
+            m_window->move(m_startGeometry.topLeft() + delta);
+            return true;
+        }
+        QRect g = m_startGeometry;
+        const QSize min = m_window->minimumSizeHint().expandedTo(m_window->minimumSize()).expandedTo(QSize(200, 120));
+        if (m_edges & Qt::LeftEdge) g.setLeft(std::min(g.left() + delta.x(), g.right() - min.width()));
+        if (m_edges & Qt::RightEdge) g.setRight(std::max(g.right() + delta.x(), g.left() + min.width()));
+        if (m_edges & Qt::TopEdge) g.setTop(std::min(g.top() + delta.y(), g.bottom() - min.height()));
+        if (m_edges & Qt::BottomEdge) g.setBottom(std::max(g.bottom() + delta.y(), g.top() + min.height()));
+        m_window->setGeometry(g);
+        return true;
+    }
+
+    bool mousePress(QMouseEvent* e) {
+        if (e->button() != Qt::LeftButton) return false;
+        const QPoint global = e->globalPosition().toPoint();
+        const Qt::Edges edges = edgesAt(m_window->mapFromGlobal(global));
+        if (edges) return begin(Drag::Resize, edges, global);
+        if (!onTitleBar(global)) return false;
+        return begin(Drag::Move, {}, global);
+    }
+
+    bool mouseRelease(QMouseEvent* e) {
+        if (m_drag == Drag::None || e->button() != Qt::LeftButton) return false;
+        m_drag = Drag::None;
+        setEdgeCursor(edgesAt(m_window->mapFromGlobal(e->globalPosition().toPoint())));
+        return true;
+    }
+
+    bool doubleClick(QMouseEvent* e) {
+        if (e->button() != Qt::LeftButton || !onTitleBar(e->globalPosition().toPoint())) return false;
+        m_drag = Drag::None;
+        m_window->toggleMaximized();
+        return true;
+    }
+
+    bool begin(Drag drag, Qt::Edges edges, const QPoint& global) {
+        if (QGuiApplication::platformName().startsWith("wayland")) {
+            QWindow* handle = m_window->windowHandle();
+            return handle && (drag == Drag::Move ? handle->startSystemMove() : handle->startSystemResize(edges));
+        }
+        if (drag == Drag::Move && m_window->isMaximized()) {
+            // glisser une fenêtre agrandie : elle reprend sa taille sous la souris
+            const double ratio = double(m_window->mapFromGlobal(global).x()) / std::max(1, m_window->width());
+            m_window->showNormal();
+            const QRect normal = m_window->normalGeometry();
+            m_window->move(global.x() - int(ratio * normal.width()), global.y() - TitleBar::kHeight / 2);
+        }
+        m_drag = drag;
+        m_edges = edges;
+        m_pressGlobal = global;
+        m_startGeometry = m_window->geometry();
+        return true;
+    }
+
+    bool onTitleBar(const QPoint& global) const {
+        TitleBar* bar = m_window->titleBar();
+        const QPoint local = bar->mapFromGlobal(global);
+        return bar->rect().contains(local) && bar->isDraggableAt(local);
+    }
+
+    Qt::Edges edgesAt(const QPoint& p) const {
+        if (m_window->isMaximized() || m_window->isFullScreen()) return {};
+        Qt::Edges edges;
+        if (p.x() < kResizeMargin) edges |= Qt::LeftEdge;
+        if (p.x() >= m_window->width() - kResizeMargin) edges |= Qt::RightEdge;
+        if (p.y() < kResizeMargin) edges |= Qt::TopEdge;
+        if (p.y() >= m_window->height() - kResizeMargin) edges |= Qt::BottomEdge;
+        return edges;
+    }
+
+    // curseur imposé à toute l'appli : sinon le widget sous la souris remet le sien
+    void setEdgeCursor(Qt::Edges edges) {
+        const bool left = edges & Qt::LeftEdge, right = edges & Qt::RightEdge, top = edges & Qt::TopEdge, bottom = edges & Qt::BottomEdge;
+        Qt::CursorShape shape = Qt::ArrowCursor;
+        if ((left && top) || (right && bottom)) shape = Qt::SizeFDiagCursor;
+        else if ((right && top) || (left && bottom)) shape = Qt::SizeBDiagCursor;
+        else if (left || right) shape = Qt::SizeHorCursor;
+        else if (top || bottom) shape = Qt::SizeVerCursor;
+        const bool want = edges != Qt::Edges{};
+        if (want == m_overridden && (!want || QGuiApplication::overrideCursor()->shape() == shape)) return;
+        if (m_overridden) QGuiApplication::restoreOverrideCursor();
+        if (want) QGuiApplication::setOverrideCursor(shape);
+        m_overridden = want;
+    }
+
+    CustomWindow* m_window;
+    Drag m_drag = Drag::None;
+    Qt::Edges m_edges;
+    QPoint m_pressGlobal;
+    QRect m_startGeometry;
+    bool m_overridden = false;
+};
+#endif
+
 // ---------------------------------------------------------------------------
 
 CustomWindow::CustomWindow(QWidget* parent) : QMainWindow(parent) {
     setObjectName("MainWindow");
-    setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowSystemMenuHint
-                   | Qt::WindowMinMaxButtonsHint);
+    setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowSystemMenuHint | Qt::WindowMinMaxButtonsHint);
 
     m_titleBar = new TitleBar(this);
     setMenuWidget(m_titleBar);
@@ -145,6 +277,8 @@ CustomWindow::CustomWindow(QWidget* parent) : QMainWindow(parent) {
         menuFilter = new MenuCornerFilter(qApp);
         qApp->installEventFilter(menuFilter);
     }
+#else
+    qApp->installEventFilter(new FrameFilter(this));
 #endif
 }
 

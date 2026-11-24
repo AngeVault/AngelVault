@@ -82,6 +82,18 @@ void Tileset::applyStandardLayout() {
     under = row(4);
 }
 
+const TileAnimation* Tileset::animation(int tile) const {
+    for (const TileAnimation& a : animations)
+        if (a.tile == tile) return &a;
+    return nullptr;
+}
+
+int Tileset::animatedTile(int tile, float time) const {
+    const TileAnimation* a = animations.empty() ? nullptr : animation(tile);
+    if (!a || a->frames.empty() || a->frameTime <= 0.f) return tile;
+    return a->frames[std::size_t(time / a->frameTime) % a->frames.size()];
+}
+
 // ---- JSON --------------------------------------------------------------------------------------
 
 std::string Tileset::toJson() const {
@@ -111,6 +123,11 @@ std::string Tileset::toJson() const {
         if (!under.empty()) j["under"] = under;
     }
     if (autotile == AutotileMode::Corners16 && frameTime > 0.f) j["frameTime"] = frameTime;
+    if (!animations.empty()) {
+        Json list = Json::array();
+        for (const TileAnimation& a : animations) list.push_back({ { "tile", a.tile }, { "frames", a.frames }, { "frameTime", a.frameTime } });
+        j["animations"] = std::move(list);
+    }
     return j.dump(2) + "\n";
 }
 
@@ -143,6 +160,15 @@ bool Tileset::fromJson(const std::string& text, std::string* error) {
     t.ring = ints(j.value("ring", Json()));
     t.under = ints(j.value("under", Json()));
     t.frameTime = j.value("frameTime", 0.f);
+    if (const Json& list = j.value("animations", Json()); list.is_array())
+        for (const Json& a : list) {
+            if (!a.is_object()) continue;
+            TileAnimation anim;
+            anim.tile = a.value("tile", -1);
+            anim.frames = ints(a.value("frames", Json()));
+            anim.frameTime = std::max(0.01f, a.value("frameTime", 0.1f));
+            if (anim.tile >= 0 && !anim.frames.empty()) t.animations.push_back(std::move(anim));
+        }
     *this = std::move(t);
     return true;
 }

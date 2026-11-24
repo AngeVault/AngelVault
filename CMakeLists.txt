@@ -32,6 +32,16 @@ if(AV_BUILD_EDITOR)
       message(STATUS "Qt detecte automatiquement : ${_qt_kit}")
     endif()
   endif()
+  # Linux / macOS : installateur officiel dans ~/Qt/6.x.y/gcc_64 (ou macos)
+  if(NOT WIN32 AND NOT Qt6_DIR AND NOT CMAKE_PREFIX_PATH)
+    file(GLOB _qt_kits "$ENV{HOME}/Qt/6.*/gcc_64" "$ENV{HOME}/Qt/6.*/macos")
+    list(SORT _qt_kits COMPARE NATURAL ORDER DESCENDING)
+    if(_qt_kits)
+      list(GET _qt_kits 0 _qt_kit)
+      list(APPEND CMAKE_PREFIX_PATH "${_qt_kit}")
+      message(STATUS "Qt detecte automatiquement : ${_qt_kit}")
+    endif()
+  endif()
 
   find_package(Qt6 COMPONENTS Widgets QUIET)
   message(STATUS "DIAG: Qt6_FOUND=${Qt6_FOUND} Qt6_DIR=${Qt6_DIR} compilateur=${CMAKE_CXX_COMPILER_ID} MSVC=${MSVC}")
@@ -53,8 +63,9 @@ if(AV_BUILD_EDITOR)
   elseif(NOT Qt6_FOUND)
     message(WARNING
             "Qt 6 introuvable : l'editeur n'est PAS construit (le moteur et le Sandbox le sont).\n"
-            "  -> installe Qt 6 (kit MSVC 2022 64-bit) puis indique son dossier, par exemple :\n"
+            "  -> installe Qt 6 (Windows : kit MSVC 2022 64-bit, Linux : gcc_64 dans ~/Qt) puis indique son dossier, par exemple :\n"
             "     cmake -DCMAKE_PREFIX_PATH=C:/Qt/6.12.0/msvc2022_64 ...\n"
+            "     export QT_ROOT=~/Qt/6.12.0/gcc_64 (preset dev)\n"
             "     ou copie CMakeUserPresets.example.json en CMakeUserPresets.json et corrige le chemin.")
   endif()
 endif()

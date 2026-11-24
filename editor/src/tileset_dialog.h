@@ -2,6 +2,8 @@
 #include "tilemap/tileset.h"
 
 #include <QDialog>
+#include <QElapsedTimer>
+#include <QPixmap>
 #include <QSize>
 
 class QCheckBox;
@@ -11,6 +13,7 @@ class QGroupBox;
 class QLabel;
 class QLineEdit;
 class QSpinBox;
+class QToolButton;
 class TilesetView;
 
 // Fenêtre « Tileset » : crée ou modifie un tileset (panneau Tile Palette > + / Modifier).
@@ -33,7 +36,10 @@ private:
     void updateMode();
     void updateLabels();
     void updateFileLabel();
-    void onTileClicked(int index);
+    void onTileClicked(int index, Qt::KeyboardModifiers modifiers);
+    void onAnimationClicked(int index, Qt::KeyboardModifiers modifiers);
+    void updateAnimation();                 // boutons et durée suivent l'animation choisie
+    void drawAnimationPreview();
     QString pickImage();
     QString relative(const QString& absolute) const;
     QString absolute(const QString& path) const;
@@ -70,4 +76,14 @@ private:
     QLabel* m_fileLabel = nullptr;
     QLabel* m_viewHint = nullptr;
     TilesetView* m_view = nullptr;
+
+    // animations : outil actif = les clics dans la feuille ajoutent des images
+    QToolButton* m_animTool = nullptr;
+    QDoubleSpinBox* m_animTime = nullptr;
+    QToolButton* m_animDelete = nullptr;
+    QLabel* m_animPreview = nullptr;
+    QPixmap m_sheet;
+    QString m_sheetPath;
+    QElapsedTimer m_animClock;
+    int m_anim = -1;                        // index dans m_ts.animations, -1 = aucune
 };

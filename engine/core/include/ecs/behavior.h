@@ -13,4 +13,6 @@ struct IBehavior {
     virtual void onStart(Entity self, Registry& registry) {}
     virtual void onUpdate(Entity self, Registry& registry, float dt) = 0;
     virtual void onDestroy(Entity self, Registry& registry) {}
+    // un Interactor a activé cette entité (InteractionSystem)
+    virtual void onInteract(Entity self, Registry& registry, Entity interactor) {}
 };

@@ -25,3 +25,15 @@ add_test(NAME test_tile_collision COMMAND test_tile_collision)
 add_executable(test_scene_transition test_scene_transition.cpp)
 target_link_libraries(test_scene_transition PRIVATE AngeVault::Scene)
 add_test(NAME test_scene_transition COMMAND test_scene_transition)
+
+add_executable(test_interaction test_interaction.cpp)
+target_link_libraries(test_interaction PRIVATE AngeVault::Gameplay)
+add_test(NAME test_interaction COMMAND test_interaction)
+
+add_executable(test_sprite_animation test_sprite_animation.cpp)
+target_link_libraries(test_sprite_animation PRIVATE AngeVault::Render2D)
+add_test(NAME test_sprite_animation COMMAND test_sprite_animation)
+
+add_executable(test_inventory test_inventory.cpp)
+target_link_libraries(test_inventory PRIVATE AngeVault::Scene)
+add_test(NAME test_inventory COMMAND test_inventory)

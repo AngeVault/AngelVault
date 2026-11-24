@@ -20,6 +20,11 @@ endfunction()
 
 # Copie le dossier assets/ à côté de l'exécutable après chaque build
 function(av_copy_assets target dir)
-  add_custom_command(TARGET ${target} POST_BUILD
+  # cible toujours lancée : un asset modifié seul est copié même sans recompiler l'exe
+  string(MD5 hash "${dir}")
+  string(SUBSTRING ${hash} 0 8 hash)
+  set(copy ${target}_assets_${hash})
+  add_custom_target(${copy} ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different ${dir} $<TARGET_FILE_DIR:${target}>/assets)
+  add_dependencies(${target} ${copy})
 endfunction()
