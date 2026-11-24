@@ -7,7 +7,7 @@ struct UIText {
     std::string text;
     std::string defaultText;
     sf::Vector2f offset;
-    bool isHidden = false;
+    bool isHUD = false;
 };
 
 
@@ -15,7 +15,7 @@ template<>
 inline ReflectedComponent reflectComponent<UIText>(UIText& t) {
     return { "UIText", {
         {"Text", PropertyInfo::Type::String, &t.text },
-        {"offset X", PropertyInfo::Type::Vec2f, &t.offset }
+        {"Offset", PropertyInfo::Type::Vec2f, &t.offset }
     }
     };
 }

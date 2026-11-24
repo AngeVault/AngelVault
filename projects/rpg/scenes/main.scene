@@ -618,13 +618,43 @@
         },
         "UIText": {
           "text": "?",
+          "HUD": false,
           "offset": [
             0.0,
-            -55.0
+            -70.0
           ]
         },
         "Dialog": {
-          "json": "dialog.dialog"
+          "json": "dialog.dialog",
+          "speed": 0.03999999910593033
+        }
+      }
+    },
+    {
+      "id": 3757927189631101456,
+      "components": {
+        "Name": {
+          "name": "Nouvelle entité"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "UIText": {
+          "text": "c'est de l'HUD",
+          "HUD": true,
+          "offset": [
+            0.0,
+            0.0
+          ]
         }
       }
     }
