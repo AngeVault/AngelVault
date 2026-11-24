@@ -12,6 +12,7 @@
 #include "systems/script_system.h"
 #include "systems/interaction_system.h"
 #include "systems/pickup_system.h"
+#include "systems/chest_system.h"
 #include "systems/scene_transition_system.h"
 #include "components/name.h"
 #include "components/geometry.h"
@@ -88,6 +89,7 @@ inline void registerRpgSystems(Game& game) {
     auto& collision = game.systems().addSystem<CollisionSystem>();
     auto& interaction = game.systems().addSystem<InteractionSystem>(collision);
     game.systems().addSystem<PickupSystem>(collision, interaction);
+    game.systems().addSystem<ChestSystem>(interaction);
     game.systems().addSystem<SceneTransitionSystem>(game, collision, interaction);
     game.systems().addSystem<ScriptSystem>();
     registerCameraSystems(game.systems(), game.target());

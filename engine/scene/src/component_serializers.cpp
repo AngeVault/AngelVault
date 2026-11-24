@@ -10,6 +10,7 @@
 #include "components/dont_destroy.h"
 #include "components/geometry.h"
 #include "components/interaction.h"
+#include "components/chest.h"
 #include "components/inventory.h"
 #include "components/pickup.h"
 #include "components/map_transition.h"
@@ -287,6 +288,7 @@ void registerBuiltins(SerializerRegistry& reg) {
     reg.addReflected<Interactable>("Interactable");
     reg.addReflected<SpriteAnimator>("SpriteAnimator");
     reg.addReflected<Pickup>("Pickup");
+    reg.addReflected<Chest>("Chest");
 
     // "Inventory": { "capacity": 20, "maxStack": 99, "stacks": [ { "item": "potion", "count": 3 } ] }
     reg.add<Inventory>("Inventory",

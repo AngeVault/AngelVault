@@ -247,6 +247,11 @@
               }
             }
           ]
+        },
+        "Inventory": {
+          "capacity": 20,
+          "maxStack": 99,
+          "stacks": []
         }
       }
     },
