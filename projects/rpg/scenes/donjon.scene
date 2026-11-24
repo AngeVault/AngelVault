@@ -319,17 +319,13 @@
           "maxStack": 99,
           "stacks": [
             {
-              "item": "potion",
-              "count": 3
-            },
-            {
-              "item": "or",
-              "count": 50
+              "item": "epee",
+              "count": 1
             }
           ]
         },
         "Chest": {
-          "key": "",
+          "key": "cle",
           "opened": false,
           "openTexture": "",
           "openOffset": [

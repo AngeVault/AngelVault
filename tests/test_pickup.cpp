@@ -1,3 +1,4 @@
+#include "systems/inventory_log_system.h"
 #include "systems/pickup_system.h"
 
 #include "components/collider2d.h"
@@ -5,6 +6,7 @@
 #include "components/transform2d.h"
 
 #include <cstdio>
+#include <sstream>
 
 static int g_failures = 0;
 #define CHECK(cond) do { if (!(cond)) { std::printf("ECHEC ligne %d : %s\n", __LINE__, #cond); ++g_failures; } } while (0)
@@ -93,6 +95,28 @@ int main() {
     Entity again = item(r, { 200.f, 200.f }, "potion", 3, 101);
     frame(input, r, col, inter, pick);
     CHECK(!r.isValid(again));
+
+    // console : gains et pertes, contenu sur l'action
+    {
+        InventoryLogSystem log("interagir");
+        std::ostringstream out;
+        std::streambuf* old = std::cout.rdbuf(out.rdbuf());
+        log.onUpdate(r, 0.f);   // première image : pas de gain affiché
+        r.getComponent<Inventory>(player).capacity = 0;
+        r.getComponent<Inventory>(player).add("epee", 1);
+        r.getComponent<Inventory>(player).remove("cle", 1);
+        log.onUpdate(r, 0.f);
+        input.handleEvent(sf::Event::KeyPressed{ .code = sf::Keyboard::Key::E });
+        input.update();
+        log.onUpdate(r, 0.f);
+        input.endFrame();
+        std::cout.rdbuf(old);
+        const std::string text = out.str();
+        CHECK(text.find("+1 epee") != std::string::npos);
+        CHECK(text.find("-1 cle") != std::string::npos);
+        CHECK(text.find("+5 potion") == std::string::npos);
+        CHECK(text.find("epee x1") != std::string::npos);
+    }
 
     if (g_failures == 0) std::printf("test_pickup : OK\n");
     return g_failures == 0 ? 0 : 1;

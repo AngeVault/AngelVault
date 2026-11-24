@@ -490,6 +490,61 @@
           "visible": true
         }
       }
+    },
+    {
+      "id": 7001000000000000003,
+      "components": {
+        "Name": {
+          "name": "Cle donjon"
+        },
+        "Transform2D": {
+          "position": [
+            50.0,
+            1250.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Box",
+          "halfSize": [
+            10.0,
+            6.0
+          ],
+          "style": {
+            "fill": "#E8C547FF",
+            "outline": "#6B4F1DFF",
+            "outlineThickness": 2.0
+          }
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": true,
+          "restitution": 0.0,
+          "friction": 0.0,
+          "shape": "Box",
+          "halfSize": [
+            18.0,
+            18.0
+          ]
+        },
+        "Pickup": {
+          "item": "cle",
+          "count": 1
+        },
+        "Spin": {
+          "degreesPerSecond": 90.0,
+          "clockwise": true
+        }
+      }
     }
   ],
   "editor": {
