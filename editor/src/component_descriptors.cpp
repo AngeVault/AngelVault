@@ -978,6 +978,7 @@ std::vector<ComponentDesc> build() {
             f.push_back(boolRef<C>(r, e, QObject::tr("Ouvert"), [](C& c) -> bool& { return c.opened; }));
             f.push_back(stringRef<C>(r, e, QObject::tr("Texture ouverte"), [](C& c) -> std::string& { return c.openTexture; }));
             f.push_back(vecRef<C>(r, e, QObject::tr("Décalage ouvert"), [](C& c) -> sf::Vector2f& { return c.openOffset; }));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Animation (s)"), [](C& c) -> float& { return c.openTime; }, 0, 5, 0.05));
             return f;
         };
         list.push_back(d);

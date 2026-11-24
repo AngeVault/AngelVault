@@ -20,7 +20,7 @@ static Entity box(Registry& r, sf::Vector2f pos, bool body) {
 // coffre fermé ligne 0 d'une planche, ouvert ligne 1
 static Entity chest(Registry& r, sf::Vector2f pos, uint64_t id, const std::string& key = "") {
     Entity e = box(r, pos, false);
-    r.addComponent<Chest>(e, Chest{ key, false, "", { 0.f, 94.f } });
+    r.addComponent<Chest>(e, Chest{ key, false, "", { 0.f, 94.f }, 0.f });
     r.addComponent<Interactable>(e);
     r.addComponent<Geometry>(e, Geometry::SpriteData{ "chest", sf::IntRect({ 102, 0 }, { 102, 94 }), sf::Color::White }, 0);
     r.addComponent<PersistentId>(e).value = id;
@@ -107,6 +107,18 @@ int main() {
     CHECK(rectY(r, again) == 94);
     CHECK(r.getComponent<Inventory>(again).stacks.empty());
     CHECK(!r.getComponent<Interactable>(again).enabled);
+
+    // animation : s'écrase avant d'afficher le sprite ouvert, puis revient à sa taille
+    Entity anim = chest(r, { 4.f, 0.f }, 203);
+    r.getComponent<Chest>(anim).openTime = 0.4f;
+    r.getComponent<Transform2D>(anim).setScale({ 2.f, 2.f });
+    frame(input, r, col, inter, chests, true);
+    CHECK(r.getComponent<Chest>(anim).opened);
+    CHECK(rectY(r, anim) == 0);
+    CHECK(r.getComponent<Transform2D>(anim).getScale().y < 2.f);
+    for (int i = 0; i < 40; ++i) frame(input, r, col, inter, chests, false);
+    CHECK(rectY(r, anim) == 94);
+    CHECK(r.getComponent<Transform2D>(anim).getScale() == sf::Vector2f(2.f, 2.f));
 
     if (g_failures == 0) std::printf("test_chest : OK\n");
     return g_failures == 0 ? 0 : 1;
