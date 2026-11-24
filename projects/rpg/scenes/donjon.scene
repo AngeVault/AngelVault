@@ -36,8 +36,8 @@
         },
         "Transform2D": {
           "position": [
-            -132.98135375976563,
-            1696.041748046875
+            10.359939575195313,
+            1637.018798828125
           ],
           "rotation": 0.0,
           "scale": [
@@ -59,8 +59,8 @@
         },
         "Transform2D": {
           "position": [
-            -241.0433807373047,
-            1785.9677734375
+            -160.69448852539063,
+            1732.9375
           ],
           "rotation": 0.0,
           "scale": [
@@ -178,21 +178,23 @@
             1.0
           ]
         },
+        "Inventory": {
+          "capacity": 20,
+          "maxStack": 99,
+          "stacks": []
+        },
         "Script": {
           "behaviors": [
             {
               "name": "PlayerBehavior",
               "properties": {
                 "speed": 400.0,
-                "shakeOnJump": 0.4000000059604645
+                "shakeOnJump": 0.4000000059604645,
+                "idleClip": "Idle",
+                "moveClip": "Run"
               }
             }
           ]
-        },
-        "Inventory": {
-          "capacity": 20,
-          "maxStack": 99,
-          "stacks": []
         }
       }
     },
@@ -275,8 +277,8 @@
         },
         "Transform2D": {
           "position": [
-            -128.0,
-            1498.1787109375
+            438.00323486328125,
+            1142.285888671875
           ],
           "rotation": 0.0,
           "scale": [
@@ -314,6 +316,16 @@
         "Interactable": {
           "enabled": true
         },
+        "Chest": {
+          "key": "cle",
+          "opened": false,
+          "openTexture": "",
+          "openOffset": [
+            0.0,
+            94.0
+          ],
+          "openTime": 0.44999998807907104
+        },
         "Inventory": {
           "capacity": 20,
           "maxStack": 99,
@@ -322,15 +334,6 @@
               "item": "epee",
               "count": 1
             }
-          ]
-        },
-        "Chest": {
-          "key": "cle",
-          "opened": false,
-          "openTexture": "",
-          "openOffset": [
-            0.0,
-            94.0
           ]
         }
       }
