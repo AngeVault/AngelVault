@@ -1,6 +1,6 @@
 #pragma once
 #include "ecs/reflect.h"
-#include "SFML\System\Vector2.hpp"
+#include <SFML/System/Vector2.hpp>
 
 
 struct UIText {
