@@ -26,10 +26,10 @@ public:
         keyTimer += dt;
 
         auto& rb = registry.getComponent<RigidBody2D>(self);
-        float life = registry.getComponent<Life>(self).actualLife;
-        if (life > 0)
+        const bool alive = !registry.hasComponent<Life>(self) || registry.getComponent<Life>(self).actualLife > 0.f;
+        if (alive)
         {
-            // Input Manager (assets/input.cfg) : flèches, ZQSD/WASD et stick gauche par défaut
+            // Input Manager (assets/input.cfg) : flèches, ZQSD/WASD et stick gauche par défaut  
             float moveX = Input::getAxis("Horizontal");
             float moveY = Input::getAxis("Vertical");
             const float len = std::hypot(moveX, moveY);

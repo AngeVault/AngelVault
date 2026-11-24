@@ -24,6 +24,10 @@
   },
   "systems": {
     "ForceDebugSystem": false,
-    "RenderCollisionSystem": false
+    "RenderCollisionSystem": false,
+    "SteeringFleeSystem": false,
+    "SteeringSeekSystem": false,
+    "SteeringSystem": false,
+    "ennemy_system": false
   }
 }
