@@ -37,3 +37,15 @@ add_test(NAME test_sprite_animation COMMAND test_sprite_animation)
 add_executable(test_inventory test_inventory.cpp)
 target_link_libraries(test_inventory PRIVATE AngeVault::Scene)
 add_test(NAME test_inventory COMMAND test_inventory)
+
+add_executable(test_settings test_settings.cpp)
+target_link_libraries(test_settings PRIVATE AngeVault::Runtime)
+add_test(NAME test_settings COMMAND test_settings)
+
+add_executable(test_pickup test_pickup.cpp)
+target_link_libraries(test_pickup PRIVATE AngeVault::Gameplay)
+add_test(NAME test_pickup COMMAND test_pickup)
+
+add_executable(test_chest test_chest.cpp)
+target_link_libraries(test_chest PRIVATE AngeVault::Gameplay)
+add_test(NAME test_chest COMMAND test_chest)

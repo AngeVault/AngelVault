@@ -36,8 +36,8 @@
         },
         "Transform2D": {
           "position": [
-            -132.98135375976563,
-            1696.041748046875
+            10.359939575195313,
+            1637.018798828125
           ],
           "rotation": 0.0,
           "scale": [
@@ -59,8 +59,8 @@
         },
         "Transform2D": {
           "position": [
-            -241.0433807373047,
-            1785.9677734375
+            -160.69448852539063,
+            1732.9375
           ],
           "rotation": 0.0,
           "scale": [
@@ -178,13 +178,20 @@
             1.0
           ]
         },
+        "Inventory": {
+          "capacity": 20,
+          "maxStack": 99,
+          "stacks": []
+        },
         "Script": {
           "behaviors": [
             {
               "name": "PlayerBehavior",
               "properties": {
                 "speed": 400.0,
-                "shakeOnJump": 0.4000000059604645
+                "shakeOnJump": 0.4000000059604645,
+                "idleClip": "Idle",
+                "moveClip": "Run"
               }
             }
           ]
@@ -259,6 +266,75 @@
         },
         "DontDestroy": {
           "key": "Camera"
+        }
+      }
+    },
+    {
+      "id": 7001000000000000106,
+      "components": {
+        "Name": {
+          "name": "Coffre"
+        },
+        "Transform2D": {
+          "position": [
+            438.00323486328125,
+            1142.285888671875
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Sprite",
+          "texture": "assets/tilesets/fantasy_iso/chest_a.png",
+          "rect": [
+            0,
+            0,
+            102,
+            94
+          ],
+          "tint": "#FFFFFFFF"
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            20.0
+          ],
+          "isTrigger": true,
+          "restitution": 0.0,
+          "friction": 0.0,
+          "shape": "Box",
+          "halfSize": [
+            44.0,
+            28.0
+          ]
+        },
+        "Interactable": {
+          "enabled": true
+        },
+        "Chest": {
+          "key": "cle",
+          "opened": false,
+          "openTexture": "",
+          "openOffset": [
+            0.0,
+            94.0
+          ],
+          "openTime": 0.44999998807907104
+        },
+        "Inventory": {
+          "capacity": 20,
+          "maxStack": 99,
+          "stacks": [
+            {
+              "item": "epee",
+              "count": 1
+            }
+          ]
         }
       }
     }

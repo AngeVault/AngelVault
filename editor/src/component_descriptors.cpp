@@ -10,7 +10,9 @@
 #include "components/dont_destroy.h"
 #include "components/geometry.h"
 #include "components/interaction.h"
+#include "components/chest.h"
 #include "components/inventory.h"
+#include "components/pickup.h"
 #include "components/map_transition.h"
 #include "components/name.h"
 #include "components/spawn_point.h"
@@ -985,6 +987,47 @@ std::vector<ComponentDesc> build() {
         d.fields = [](Registry& r, Entity e) {
             return std::vector<FieldDesc>{ boolRef<Interactable>(r, e, QObject::tr("Actif"),
                 [](Interactable& c) -> bool& { return c.enabled; }) };
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- Pickup
+    {
+        using C = Pickup;
+        ComponentDesc d{ "Pickup" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<C>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<C>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<C>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(stringRef<C>(r, e, QObject::tr("Objet"), [](C& c) -> std::string& { return c.item; }));
+            f.push_back(intRef<C>(r, e, QObject::tr("Nombre"), [](C& c) -> int& { return c.count; }));
+            f.back().min = 1;
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- Chest
+    {
+        using C = Chest;
+        ComponentDesc d{ "Chest" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<C>(e); };
+        // le contenu est l'Inventory, l'action passe par Interactable
+        d.add = [](Registry& r, Entity e) {
+            r.addComponent<C>(e);
+            if (!r.hasComponent<Inventory>(e)) r.addComponent<Inventory>(e);
+            if (!r.hasComponent<Interactable>(e)) r.addComponent<Interactable>(e);
+        };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<C>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(stringRef<C>(r, e, QObject::tr("Clé"), [](C& c) -> std::string& { return c.key; }));
+            f.push_back(boolRef<C>(r, e, QObject::tr("Ouvert"), [](C& c) -> bool& { return c.opened; }));
+            f.push_back(stringRef<C>(r, e, QObject::tr("Texture ouverte"), [](C& c) -> std::string& { return c.openTexture; }));
+            f.push_back(vecRef<C>(r, e, QObject::tr("Décalage ouvert"), [](C& c) -> sf::Vector2f& { return c.openOffset; }));
+            f.push_back(floatRef<C>(r, e, QObject::tr("Animation (s)"), [](C& c) -> float& { return c.openTime; }, 0, 5, 0.05));
+            return f;
         };
         list.push_back(d);
     }
