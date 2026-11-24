@@ -556,6 +556,7 @@ std::vector<ComponentDesc> build() {
         d.fields = [](Registry& r, Entity e) {
             std::vector<FieldDesc> f;
             f.push_back(stringRef<UIText>(r,e, QObject::tr("Text"), [](UIText& t) -> std::string& {return t.text;}));
+            f.push_back(vecRef<UIText>(r,e, QObject::tr("Offset"), [](UIText& t) -> sf::Vector2f& {return t.offset;}));
             return f;
         };
         list.push_back(d);

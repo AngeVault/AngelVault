@@ -89,9 +89,9 @@ void SystemUI::onUpdate(Registry &registry, float dt) {
             }
         }
         m_text->setString(ui.text);
-        transform.setPosition({transform.getPosition().x-m_text->getGlobalBounds().size.x/2, transform.getPosition().y-m_text->getGlobalBounds().size.y/2});
+        transform.setPosition({transform.getPosition().x+ui.offset.x-(m_text->getGlobalBounds().size.x/2), transform.getPosition().y+ui.offset.y-(m_text->getGlobalBounds().size.y/2)});
         m_renderTarget.draw(*m_text, transform.getLocalMatrix());
-        transform.setPosition({transform.getPosition().x+m_text->getGlobalBounds().size.x/2, transform.getPosition().y+m_text->getGlobalBounds().size.y/2});
+        transform.setPosition({transform.getPosition().x-ui.offset.x+(m_text->getGlobalBounds().size.x/2), transform.getPosition().y-ui.offset.y+(m_text->getGlobalBounds().size.y/2)});
     });
 }
 
