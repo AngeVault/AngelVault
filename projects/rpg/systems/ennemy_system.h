@@ -74,10 +74,13 @@ public:
                                             {
                                                 registry.getComponent<SteeringSeekComponent>(e).positionCible = posi;
                                             }
-                                            if (sqrtf(distance.x + distance.y) < 20)
+                                            if (registry.hasComponent<Life>(i))
                                             {
-                                                auto&  life = registry.getComponent<Life>(i);
-                                                life.actualLife -= stats.force*10*dt;
+                                                if (sqrtf(distance.x + distance.y) < 20)
+                                                {
+                                                    auto&  life = registry.getComponent<Life>(i);
+                                                    life.actualLife -= stats.force*10*dt;
+                                                }
                                             }
                                         }
                                     });
@@ -168,8 +171,11 @@ public:
                                             }
                                             if (sqrtf(distance.x + distance.y) < 20)
                                             {
-                                                auto&  life = registry.getComponent<Life>(i);
-                                                life.actualLife -= stats.force*10*dt;
+                                                if (registry.hasComponent<Life>(i))
+                                                {
+                                                    auto&  life = registry.getComponent<Life>(i);
+                                                    life.actualLife -= stats.force*10*dt;
+                                                }
                                             }
                                         }
                                     });

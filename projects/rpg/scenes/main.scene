@@ -12,7 +12,7 @@
         },
         "Transform2D": {
           "position": [
-            193.22198486328125,
+            190.61798095703125,
             697.8893432617188
           ],
           "rotation": 0.0,
@@ -83,7 +83,7 @@
         },
         "Transform2D": {
           "position": [
-            193.22198486328125,
+            190.61798095703125,
             697.8893432617188
           ],
           "rotation": 0.0,
@@ -113,20 +113,6 @@
           "useGravity": false,
           "inertia": 0.0,
           "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            -0.4571113586425781,
-            15.738037109375
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            6.517925262451172,
-            12.46282958984375
-          ]
         },
         "DontDestroy": {
           "key": "Player"
@@ -452,8 +438,8 @@
         },
         "Transform2D": {
           "position": [
-            0.0,
-            0.0
+            -91.86721801757813,
+            579.1553955078125
           ],
           "rotation": 0.0,
           "scale": [
@@ -462,12 +448,62 @@
           ],
           "depth": 0.0
         },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Box",
+          "halfSize": [
+            16.0,
+            16.0
+          ],
+          "style": {
+            "fill": "#FFFFFFFF",
+            "outline": "#00000000",
+            "outlineThickness": 0.0
+          }
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": false,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Steering": {
+          "direction": [
+            0.0,
+            0.0
+          ],
+          "rapidite": 0.0
+        },
         "SteeringSeek": {
           "isActif": true,
           "positionCible": [
             0.0,
             0.0
           ]
+        },
+        "SteeringFlee": {
+          "isActif": true
+        },
+        "Life": {
+          "actualLife": 1000.0,
+          "maxLife": 1000.0,
+          "regenlLife": 0.0
+        },
+        "Npc": {
+          "ennemies": true,
+          "vision": 1000.0
+        },
+        "Stats": {
+          "force": 1.0,
+          "agilite": 1.0,
+          "constitution": 1.0,
+          "intelligence": 1.0,
+          "sagesse": 1.0,
+          "Volonte": 1.0,
+          "charisme": 1.0
         }
       }
     }
