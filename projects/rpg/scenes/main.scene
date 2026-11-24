@@ -598,19 +598,48 @@
             "outline": "#00000000",
             "outlineThickness": 0.0
           }
+        },
+        "Collider2D": {
+          "offset": [
+            3.6323089599609375,
+            -1.514068603515625
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            96.26399230957031,
+            92.18502807617188
+          ]
+        },
+        "Interactable": {
+          "enabled": true
+        },
+        "UIText": {
+          "text": "?",
+          "HUD": false,
+          "offset": [
+            0.0,
+            -70.0
+          ]
+        },
+        "Dialog": {
+          "json": "dialog.dialog",
+          "speed": 0.03999999910593033
         }
       }
     },
     {
-      "id": 9555228195466771090,
+      "id": 3757927189631101456,
       "components": {
         "Name": {
-          "name": "le text"
+          "name": "Nouvelle entité"
         },
         "Transform2D": {
           "position": [
-            44.776885986328125,
-            636.4674682617188
+            0.0,
+            0.0
           ],
           "rotation": 0.0,
           "scale": [
@@ -619,28 +648,13 @@
           ],
           "depth": 0.0
         },
-        "Collider2D": {
-          "offset": [
-            -1.6150054931640625,
-            45.463409423828125
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            95.44820404052734,
-            89.73757934570313
-          ]
-        },
-        "Interactable": {
-          "enabled": true
-        },
         "UIText": {
-          "text": "?"
-        },
-        "Dialog": {
-          "json": "dialog.dialog"
+          "text": "c'est de l'HUD",
+          "HUD": true,
+          "offset": [
+            0.0,
+            0.0
+          ]
         }
       }
     }

@@ -556,6 +556,8 @@ std::vector<ComponentDesc> build() {
         d.fields = [](Registry& r, Entity e) {
             std::vector<FieldDesc> f;
             f.push_back(stringRef<UIText>(r,e, QObject::tr("Text"), [](UIText& t) -> std::string& {return t.text;}));
+            f.push_back(boolRef<UIText>(r,e, QObject::tr("est de l'HUD"), [](UIText& t) -> bool& {return t.isHUD;}));
+            f.push_back(vecRef<UIText>(r,e, QObject::tr("Offset"), [](UIText& t) -> sf::Vector2f& {return t.offset;}));
             return f;
         };
         list.push_back(d);
@@ -585,6 +587,7 @@ std::vector<ComponentDesc> build() {
         d.fields = [](Registry& r, Entity e) {
             std::vector<FieldDesc> f;
             f.push_back(stringRef<Dialog>(r,e, QObject::tr("Fichier json"), [](Dialog& di) -> std::string& {return di.filePath;}));
+            f.push_back(floatRef<Dialog>(r,e, QObject::tr("Interval d'apparition des caractère"), [](Dialog& di) -> float& {return di.textSpeed;}));
             return f;
         };
         list.push_back(d);

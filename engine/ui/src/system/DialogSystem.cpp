@@ -25,8 +25,17 @@ DialogSystem::DialogSystem(Game& game, InteractionSystem& interaction) : m_game(
 void DialogSystem::use(Registry &registry, Entity entityA, Entity entityB) {
     if (!registry.hasComponent<Interactable>(entityA) && !registry.hasComponent<Interactable>(entityB))return;
     if (!registry.hasComponent<DontDestroy>(entityA) && !registry.hasComponent<DontDestroy>(entityB))return;
-    if (registry.hasComponent<Dialog>(entityA)){registry.getComponent<Dialog>(entityA).currentLine++; return;}
-    if (registry.hasComponent<Dialog>(entityB))registry.getComponent<Dialog>(entityB).currentLine++;
+    if (registry.hasComponent<Dialog>(entityA)) {
+        Dialog& d = registry.getComponent<Dialog>(entityA);
+        d.currentLine++;
+        d.currentChar = -1;
+        return;
+    }
+    if (registry.hasComponent<Dialog>(entityB)){
+        Dialog& d = registry.getComponent<Dialog>(entityB);
+        d.currentLine++;
+        d.currentChar = -1;
+    }
 }
 
 void DialogSystem::onUpdate(Registry &registry, float dt) {
@@ -49,8 +58,11 @@ void DialogSystem::onUpdate(Registry &registry, float dt) {
                 }
             }
         }
+        dialog.textTimer += dt;
         if (dialog.currentLine < 0){ui.text = ui.defaultText;return;}
         if (dialog.currentLine >= dialog.dialogs.size()){dialog.currentLine = -1;return;}
-        ui.text = dialog.dialogs[dialog.currentLine];
+        if (dialog.currentChar < 0){ui.text = ""; dialog.currentChar = 0;}
+        if (dialog.currentChar >= dialog.dialogs[dialog.currentLine].size())return;
+        if (dialog.textTimer>=dialog.textSpeed){ui.text += dialog.dialogs[dialog.currentLine][dialog.currentChar++];dialog.textTimer=0;}
         });
     }

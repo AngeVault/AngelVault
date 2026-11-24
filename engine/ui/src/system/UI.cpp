@@ -25,20 +25,9 @@ SystemUI::SystemUI(sf::RenderTarget& renderTarget, Game& game, sf::RenderWindow&
     // collision.onCollision = [this](const CollisionInfo& info) { onTrigger(m_game.registry(), info); };
 }
 
-void SystemUI::onTrigger(Registry& registry, CollisionInfo info) {
-    if (!registry.hasComponent<Collider2D>(info.entityA) || !registry.hasComponent<Collider2D>(info.entityB)) return;
-    if (!registry.hasComponent<UIText>(info.entityA) && !registry.hasComponent<DontDestroy>(info.entityA)) return;
-    else {registry.getComponent<UIText>(info.entityA).isHidden = false; return;}
-    if (!registry.hasComponent<UIText>(info.entityB) && !registry.hasComponent<DontDestroy>(info.entityB)) return;
-    registry.getComponent<UIText>(info.entityA).isHidden = false;
-}
 
 void SystemUI::onUpdate(Registry &registry, float dt) {
-    Entity player;
-    registry.view<DontDestroy>([&](Entity playerEntity, DontDestroy item) {
-      if (item.key != "Player") return ;
-        player = playerEntity;
-    });
+    sf::View worldView = m_renderTarget.getDefaultView();
     registry.view<UIButton, Transform2D>([&](Entity e, UIButton& ui, Transform2D transform) {
             if (!registry.hasComponent<Geometry>(e)) return;
                 auto& geo = registry.getComponent<Geometry>(e);
@@ -80,18 +69,12 @@ void SystemUI::onUpdate(Registry &registry, float dt) {
            }
        });
     registry.view<UIText, Transform2D>([&](Entity e, UIText& ui, Transform2D& transform) {
-  if (registry.hasComponent<Collider2D>(e)) {
-            Collider2D& collider = registry.getComponent<Collider2D>(e);
-            if (collider.isTrigger) {
-                if (ui.isHidden)
-                return;
-                ui.isHidden = true;
-            }
-        }
+
+        if (ui.isHUD)m_renderTarget.setView(worldView);
         m_text->setString(ui.text);
-        transform.setPosition({transform.getPosition().x-m_text->getGlobalBounds().size.x/2, transform.getPosition().y-m_text->getGlobalBounds().size.y/2});
+        transform.setPosition({transform.getPosition().x+ui.offset.x-(m_text->getGlobalBounds().size.x/2*!ui.isHUD), transform.getPosition().y+ui.offset.y});
         m_renderTarget.draw(*m_text, transform.getLocalMatrix());
-        transform.setPosition({transform.getPosition().x+m_text->getGlobalBounds().size.x/2, transform.getPosition().y+m_text->getGlobalBounds().size.y/2});
+        transform.setPosition({transform.getPosition().x-ui.offset.x+(m_text->getGlobalBounds().size.x/2*!ui.isHUD), transform.getPosition().y-ui.offset.y});
     });
 }
 
