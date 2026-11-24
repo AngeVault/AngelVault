@@ -4,7 +4,7 @@
 
 struct UIText {
     std::string text;
-    std::string path;
+    std::string defaultText;
     bool isHidden = false;
 };
 

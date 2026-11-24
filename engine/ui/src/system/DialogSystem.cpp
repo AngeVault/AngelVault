@@ -6,22 +6,28 @@
 #include "scene/component_serializer.h"
 #include "ecs/registry.h"
 #include  <iostream>
+#include <numbers>
 
 #include "components/UIButton.h"
 #include "components/UIText.h"
 #include "components/collider2d.h"
 #include "components/dont_destroy.h"
 #include "components/geometry.h"
+#include "components/interaction.h"
 #include "components/map_transition.h"
 #include "systems/camera_system.h"
 
-DialogSystem::DialogSystem(sf::RenderTarget &renderTarget, Game &game) : m_game(game), m_rectShape(new sf::RectangleShape({100,50})), m_renderTarget(renderTarget), m_font(new sf::Font()), m_text(new sf::Text(*m_font))
-{
-    m_font->openFromFile("C:\\Windows\\Fonts\\arial.ttf");
-    m_text->setFont(*m_font);
-    m_text->setCharacterSize(50);
+DialogSystem::DialogSystem(Game& game, InteractionSystem& interaction) : m_game(game) {
     priority = 14;
-};
+    interaction.addListener([this](Registry& registry, Entity who, Entity target) { use(registry, who, target);});
+}
+
+void DialogSystem::use(Registry &registry, Entity entityA, Entity entityB) {
+    if (!registry.hasComponent<Interactable>(entityA) && !registry.hasComponent<Interactable>(entityB))return;
+    if (!registry.hasComponent<DontDestroy>(entityA) && !registry.hasComponent<DontDestroy>(entityB))return;
+    if (registry.hasComponent<Dialog>(entityA)){registry.getComponent<Dialog>(entityA).currentLine++; return;}
+    if (registry.hasComponent<Dialog>(entityB))registry.getComponent<Dialog>(entityB).currentLine++;
+}
 
 void DialogSystem::onUpdate(Registry &registry, float dt) {
     registry.view<Dialog, UIText, Transform2D>([&](Entity e, Dialog& dialog, UIText& ui, Transform2D& transform) {
@@ -43,10 +49,8 @@ void DialogSystem::onUpdate(Registry &registry, float dt) {
                 }
             }
         }
-
-        if (dialog.currentLine >= dialog.dialogs.size())dialog.currentLine = 0;
-        ui.text = dialog.dialogs[dialog.currentLine++];
-        m_text->setString(ui.text);
-        m_renderTarget.draw(*m_text, transform.getLocalMatrix());
+        if (dialog.currentLine < 0){ui.text = "?";return;}
+        if (dialog.currentLine >= dialog.dialogs.size()){dialog.currentLine = -1;return;}
+        ui.text = dialog.dialogs[dialog.currentLine];
         });
     }

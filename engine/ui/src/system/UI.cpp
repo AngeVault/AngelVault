@@ -80,7 +80,6 @@ void SystemUI::onUpdate(Registry &registry, float dt) {
            }
        });
     registry.view<UIText, Transform2D>([&](Entity e, UIText& ui, Transform2D transform) {
-          if (registry.hasComponent<Dialog>(e)) return;
   if (registry.hasComponent<Collider2D>(e)) {
             Collider2D& collider = registry.getComponent<Collider2D>(e);
             if (collider.isTrigger) {

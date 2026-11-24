@@ -42,7 +42,6 @@ void Game::init() {
     m_systems.addSystem<RenderCollisionSystem>(m_scene);
     m_systems.addSystem<ForceDebugSystem>(m_scene);
     m_systems.addSystem<SystemUI>(m_scene, *this, *m_window);   // boutons et texte (UIButton + UIText)
-    m_systems.addSystem<DialogSystem>(m_scene, *this);   //
     // Systèmes de jeu du projet (REGISTER_SYSTEM, dossier systems/ du projet)
     for (const GameSystemInfo& info : GameSystemRegistry::get().all()) m_systems.add(info.create(*this, m_scene));
     m_systems.start(m_registry);

@@ -354,6 +354,9 @@
         "DontDestroy": {
           "key": "Player"
         },
+        "Interactable": {
+          "enabled": true
+        },
         "UIButton": {
           "With": 70,
           "Height": 40
@@ -364,7 +367,9 @@
               "name": "PlayerBehavior",
               "properties": {
                 "speed": 400.0,
-                "shakeOnJump": 0.4000000059604645
+                "shakeOnJump": 0.4000000059604645,
+                "idleClip": "Idle",
+                "moveClip": "Run"
               }
             }
           ]
@@ -569,12 +574,31 @@
             "outlineThickness": 2.0
           }
         },
+        "Collider2D": {
+          "offset": [
+            2.65557861328125,
+            -4.255279541015625
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            135.4931640625,
+            119.88662719726563
+          ]
+        },
+        "Interactor": {
+          "action": "interagir"
+        },
+        "Interactable": {
+          "enabled": true
+        },
         "UIText": {
-          "text": "ui"
+          "text": ""
         },
         "Dialog": {
-          "json": "dialog.dialog",
-          "current line": 1
+          "json": "dialog.dialog"
         }
       }
     }
