@@ -1,4 +1,4 @@
-#include "../../Include/system/UI.h"
+#include "system/UI.h"
 
 #include "utils/camera_utils.h"
 #include "scene/component_serializer.h"
@@ -16,10 +16,8 @@
 
 
 
-SystemUI::SystemUI(sf::RenderTarget& renderTarget, Game& game, sf::RenderWindow& window) : m_game(game), m_renderTarget(renderTarget), m_window(window), m_font(new sf::Font()), m_text(new sf::Text(*m_font))
+SystemUI::SystemUI(sf::RenderTarget& renderTarget, Game& game, sf::RenderWindow& window) : m_game(game), m_renderTarget(renderTarget), m_window(window), m_text(new sf::Text(game.font()))
 {
-    m_font->openFromFile("C:\\Windows\\Fonts\\arial.ttf");
-    m_text->setFont(*m_font);
     m_text->setCharacterSize(50);
     priority = 13;
     // collision.onCollision = [this](const CollisionInfo& info) { onTrigger(m_game.registry(), info); };

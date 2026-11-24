@@ -60,6 +60,7 @@ void GameSettings::loadFromString(const std::string& text) {
         else if (key == "antialiasing") antialiasing = std::min(toUnsigned(value, antialiasing), 16u);
         else if (key == "fpsLimit") fpsLimit = toUnsigned(value, fpsLimit);
         else if (key == "shader") shader = value;
+        else if (key == "font") font = value;
         else if (key.rfind("shader.", 0) == 0) {
             if (float v; toFloat(value, v)) shaderParams[key.substr(7)] = v;
         }
@@ -75,5 +76,6 @@ std::string GameSettings::toString() const {
         << "fpsLimit = " << fpsLimit << "\n"
         << "shader = " << shader << "\n";
     for (const auto& [name, value] : shaderParams) out << "shader." << name << " = " << value << "\n";
+    if (!font.empty()) out << "font = " << font << "\n";
     return out.str();
 }

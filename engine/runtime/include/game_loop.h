@@ -48,6 +48,7 @@ public:
     // recréée si le plein écran change. Antialiasing et shader : aussi dans l'éditeur.
     void applySettings(const GameSettings& settings);
     PostProcess& postProcess() { return m_postProcess; }
+    const sf::Font& font() const { return m_font; }   // police de settings.font, rechargée sur place
     const GameSettings& settings() const { return m_settings; }
 
 private:
@@ -67,12 +68,15 @@ private:
     InputManager     m_input;
     PostProcess      m_postProcess;
     std::string      m_assetDir;
+    sf::Font         m_font;
 
 
     void init();
     void createWindow(const GameSettings& settings);
     void applyFrameRate(const GameSettings& settings);
     void loadPostProcess();
+    void loadFont();
+    std::string resolve(const std::string& relative) const;
     void syncScene();
     void handleEvents();
 };
