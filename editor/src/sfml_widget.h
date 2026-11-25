@@ -8,6 +8,10 @@
 #include <functional>
 #include <optional>
 
+// Charge une image (fichier ou ressource Qt « :/resources/... ») en texture SFML.
+// À appeler quand le contexte OpenGL de la vue est actif (onInit, onFrame). Vide si l'image manque.
+std::optional<sf::Texture> loadTexture(const QString& path, bool smooth = true);
+
 class SfmlWidget : public QWidget {
     Q_OBJECT
     // Couleur de fond de la vue, réglable depuis le thème QSS :
@@ -39,8 +43,10 @@ protected:
     void paintEvent(QPaintEvent*) override {}
     void showEvent(QShowEvent*) override;
     void resizeEvent(QResizeEvent*) override;
+    bool event(QEvent* e) override;
 
 private:
+    void attachWindow();   // (re)crée la fenêtre SFML sur le handle natif actuel
     void renderFrame();
     void syncSize();
     std::optional<sf::RenderWindow> m_window;

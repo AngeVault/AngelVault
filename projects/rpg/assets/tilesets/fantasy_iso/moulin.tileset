@@ -1,0 +1,76 @@
+{
+  "format": "angeVault.tileset",
+  "version": 1,
+  "name": "Moulin",
+  "image": "assets/tilesets/fantasy_iso/moulin.png",
+  "tileSize": [
+    369,
+    409
+  ],
+  "margin": 0,
+  "spacing": 0,
+  "columns": 17,
+  "count": 34,
+  "anchor": [
+    207.0,
+    313.0
+  ],
+  "solid": true,
+  "ySort": true,
+  "autotile": "none",
+  "animations": [
+    {
+      "tile": 0,
+      "frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "frameTime": 0.07000000029802322
+    },
+    {
+      "tile": 17,
+      "frames": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33
+      ],
+      "frameTime": 0.07000000029802322
+    },
+    {
+      "tile": 16,
+      "frames": [
+        16
+      ],
+      "frameTime": 0.07000000029802322
+    }
+  ]
+}

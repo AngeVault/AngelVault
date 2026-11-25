@@ -1,0 +1,385 @@
+{
+  "format": "angeVault.scene",
+  "version": 1,
+  "name": "donjon",
+  "map": null,
+  "entities": [
+    {
+      "id": 1636557081754768418,
+      "components": {
+        "Name": {
+          "name": "Player"
+        },
+        "Transform2D": {
+          "position": [
+            -922.0601196289063,
+            1453.609375
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Sprite",
+          "texture": "assets/characters/body/Idle.png",
+          "rect": [
+            0,
+            256,
+            128,
+            128
+          ],
+          "tint": "#FFFFFFFF"
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": false,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            22.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            16.0,
+            15.0
+          ]
+        },
+        "DontDestroy": {
+          "key": "Player"
+        },
+        "Interactor": {
+          "action": "interagir"
+        },
+        "SpriteAnimator": {
+          "folder": "assets/characters/body",
+          "clip": "Idle",
+          "frameSize": [
+            128.0,
+            128.0
+          ],
+          "frames": 15,
+          "directions": 8,
+          "startAngle": 0.0,
+          "fps": 15.0,
+          "loop": true,
+          "facing": [
+            0.0,
+            1.0
+          ]
+        },
+        "Script": {
+          "behaviors": [
+            {
+              "name": "PlayerBehavior",
+              "properties": {
+                "speed": 400.0,
+                "shakeOnJump": 0.4000000059604645,
+                "idleClip": "Idle",
+                "moveClip": "Run"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 7001000000000000105,
+      "components": {
+        "Name": {
+          "name": "Sortie"
+        },
+        "Transform2D": {
+          "position": [
+            -1018.8889770507813,
+            1498.2464599609375
+          ],
+          "rotation": 26.999984741210938,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Collider2D": {
+          "offset": [
+            10.188934326171875,
+            -8.4072265625
+          ],
+          "isTrigger": true,
+          "restitution": 0.0,
+          "friction": 0.0,
+          "shape": "Box",
+          "halfSize": [
+            73.89407348632813,
+            47.5185546875
+          ]
+        },
+        "MapTransition": {
+          "scene": "scenes/main.scene",
+          "spawn": "sortie_donjon"
+        }
+      }
+    },
+    {
+      "id": 7001000000000000106,
+      "components": {
+        "Name": {
+          "name": "Coffre"
+        },
+        "Transform2D": {
+          "position": [
+            440.22967529296875,
+            1141.172607421875
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Sprite",
+          "texture": "assets/tilesets/fantasy_iso/chest_a.png",
+          "rect": [
+            0,
+            0,
+            102,
+            94
+          ],
+          "tint": "#FFFFFFFF"
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            20.0
+          ],
+          "isTrigger": true,
+          "restitution": 0.0,
+          "friction": 0.0,
+          "shape": "Box",
+          "halfSize": [
+            44.0,
+            28.0
+          ]
+        },
+        "Interactable": {
+          "enabled": true
+        },
+        "Chest": {
+          "key": "cle",
+          "opened": false,
+          "openTexture": "",
+          "openOffset": [
+            0.0,
+            94.0
+          ],
+          "openTime": 0.44999998807907104
+        },
+        "QuestObjective": {
+          "quest": "epee_perdue",
+          "reward": "potion_soin",
+          "rewardCount": 1
+        },
+        "Inventory": {
+          "capacity": 20,
+          "maxStack": 99,
+          "stacks": [
+            {
+              "item": "epee",
+              "count": 1
+            },
+            {
+              "item": "gold",
+              "count": 20
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 464593280822282587,
+      "components": {
+        "Name": {
+          "name": "tilemap_iso_4"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso_4.map",
+          "visible": true
+        }
+      }
+    },
+    {
+      "id": 11120960586173524647,
+      "components": {
+        "Name": {
+          "name": "CameraEntity"
+        },
+        "Transform2D": {
+          "position": [
+            -922.0601196289063,
+            1453.609375
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Camera2d": {
+          "zoom": 3.0,
+          "minZoom": 0.25,
+          "maxZoom": 4.0,
+          "rotation": 0.0,
+          "priority": 0,
+          "active": true,
+          "blendTime": 0.0
+        },
+        "CameraFollow": {
+          "target": 1636557081754768418,
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "smoothTime": 0.15000000596046448,
+          "maxSpeed": 0.0,
+          "deadZone": [
+            0.0,
+            0.0
+          ],
+          "lookAhead": 0.0,
+          "lookAheadTime": 0.30000001192092896,
+          "snapOnStart": true
+        },
+        "CameraBounds": {
+          "min": [
+            -2030.0,
+            -40.0
+          ],
+          "max": [
+            2050.0,
+            2040.0
+          ],
+          "limitZoom": true
+        },
+        "CameraControl": {
+          "actionX": "CameraX",
+          "actionY": "CameraY",
+          "actionZoom": "Zoom",
+          "actionZoomWheel": "ZoomWheel",
+          "panEnabled": true,
+          "zoomEnabled": false,
+          "panSpeed": 800.0,
+          "zoomSpeed": 1.5,
+          "wheelStep": 0.15000000596046448,
+          "zoomSharpness": 12.0
+        },
+        "DontDestroy": {
+          "key": "Camera"
+        }
+      }
+    },
+    {
+      "id": 7001000000000000104,
+      "components": {
+        "Name": {
+          "name": "Entree"
+        },
+        "Transform2D": {
+          "position": [
+            -1017.629150390625,
+            1476.278564453125
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "SpawnPoint": {
+          "name": "entree"
+        }
+      }
+    },
+    {
+      "id": 988864687314316360,
+      "components": {
+        "Name": {
+          "name": "sortie2"
+        },
+        "Transform2D": {
+          "position": [
+            915.657958984375,
+            438.4840393066406
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            16.0,
+            16.0
+          ]
+        },
+        "MapTransition": {
+          "scene": "scenes/main.scene",
+          "spawn": ""
+        }
+      }
+    }
+  ],
+  "editor": {
+    "categories": [
+      "map",
+      "autre"
+    ],
+    "categoryParent": {},
+    "entityCategory": {
+      "7001000000000000105": "autre",
+      "7001000000000000106": "autre",
+      "464593280822282587": "map",
+      "7001000000000000104": "autre",
+      "988864687314316360": "autre"
+    }
+  }
+}

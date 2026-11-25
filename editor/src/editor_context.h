@@ -54,9 +54,22 @@ public:
     Entity activeTilemap();
     TileMapData* activeMap();                 // nullptr : pas de tilemap dans la scène
     sf::Vector2f activeMapOffset();           // position de la carte (Transform2D)
+    sf::Vector2f activeLayerOffset();         // la même, remontée de la hauteur du layer actif
     Entity createTilemap(TileMapOrientation orientation, int width, int height, QString* error = nullptr);
     Entity addTilemapFromFile(const QString& mapPath, QString* error = nullptr);   // .map existant
     void notifyMapEdited();                   // cases peintes : scène « modifiée »
+
+    // --- Layers : le layer actif est celui que l'on peint, retenu pour chaque tilemap ---
+    int activeLayer();                        // -1 : pas de tilemap active
+    int activeLayer(Entity tilemap);
+    void setActiveLayer(Entity tilemap, int layer);   // sélectionne aussi la tilemap
+    int addLayer(Entity tilemap);             // au-dessus du layer actif, devient actif
+    void removeLayer(Entity tilemap, int layer);
+    void moveLayer(Entity tilemap, int from, int to);
+    void renameLayer(Entity tilemap, int layer, const QString& name);
+    void setLayerMode(Entity tilemap, int layer, TileLayerMode mode);
+    void setLayerHeight(Entity tilemap, int layer, float height);
+    void setLayerHidden(Entity tilemap, int layer, bool hidden);   // éditeur seulement, hors historique
     void notifyTilesChanged();                // liste des tilesets / réglages changés : palette à refaire
     // Un .tileset vient d'être modifié et enregistré : les autres tilemaps de la scène qui l'utilisent suivent
     void notifyTilesetSaved(const std::shared_ptr<Tileset>& tileset);
@@ -73,13 +86,18 @@ public:
     // Dossiers de l'éditeur pour ranger les entités, comme les objets vides "dossier" d'Unity.
     // Ils n'existent que dans l'éditeur : rien n'est ajouté aux entités du jeu.
     QStringList categories() const { return m_categories; }
-    QString addCategory(const QString& name = tr("Nouvelle catégorie"));   // renvoie le nom (rendu unique)
+    // renvoie le nom (rendu unique) ; parent "" = racine
+    QString addCategory(const QString& name = tr("Nouvelle catégorie"), const QString& parent = QString());
+    QString categoryParent(const QString& name) const { return m_categoryParent.value(name); }
+    bool isInsideCategory(const QString& name, const QString& ancestor) const;   // name est (dans) ancestor
+    bool setCategoryParent(const QString& name, const QString& parent);         // false si ça fait une boucle
     void renameCategory(const QString& oldName, const QString& newName);
-    void removeCategory(const QString& name);                              // ses entités reviennent à la racine
+    void removeCategory(const QString& name);                              // son contenu remonte d'un niveau
+    void moveCategory(const QString& name, int index);                     // index dans la liste avant le déplacement
     QString categoryOf(Entity e) const;                                    // "" = aucune catégorie
     void setCategory(Entity e, const QString& category);                   // "" = racine
 
-    // --- Caméras liées (Camera2d::targetLock) ---
+    // --- Caméras liées (CameraFollow::target) ---
     // Une caméra qui suit une entité est placée sur elle et ne peut plus être déplacée à la main :
     // sa position est dictée par la cible (c'est ce que fait le CameraSystem en jeu).
     Entity followTarget(Entity camera);                       // NULL_ENTITY si libre (ou pas une caméra)
@@ -93,6 +111,11 @@ public:
     // Les liens entre entités (caméra qui suit le Player) passent par PersistentId.
     const Project& project() const { return m_project; }
     bool hasProject() const { return !m_project.filePath.empty(); }
+    // Écran du jeu (window.size du .angproj) : cadre des caméras et vue Jouer
+    sf::Vector2u gameScreenSize() const {
+        const ProjectWindow& w = m_project.window;
+        return (w.width > 0 && w.height > 0) ? sf::Vector2u{ w.width, w.height } : sf::Vector2u{ 1920u, 1080u };
+    }
     QString projectFile() const { return QString::fromStdString(m_project.filePath); }
     QString projectDir() const;
     QString scenePath() const { return m_scenePath; }   // "" = scène jamais enregistrée
@@ -174,6 +197,8 @@ signals:
     void toolChanged(EditorTool tool);
     void brushChanged(const TileBrush& brush);
     void tilemapChanged();                        // autre tilemap active, ou ses tiles / réglages ont changé
+    void activeLayerChanged(Entity tilemap, int layer);
+    void layerVisibilityChanged(Entity tilemap, int layer);
     void brushSizeChanged(int size);
     void brushShapeChanged(BrushShape shape);
     void resizeTargetChanged(ResizeTarget target);
@@ -185,7 +210,8 @@ signals:
 private:
     Registry m_scene;
     Entity m_selected = NULL_ENTITY;
-    QStringList m_categories;
+    QStringList m_categories;                   // noms uniques, l'ordre = l'affichage
+    QHash<QString, QString> m_categoryParent;   // catégorie -> parente (absente = racine)
     QHash<quint64, QString> m_entityCategory;   // clé : index + génération de l'entité
 
     Project m_project;
@@ -220,6 +246,10 @@ private:
     EditorTool m_tool = EditorTool::Select;
     TileBrush m_brush;
     Entity m_activeTilemap = NULL_ENTITY;
+    QHash<quint64, int> m_activeLayers;
+    quint64 layerKey(Entity tilemap);
+    TileMapData* mapOf(Entity tilemap);
+    void layersEdited(TileMapData& map);
     void refreshActiveTilemap();   // émet tilemapChanged si la tilemap active change
     int m_brushSize = 1;
     BrushShape m_brushShape = BrushShape::Square;

@@ -77,22 +77,29 @@ InspectorPanel::InspectorPanel(EditorContext& context, QWidget* parent) : QWidge
     layout->addWidget(m_scroll);
 
     // Reconstruit au prochain tour de boucle : jamais pendant le clic d'un bouton du panneau
-    connect(&m_ctx, &EditorContext::selectionChanged, this, &InspectorPanel::rebuild, Qt::QueuedConnection);
-    connect(&m_ctx, &EditorContext::sceneChanged, this, [this] { if (!m_ctx.hasSelection()) rebuild(); }, Qt::QueuedConnection);
+    connect(&m_ctx, &EditorContext::selectionChanged, this, &InspectorPanel::scheduleRebuild);
+    connect(&m_ctx, &EditorContext::sceneChanged, this, [this] { if (!m_ctx.hasSelection()) scheduleRebuild(); });
     // Comportement ajouté / retiré (glisser-déposer, menu) : sections à refaire
     connect(&m_ctx, &EditorContext::componentsChanged, this, [this](Entity e) {
-        if (e == m_ctx.selected()) rebuild();
-    }, Qt::QueuedConnection);
+        if (e == m_ctx.selected()) scheduleRebuild();
+    });
     // Glisser un comportement (.h) depuis le panneau Project : il s'ajoute à l'entité sélectionnée
     setAcceptDrops(true);
     // Caméra liée / déliée : la Position passe en lecture seule (ou redevient modifiable)
     connect(&m_ctx, &EditorContext::followTargetChanged, this, [this](Entity e) {
-        if (e == m_ctx.selected()) rebuild();
-    }, Qt::QueuedConnection);
+        if (e == m_ctx.selected()) scheduleRebuild();
+    });
     connect(&m_ctx, &EditorContext::entityModified, this, [this](Entity e, QObject* source) {
         if (source != this && e == m_ctx.selected()) refreshValues();
     });
     rebuild();
+}
+
+// Plusieurs demandes dans le même tour (ex. Ctrl+Z : désélection puis resélection) = un seul rebuild
+void InspectorPanel::scheduleRebuild() {
+    if (m_rebuildQueued) return;
+    m_rebuildQueued = true;
+    QMetaObject::invokeMethod(this, [this] { m_rebuildQueued = false; rebuild(); }, Qt::QueuedConnection);
 }
 
 void InspectorPanel::rebuild() {
@@ -206,7 +213,7 @@ QWidget* InspectorPanel::buildSection(const QString& title, bool removable, cons
     if (removable) {
         auto* remove = new QToolButton;
         remove->setObjectName("componentRemove");
-        remove->setText(QString::fromUtf8("✕"));
+        remove->setIcon(QIcon(":/resources/icons/buttons/remove.png"));
         remove->setToolTip(tr("Retirer le composant"));
         h->addWidget(remove);
         connect(remove, &QToolButton::clicked, this, [onRemove] { onRemove(); });
@@ -296,7 +303,11 @@ QWidget* InspectorPanel::createEditor(const FieldDesc& f, Entity e) {
         s->setReadOnly(readOnly);
         s->setValue(get().toInt());
         if (!readOnly)
-            connect(s, &QSpinBox::valueChanged, this, [this, e, set](int v) { set(v); edited(e); });
+            connect(s, &QSpinBox::valueChanged, this, [this, e, set, rebuild = f.rebuildOnChange](int v) {
+                set(v);
+                edited(e);
+                if (rebuild) QMetaObject::invokeMethod(this, &InspectorPanel::rebuild, Qt::QueuedConnection);
+            });
         m_refreshers.push_back([s, get] { if (!s->hasFocus()) { QSignalBlocker b(s); s->setValue(get().toInt()); } });
         return s;
     }
@@ -342,7 +353,12 @@ QWidget* InspectorPanel::createEditor(const FieldDesc& f, Entity e) {
         auto* l = new QLineEdit(get().toString());
         l->setReadOnly(readOnly);
         if (!readOnly)
-            connect(l, &QLineEdit::editingFinished, this, [this, e, set, l] { set(l->text()); edited(e); });
+            connect(l, &QLineEdit::editingFinished, this, [this, e, get, set, l, rebuild = f.rebuildOnChange] {
+                const bool changed = l->text() != get().toString();
+                set(l->text());
+                edited(e);
+                if (rebuild && changed) QMetaObject::invokeMethod(this, &InspectorPanel::rebuild, Qt::QueuedConnection);
+            });
         m_refreshers.push_back([l, get] { if (!l->hasFocus()) l->setText(get().toString()); });
         return l;
     }

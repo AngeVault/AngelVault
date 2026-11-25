@@ -8,7 +8,7 @@
 
 // Grille d'un tileset : la feuille découpée en tiles, pour en choisir une (ou un bloc).
 //  - clic : une tile    glisser : un bloc de tiles (tampon)    Ctrl + molette : zoom
-//  - mode « clic » (fenêtre Tileset) : chaque clic émet tileClicked, pour affecter les rôles autotile
+//  - mode « clic » (fenêtre Tileset) : chaque clic émet tileClicked, pour affecter les rôles autotile ou les animations
 // À placer dans un QScrollArea (setWidgetResizable(false)).
 class TilesetView : public QWidget {
     Q_OBJECT
@@ -35,7 +35,7 @@ public:
 
 signals:
     void selectionChanged(const QRect& tiles);
-    void tileClicked(int index);
+    void tileClicked(int index, Qt::KeyboardModifiers modifiers);
     void zoomChanged(double zoom);
 
 protected:
@@ -57,6 +57,7 @@ private:
     bool m_hasTileset = false;
     QString m_imagePath;
     QPixmap m_pixmap;
+    QPixmap m_checker{ QStringLiteral(":/resources/textures/checker.png") };   // motif de assets/textures/
     Mode m_mode = Mode::Select;
     double m_zoom = 1.0;
     bool m_userZoomed = false;

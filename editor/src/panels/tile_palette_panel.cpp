@@ -7,6 +7,7 @@
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDateTime>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDir>
@@ -16,6 +17,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFormLayout>
+#include <QHash>
 #include <QHBoxLayout>
 #include <QImageReader>
 #include <QLabel>
@@ -45,8 +47,14 @@ QIcon tilesetIcon(const TileMapData& map, const Tileset& ts) {
     QPixmap pix(kIcon, kIcon);
     pix.fill(Qt::transparent);
     if (ts.missing || ts.count <= 0) return QIcon(pix);
-    QImageReader reader(qs(map.resolve(ts.image)));
+    const QString path = qs(map.resolve(ts.image));
     const sf::IntRect r = ts.rect(ts.previewTile());
+    // Cache : la palette est refaite souvent (Ctrl+Z, sélection), l'image ne change presque jamais
+    static QHash<QString, QIcon> cache;
+    const QString key = QString("%1|%2,%3,%4,%5|%6").arg(path).arg(r.position.x).arg(r.position.y)
+                            .arg(r.size.x).arg(r.size.y).arg(QFileInfo(path).lastModified().toMSecsSinceEpoch());
+    if (auto it = cache.constFind(key); it != cache.constEnd()) return *it;
+    QImageReader reader(path);
     reader.setClipRect(QRect(r.position.x, r.position.y, r.size.x, r.size.y));
     const QImage part = reader.read();
     if (part.isNull()) return QIcon(pix);
@@ -61,7 +69,8 @@ QIcon tilesetIcon(const TileMapData& map, const Tileset& ts) {
     const QImage scaled = cropped.scaled(kIcon, kIcon, Qt::KeepAspectRatio, pixelArt ? Qt::FastTransformation : Qt::SmoothTransformation);
     QPainter p(&pix);
     p.drawImage((kIcon - scaled.width()) / 2, (kIcon - scaled.height()) / 2, scaled);
-    return QIcon(pix);
+    p.end();
+    return cache[key] = QIcon(pix);
 }
 
 QString uniquePath(const QString& wanted) {
@@ -139,8 +148,8 @@ TilePalettePanel::TilePalettePanel(EditorContext& context, QWidget* parent) : QW
     quickRow->addStretch(1);
     m_square = new QToolButton;
     m_circle = new QToolButton;
-    m_square->setText(QString::fromUtf8("■"));
-    m_circle->setText(QString::fromUtf8("●"));
+    m_square->setIcon(QIcon(":/resources/icons/buttons/brush_square.png"));
+    m_circle->setIcon(QIcon(":/resources/icons/buttons/brush_circle.png"));
     m_square->setToolTip(tr("Pinceau carré"));
     m_circle->setToolTip(tr("Pinceau rond"));
     auto* shapes = new QButtonGroup(this);
@@ -207,7 +216,7 @@ TilePalettePanel::TilePalettePanel(EditorContext& context, QWidget* parent) : QW
     m_tilesets->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     bar->addWidget(m_tilesets, 1);
     auto* add = new QToolButton;
-    add->setText("+");
+    add->setIcon(QIcon(":/resources/icons/buttons/add.png"));
     add->setToolTip(tr("Ajouter un tileset"));
     add->setPopupMode(QToolButton::InstantPopup);
     auto* addMenu = new QMenu(add);
@@ -217,17 +226,17 @@ TilePalettePanel::TilePalettePanel(EditorContext& context, QWidget* parent) : QW
     addMenu->addAction(tr("Ajouter un tileset existant (.tileset)..."), this, &TilePalettePanel::addExistingTileset);
     add->setMenu(addMenu);
     m_editTs = new QToolButton;
-    m_editTs->setText(QString::fromUtf8("✎"));
+    m_editTs->setIcon(QIcon(":/resources/icons/buttons/edit.png"));
     m_editTs->setToolTip(tr("Modifier le tileset (image, grille, autotile, placement)"));
     m_removeTs = new QToolButton;
-    m_removeTs->setText(QString::fromUtf8("✕"));
+    m_removeTs->setIcon(QIcon(":/resources/icons/buttons/remove.png"));
     m_removeTs->setToolTip(tr("Retirer le tileset de cette carte (le fichier n'est pas supprimé)"));
     m_upTs = new QToolButton;
-    m_upTs->setText(QString::fromUtf8("▲"));
-    m_upTs->setToolTip(tr("Monter : passe SOUS les tilesets suivants"));
+    m_upTs->setIcon(QIcon(":/resources/icons/buttons/move_up.png"));
+    m_upTs->setToolTip(tr("Monter (dessiné par-dessus)"));
     m_downTs = new QToolButton;
-    m_downTs->setText(QString::fromUtf8("▼"));
-    m_downTs->setToolTip(tr("Descendre : déborde par-dessus les tilesets précédents (autotile)"));
+    m_downTs->setIcon(QIcon(":/resources/icons/buttons/move_down.png"));
+    m_downTs->setToolTip(tr("Descendre (dessiné dessous)"));
     for (QToolButton* b : { add, m_editTs, m_removeTs, m_upTs, m_downTs }) {
         b->setObjectName("panelToolButton");
         bar->addWidget(b);
@@ -235,8 +244,9 @@ TilePalettePanel::TilePalettePanel(EditorContext& context, QWidget* parent) : QW
     layout->addWidget(m_tilesetBar);
     connect(m_editTs, &QToolButton::clicked, this, &TilePalettePanel::editTileset);
     connect(m_removeTs, &QToolButton::clicked, this, &TilePalettePanel::removeTileset);
-    connect(m_upTs, &QToolButton::clicked, this, [this] { moveTileset(-1); });
-    connect(m_downTs, &QToolButton::clicked, this, [this] { moveTileset(+1); });
+    // slot + 1 = dessiné par-dessus
+    connect(m_upTs, &QToolButton::clicked, this, [this] { moveTileset(+1); });
+    connect(m_downTs, &QToolButton::clicked, this, [this] { moveTileset(-1); });
     connect(m_tilesets, &QComboBox::activated, this, [this](int index) {
         currentSlotChanged(m_tilesets->itemData(index).toInt());
     });
@@ -325,16 +335,17 @@ void TilePalettePanel::buildTilesets() {
     {
         QSignalBlocker block(m_tilesets);
         m_tilesets->clear();
+        // façon calques : le dessus en haut
         if (map)
-            for (std::size_t i = 0; i < map->tilesets.size(); ++i) {
-                const Tileset& ts = *map->tilesets[i];
+            for (int i = int(map->tilesets.size()) - 1; i >= 0; --i) {
+                const Tileset& ts = *map->tilesets[std::size_t(i)];
                 QString label = qs(ts.name);
                 if (ts.missing) label += tr("  (introuvable)");
                 else if (ts.autotile == AutotileMode::Edges16) label += tr("  · autotile 4 bords");
                 else if (ts.autotile == AutotileMode::Corners16) label += tr("  · autotile 16 coins");
                 if (ts.ySort) label += tr("  · tri en Y");
-                m_tilesets->addItem(tilesetIcon(*map, ts), label, int(i));
-                m_tilesets->setItemData(int(i), qs(ts.file), Qt::ToolTipRole);
+                m_tilesets->addItem(tilesetIcon(*map, ts), label, i);
+                m_tilesets->setItemData(m_tilesets->count() - 1, qs(ts.file), Qt::ToolTipRole);
             }
     }
     const bool hasMap = map != nullptr;
@@ -344,6 +355,7 @@ void TilePalettePanel::buildTilesets() {
                         static_cast<QWidget*>(m_upTs), static_cast<QWidget*>(m_downTs) })
         w->setEnabled(any);
     m_tilesets->setEnabled(any);
+    updateOrderControls();
 
     if (!hasMap) {
         m_mapInfo->setText(tr("Pas de tilemap dans cette scène (elle est facultative).\n"
@@ -422,6 +434,7 @@ void TilePalettePanel::syncBrush(const TileBrush& b) {
         for (int i = 0; i < m_tilesets->count(); ++i)
             if (m_tilesets->itemData(i).toInt() == b.slot) m_tilesets->setCurrentIndex(i);
     }
+    updateOrderControls();
     showTileset(ts ? b.slot : -1);
     {
         QSignalBlocker block(m_autotile);
@@ -576,6 +589,14 @@ void TilePalettePanel::newTilesetFromImages() {
     if (trim->isChecked() || !autoAnchor->isChecked())
         start.anchor = { float(anchor.x() - sheet.cropOffset.x()), float(anchor.y() - sheet.cropOffset.y()) };
     if (map->orientation == TileMapOrientation::Orthogonal && autoAnchor->isChecked()) start.anchor = { -1.f, -1.f };
+    // images numérotées (0001.png...) : les images d'une animation, rangées dans l'ordre
+    static const QRegularExpression frameName(R"(^\d+$)");
+    const bool frames = files.size() > 1 && std::all_of(files.begin(), files.end(), [](const QString& f) { return frameName.match(QFileInfo(f).completeBaseName()).hasMatch(); });
+    if (frames) {
+        TileAnimation anim{ 0, {}, 1.f / 12.f };
+        for (int i = 0; i < int(files.size()) && i < sheet.count; ++i) anim.frames.push_back(i);
+        start.animations.push_back(std::move(anim));
+    }
     if (!runTilesetDialog(start, true, -1)) QFile::remove(png);   // annulé : la feuille créée est retirée
 }
 
@@ -599,9 +620,7 @@ void TilePalettePanel::removeTileset() {
     TileMapData* map = m_ctx.activeMap();
     const int slot = currentSlot();
     if (!map || !map->tileset(slot)) return;
-    int used = 0;
-    for (int y = 0; y < map->height(); ++y)
-        for (int x = 0; x < map->width(); ++x) used += cellSlot(map->get(x, y)) == slot;
+    const int used = map->usedCells(slot);
     const QString name = qs(map->tileset(slot)->name);
     if (QMessageBox::question(this, tr("Retirer le tileset"),
             tr("Retirer « %1 » de cette carte ?\n%2 case(s) peinte(s) avec deviennent vides.\n"
@@ -613,6 +632,16 @@ void TilePalettePanel::removeTileset() {
     else if (b.slot > slot) --b.slot;
     m_ctx.setBrush(b);
     m_ctx.notifyTilesChanged();
+}
+
+// ▲ / ▼ actifs seulement s'il y a un tileset de ce côté
+void TilePalettePanel::updateOrderControls() {
+    const TileMapData* map = m_ctx.activeMap();
+    const int slot = currentSlot();
+    const int n = map ? int(map->tilesets.size()) : 0;
+    const bool valid = map && map->tileset(slot);
+    m_upTs->setEnabled(valid && slot < n - 1);
+    m_downTs->setEnabled(valid && slot > 0);
 }
 
 void TilePalettePanel::moveTileset(int delta) {

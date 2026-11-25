@@ -110,7 +110,7 @@ QTabBar::tab {
     padding: 5px 14px;
     margin-right: 2px;
 }
-QTabBar::tab:selected { background: #f8f6ff; color: #1d1830; border-color: #ff2fa0; }
+QTabBar::tab:selected { background: #f8f6ff; color: #1d1830; border-color: #dcd5f2; border-top: 2px solid #ff2fa0; }
 QTabBar::tab:hover:!selected { color: #1d1830; background: rgba(255, 47, 160, 0.10); }
 
 /* Listes et arbres */
@@ -267,3 +267,107 @@ QDialog#tileDefDialog QGroupBox::title {
     padding: 0 4px;
     color: #6c6690;
 }
+
+/* =====================================================================
+   Panneaux (Qt Advanced Docking System) — onglets, zones, repères de dépôt
+   Glisser un onglet : repères au centre de chaque zone (centre = onglet, flèches = côté).
+   ===================================================================== */
+ads--CDockContainerWidget { background: transparent; }
+ads--CDockContainerWidget ads--CDockSplitter::handle { background: transparent; }
+ads--CDockContainerWidget ads--CDockSplitter::handle:hover { background: rgba(255, 47, 160, 0.45); }
+ads--CDockSplitter::handle:horizontal { width: 5px; }
+ads--CDockSplitter::handle:vertical { height: 5px; }
+
+ads--CDockAreaWidget {
+    background: #ffffff;
+    border: 1px solid #dcd5f2;
+    border-radius: 8px;
+}
+ads--CDockAreaTitleBar {
+    background: #faf9ff;
+    border: none;
+    border-bottom: 1px solid #dcd5f2;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    min-height: 30px;
+    padding: 0px 4px 0px 2px;
+}
+ads--CDockAreaTabBar, ads--CDockAreaTabBar > QWidget, #tabsContainerWidget { background: transparent; }
+
+/* Onglets : trait droit sous l'onglet actif (couleur d'accent quand le panneau a le focus) */
+ads--CDockWidgetTab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0px 4px 0px 10px;
+    margin: 0px 1px;
+}
+ads--CDockWidgetTab:hover { background: rgba(255, 47, 160, 0.10); }
+ads--CDockWidgetTab[activeTab="true"] { border-bottom: 2px solid #dcd5f2; }
+ads--CDockAreaWidget[focused="true"] ads--CDockWidgetTab[activeTab="true"],
+ads--CDockWidgetTab[focused="true"] { border-bottom: 2px solid #ff2fa0; }
+ads--CDockWidgetTab QLabel, #dockWidgetTabLabel { color: #6c6690; background: transparent; font-weight: 600; }
+ads--CDockWidgetTab[activeTab="true"] QLabel { color: #1d1830; }
+
+/* Petits boutons (fermer l'onglet, menu des onglets, épingler, fermer la zone) */
+#tabCloseButton, ads--CTitleBarButton, #tabsMenuButton, #detachGroupButton,
+#dockAreaAutoHideButton, #dockAreaMinimizeButton, #dockAreaCloseButton {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 2px;
+    margin: 0px;
+    min-width: 18px;
+    min-height: 18px;
+}
+#tabCloseButton:hover, ads--CTitleBarButton:hover { background: rgba(255, 47, 160, 0.10); }
+#tabCloseButton:pressed, ads--CTitleBarButton:pressed { background: rgba(255, 47, 160, 0.45); }
+#tabsMenuButton::menu-indicator { image: none; width: 0px; }
+
+ads--CDockWidget {
+    background: transparent;
+    border: none;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+QScrollArea#dockWidgetScrollArea { background: transparent; border: none; padding: 0px; }
+QWidget#hierarchyPanel, QWidget#inspectorPanel, QWidget#projectPanel,
+QWidget#consolePanel, QWidget#tilePalettePanel {
+    background: transparent;
+    border: none;
+    border-radius: 0px;
+}
+
+/* La scène : fond de la barre d'outils au-dessus de la vue */
+QWidget#sceneCentral { background: #faf9ff; border-top-left-radius: 8px; border-top-right-radius: 8px; }
+
+/* Repères de dépôt pendant le glisser (comme Visual Studio) */
+ads--CDockOverlayCross {
+    qproperty-iconFrameColor: #ff2fa0;
+    qproperty-iconBackgroundColor: #faf9ff;
+    qproperty-iconOverlayColor: rgba(255, 47, 160, 0.3);
+    qproperty-iconArrowColor: #1d1830;
+    qproperty-iconShadowColor: rgba(40, 30, 80, 0.18);
+}
+
+/* Panneaux épinglés sur le côté (bouton punaise) */
+ads--CAutoHideSideBar { background: transparent; border: none; qproperty-spacing: 6; }
+#sideTabsContainerWidget { background: transparent; }
+ads--CAutoHideTab {
+    background: #faf9ff;
+    color: #6c6690;
+    border: 1px solid #dcd5f2;
+    border-radius: 6px;
+    padding: 4px 8px;
+    min-height: 20px;
+}
+ads--CAutoHideTab:hover, ads--CAutoHideTab[activeTab="true"] { color: #1d1830; border-color: #ff2fa0; }
+ads--CAutoHideDockContainer { background: transparent; }
+ads--CAutoHideDockContainer ads--CDockAreaTitleBar,
+ads--CAutoHideDockContainer ads--CDockAreaWidget[focused="true"] ads--CDockAreaTitleBar { background: #faf9ff; }
+#autoHideTitleLabel { color: #1d1830; padding-left: 6px; font-weight: 600; }
+ads--CResizeHandle { background: transparent; }
+
+/* Panneau flottant (fenêtre à part) */
+ads--CFloatingDockContainer, ads--CFloatingWidgetTitleBar { background: #f3f2fa; }
+ads--CFloatingWidgetTitleBar QLabel { color: #1d1830; }

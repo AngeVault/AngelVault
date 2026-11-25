@@ -31,6 +31,13 @@ enum class AutotileMode {
 inline constexpr std::array<sf::Vector2i, 4> kTileEdgeDirs = { sf::Vector2i{ 0, -1 }, sf::Vector2i{ 1, 0 },
                                                                sf::Vector2i{ 0, 1 }, sf::Vector2i{ -1, 0 } };
 
+// tile animée : posée telle quelle dans la carte, elle affiche ses images en boucle
+struct TileAnimation {
+    int tile = -1;
+    std::vector<int> frames;
+    float frameTime = 0.1f;   // secondes par image
+};
+
 struct Tileset {
     std::string name = "Tileset";
     std::string image;                      // feuille PNG
@@ -64,6 +71,9 @@ struct Tileset {
     // Corners16 : feuille de 16 colonnes ; frameTime > 0 = les lignes sont les images d'une animation
     float frameTime = 0.f;
 
+    // tiles animées, valables pour tous les modes
+    std::vector<TileAnimation> animations;
+
     // .tileset d'où vient ce tileset (relatif au projet). Rempli au chargement / à l'enregistrement.
     std::string file;
     bool missing = false;                   // fichier introuvable : gardé pour ne pas perdre la référence
@@ -76,6 +86,10 @@ struct Tileset {
     int tileIndex(int col, int row) const;               // -1 si hors feuille
     // Calcule columns / count d'après la taille de l'image (et tileSize / margin / spacing)
     void computeGrid(sf::Vector2u imageSize);
+
+    const TileAnimation* animation(int tile) const;
+    // image de `tile` à l'instant `time` (la tile elle-même si elle n'est pas animée)
+    int animatedTile(int tile, float time) const;
 
     bool isAutotile() const { return autotile != AutotileMode::None; }
     // Tile qui représente le tileset (aperçu, pinceau autotile) : la case pleine

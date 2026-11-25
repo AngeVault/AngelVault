@@ -13,6 +13,7 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 
+#include <functional>
 #include <unordered_map>
 #include <vector>
 
@@ -24,6 +25,7 @@ struct YSortQueue {
         sf::Sprite sprite;
     };
     std::vector<Item> items;
+    std::vector<std::function<void()>> overlays;   // layers dessinés par-dessus les entités
     int consumers = 0;        // RenderSystem qui vident cette file
     bool hasConsumer() const { return consumers > 0; }
 

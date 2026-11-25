@@ -1,8 +1,37 @@
+# Build
 out/
 build/
-.vs/
-*.user
+cmake-build-*/
 CMakeUserPresets.json
+compile_commands.json
+
+# Binaires
+*.exe
+*.dll
 *.lib
+*.a
 *.obj
+*.o
+*.pdb
+*.ilk
+*.exp
+
+# IDE
+.vs/
 .idea/
+.vscode/
+.cache/
+*.user
+*.suo
+*.swp
+
+# Système
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+*.log
+
+# Local
+CLAUDE.local.md

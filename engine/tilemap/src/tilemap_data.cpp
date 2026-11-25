@@ -38,17 +38,42 @@ sf::Vector2f vec2(const Json& j, sf::Vector2f fallback) {
 
 const char* toString(TileMapOrientation o) { return o == TileMapOrientation::Isometric ? "isometric" : "orthogonal"; }
 
-
-
-bool save_maps(Registry& scene, std::string path) {
-    scene.view<Tilemap>([&] (Entity& e, Tilemap& tileMap) {
-        save_map(*tileMap.data,path+"/maps/"+ scene.getComponent<NameComponent>(e).name +".map");
-    });
-    // load_map();
-    return true;
+const char* toString(TileLayerMode m) {
+    switch (m) {
+    case TileLayerMode::YSort: return "ysort";
+    case TileLayerMode::Above: return "above";
+    default: return "below";
+    }
 }
 
-std::string cellToken(TileCell& cell) {
+namespace {
+TileLayerMode layerModeFrom(const std::string& s) {
+    if (s == "ysort") return TileLayerMode::YSort;
+    if (s == "above") return TileLayerMode::Above;
+    return TileLayerMode::Below;
+}
+} // namespace
+
+
+
+bool save_maps(Registry& scene, std::string path, std::string* error) {
+    bool ok = true;
+    scene.view<Tilemap>([&] (Entity& e, Tilemap& tileMap) {
+        if (!tileMap.data) return;   // carte non chargée (fichier introuvable) : rien à écrire
+        if (tileMap.file.empty()) {
+            const std::string name = scene.hasComponent<NameComponent>(e) ? scene.getComponent<NameComponent>(e).name : "tilemap";
+            tileMap.file = "maps/" + name + ".map";
+        }
+        const std::string file = fromPath(toPath(path) / toPath(tileMap.file));   // comme loadTilemaps
+        if (!save_map(*tileMap.data, file)) {
+            setError(error, "Impossible d'écrire " + file);
+            ok = false;
+        }
+    });
+    return ok;
+}
+
+std::string cellToken(TileCell cell) {
     std::string token = std::to_string(cellSlot(cell));
     if (cell == 0)return "0";
     if (cellIsAuto(cell))
@@ -59,15 +84,15 @@ std::string cellToken(TileCell& cell) {
     return token;
 }
 
-nlohmann::ordered_json tilesToJson(TileMapData& tileMapData) {
+nlohmann::ordered_json tilesToJson(const TileMapData& tileMapData, int layer) {
 Json tiles = Json::array();
     for (int i = 0; i < tileMapData.height(); ++i) {
         std::string row;
         int j = 0;
         while (j < tileMapData.width() ) {
             int count = 1;
-            TileCell cell = tileMapData.get(j,i);
-            while (j+count <= tileMapData.width() && cell == tileMapData.get(j+count, i)) {
+            TileCell cell = tileMapData.get(layer, j, i);
+            while (j+count < tileMapData.width() && cell == tileMapData.get(layer, j+count, i)) {
                 count++;
             }
             if (!row.empty())row+=" ";
@@ -88,18 +113,29 @@ nlohmann::ordered_json tilesetsToJson(const TileMapData& tileMapData) {
     return tilesets;
 }
 
-void save_map(TileMapData& tileMap, const std::string& path) {
+bool save_map(TileMapData& tileMap, const std::string& path) {
     Json map_save;
     map_save["format"] = "angeVault.tilemap";
-    map_save["version"] = 2;
+    map_save["version"] = 3;
     map_save["tileSize"] = {tileMap.tileSize.x,tileMap.tileSize.y};
     map_save["size"] = {tileMap.width(),tileMap.height()};
     map_save["orientation"] = toString(tileMap.orientation);
     map_save["tilesets"] = tilesetsToJson(tileMap);
-    map_save["cells"] = tilesToJson(tileMap);
-    std::ofstream map_file(path);
-    map_file << map_save.dump();
-    map_file.close();
+    Json layers = Json::array();
+    for (int l = 0; l < tileMap.layerCount(); ++l) {
+        const TileLayer& layer = *tileMap.layer(l);
+        Json entry = { { "name", layer.name }, { "mode", toString(layer.mode) } };
+        if (layer.height != 0.f) entry["height"] = layer.height;
+        entry["cells"] = tilesToJson(tileMap, l);
+        layers.push_back(std::move(entry));
+    }
+    map_save["layers"] = std::move(layers);
+    const fs::path file = toPath(path);
+    std::error_code ec;
+    fs::create_directories(file.parent_path(), ec);
+    std::ofstream map_file(file);
+    map_file << map_save.dump(2) << "\n";
+    return bool(map_file);
 }
 
 
@@ -109,20 +145,27 @@ void TileMapData::resize(int width, int height) {
     width = std::max(0, width);
     height = std::max(0, height);
     if (width == m_width && height == m_height) return;
-    std::vector<TileCell> cells(std::size_t(width) * height, 0);
-    for (int y = 0; y < std::min(height, m_height); ++y)
-        for (int x = 0; x < std::min(width, m_width); ++x)
-            cells[std::size_t(y) * width + x] = m_cells[std::size_t(y) * m_width + x];
-    m_cells = std::move(cells);
+    for (TileLayer& layer : m_layers) {
+        std::vector<TileCell> cells(std::size_t(width) * height, 0);
+        for (int y = 0; y < std::min(height, m_height); ++y)
+            for (int x = 0; x < std::min(width, m_width); ++x)
+                cells[std::size_t(y) * width + x] = layer.cells[std::size_t(y) * m_width + x];
+        layer.cells = std::move(cells);
+    }
     m_width = width;
     m_height = height;
     ++version;
     modified = true;
 }
 
-bool TileMapData::set(int x, int y, TileCell cell) {
-    if (!inBounds(x, y)) return false;
-    TileCell& c = m_cells[std::size_t(y) * m_width + x];
+TileCell TileMapData::get(int layer, int x, int y) const {
+    if (!validLayer(layer) || !inBounds(x, y)) return 0;
+    return m_layers[std::size_t(layer)].cells[std::size_t(y) * m_width + x];
+}
+
+bool TileMapData::set(int layer, int x, int y, TileCell cell) {
+    if (!validLayer(layer) || !inBounds(x, y)) return false;
+    TileCell& c = m_layers[std::size_t(layer)].cells[std::size_t(y) * m_width + x];
     if (c == cell) return false;
     c = cell;
     ++version;
@@ -130,8 +173,40 @@ bool TileMapData::set(int x, int y, TileCell cell) {
     return true;
 }
 
-void TileMapData::fill(TileCell cell) {
-    std::fill(m_cells.begin(), m_cells.end(), cell);
+void TileMapData::fill(int layer, TileCell cell) {
+    if (!validLayer(layer)) return;
+    std::vector<TileCell>& cells = m_layers[std::size_t(layer)].cells;
+    std::fill(cells.begin(), cells.end(), cell);
+    ++version;
+    modified = true;
+}
+
+// ---- Layers ------------------------------------------------------------------------------------
+
+int TileMapData::addLayer(const std::string& name, TileLayerMode mode, int index) {
+    if (index < 0 || index > int(m_layers.size())) index = int(m_layers.size());
+    TileLayer layer;
+    layer.name = name;
+    layer.mode = mode;
+    layer.cells.assign(std::size_t(m_width) * m_height, 0);
+    m_layers.insert(m_layers.begin() + index, std::move(layer));
+    ++version;
+    modified = true;
+    return index;
+}
+
+void TileMapData::removeLayer(int layer) {
+    if (!validLayer(layer)) return;
+    m_layers.erase(m_layers.begin() + layer);
+    ++version;
+    modified = true;
+}
+
+void TileMapData::moveLayer(int from, int to) {
+    if (!validLayer(from) || !validLayer(to) || from == to) return;
+    TileLayer layer = std::move(m_layers[std::size_t(from)]);
+    m_layers.erase(m_layers.begin() + from);
+    m_layers.insert(m_layers.begin() + to, std::move(layer));
     ++version;
     modified = true;
 }
@@ -156,11 +231,12 @@ int TileMapData::addTileset(std::shared_ptr<Tileset> ts) {
 void TileMapData::removeTileset(int slot) {
     if (slot < 0 || slot >= int(tilesets.size())) return;
     tilesets.erase(tilesets.begin() + slot);
-    for (TileCell& c : m_cells) {
-        const int s = cellSlot(c);
-        if (s == slot) c = 0;
-        else if (s > slot) c = makeCell(s - 1, cellTile(c));   // les tilesets suivants reculent d'un cran
-    }
+    for (TileLayer& layer : m_layers)
+        for (TileCell& c : layer.cells) {
+            const int s = cellSlot(c);
+            if (s == slot) c = 0;
+            else if (s > slot) c = makeCell(s - 1, cellTile(c));   // les tilesets suivants reculent d'un cran
+        }
     ++version;
     modified = true;
 }
@@ -180,8 +256,9 @@ void TileMapData::moveTileset(int from, int to) {
         else if (from > to && s >= to && s < from) r = s + 1;
         remap[std::size_t(s)] = r;
     }
-    for (TileCell& c : m_cells)
-        if (const int s = cellSlot(c); s >= 0 && s < n) c = makeCell(remap[std::size_t(s)], cellTile(c));
+    for (TileLayer& layer : m_layers)
+        for (TileCell& c : layer.cells)
+            if (const int s = cellSlot(c); s >= 0 && s < n) c = makeCell(remap[std::size_t(s)], cellTile(c));
     ++version;
     modified = true;
 }
@@ -213,6 +290,53 @@ std::array<sf::Vector2f, 4> TileMapData::cellCorners(int x, int y) const {
     }
     return { sf::Vector2f{ x * w, y * h }, sf::Vector2f{ (x + 1) * w, y * h },
              sf::Vector2f{ (x + 1) * w, (y + 1) * h }, sf::Vector2f{ x * w, (y + 1) * h } };
+}
+
+std::vector<std::array<sf::Vector2f, 4>> TileMapData::solidAreas() const {
+    std::vector<std::array<sf::Vector2f, 4>> areas;
+    // une passe par hauteur : la collision suit le dessin du layer
+    std::vector<float> heights;
+    for (const TileLayer& layer : m_layers)
+        if (std::find(heights.begin(), heights.end(), layer.height) == heights.end()) heights.push_back(layer.height);
+
+    std::vector<char> todo(std::size_t(m_width) * m_height, 0);
+    auto pending = [&](int x, int y) { return inBounds(x, y) && todo[std::size_t(y) * m_width + x]; };
+    for (float height : heights) {
+        std::fill(todo.begin(), todo.end(), 0);
+        for (const TileLayer& layer : m_layers) {
+            if (layer.height != height) continue;
+            for (std::size_t i = 0; i < todo.size(); ++i) {
+                const Tileset* t = tilesetOf(layer.cells[i]);
+                todo[i] |= t && t->solid;
+            }
+        }
+        const sf::Vector2f lift{ 0.f, -height };
+
+        // rectangles gloutons : on étend en x, puis en y tant que toute la ligne suit
+        for (int y = 0; y < m_height; ++y)
+            for (int x = 0; x < m_width; ++x) {
+                if (!pending(x, y)) continue;
+                int x1 = x;
+                while (pending(x1 + 1, y)) ++x1;
+                int y1 = y;
+                auto rowPending = [&](int row) {
+                    for (int i = x; i <= x1; ++i) if (!pending(i, row)) return false;
+                    return true;
+                };
+                while (rowPending(y1 + 1)) ++y1;
+                for (int j = y; j <= y1; ++j)
+                    for (int i = x; i <= x1; ++i) todo[std::size_t(j) * m_width + i] = 0;
+                areas.push_back({ cellCorners(x, y)[0] + lift, cellCorners(x1, y)[1] + lift, cellCorners(x1, y1)[2] + lift, cellCorners(x, y1)[3] + lift });
+            }
+    }
+    return areas;
+}
+
+int TileMapData::usedCells(int slot) const {
+    int used = 0;
+    for (const TileLayer& layer : m_layers)
+        for (TileCell c : layer.cells) used += cellSlot(c) == slot;
+    return used;
 }
 
 sf::Vector2f TileMapData::localOrigin() const {
@@ -256,7 +380,7 @@ bool TileMapData::fromJson(const std::string& text, std::string* error, std::vec
     if (j.is_discarded() || !j.is_object()) { setError(error, "JSON invalide"); return false; }
     if (j.value("format", std::string()) != "angeVault.tilemap") { setError(error, "ce n'est pas une tilemap AngeVault"); return false; }
     const int fileVersion = j.value("version", 1);
-    if (fileVersion > 2) { setError(error, "tilemap créée par une version plus récente du moteur"); return false; }
+    if (fileVersion > 3) { setError(error, "tilemap créée par une version plus récente du moteur"); return false; }
     if (fileVersion < 2) {
         setError(error, "ancien format (une image par tile) : non pris en charge");
         return false;
@@ -287,10 +411,10 @@ bool TileMapData::fromJson(const std::string& text, std::string* error, std::vec
 
     m.m_width = std::max(0, w);
     m.m_height = std::max(0, h);
-    m.m_cells.assign(std::size_t(m.m_width) * m.m_height, 0);
     const int slots = int(m.tilesets.size());
-    if (j.contains("cells") && j["cells"].is_array()) {
-        const Json& rows = j["cells"];
+    auto readCells = [&](const Json& rows, TileLayer& layer) {
+        layer.cells.assign(std::size_t(m.m_width) * m.m_height, 0);
+        if (!rows.is_array()) return;
         for (int y = 0; y < m.m_height && y < int(rows.size()); ++y) {
             if (!rows[y].is_string()) continue;
             std::istringstream in(rows[y].get<std::string>());
@@ -304,10 +428,26 @@ bool TileMapData::fromJson(const std::string& text, std::string* error, std::vec
                     if (star != std::string::npos) { count = std::stoi(token.substr(0, star)); c = parseCell(token.substr(star + 1), slots); }
                     else c = parseCell(token, slots);
                 } catch (...) { c = 0; }
-                for (int k = 0; k < count && x < m.m_width; ++k) m.m_cells[std::size_t(y) * m.m_width + x++] = c;
+                for (int k = 0; k < count && x < m.m_width; ++k) layer.cells[std::size_t(y) * m.m_width + x++] = c;
             }
         }
+    };
+    if (j.contains("layers") && j["layers"].is_array()) {
+        for (const Json& l : j["layers"]) {
+            if (!l.is_object()) continue;
+            TileLayer& layer = m.m_layers.emplace_back();
+            layer.name = l.value("name", std::string("layer"));
+            layer.mode = layerModeFrom(l.value("mode", std::string()));
+            layer.height = l.value("height", 0.f);
+            readCells(l.value("cells", Json()), layer);
+        }
+    } else {
+        // v2 : une seule grille de cases
+        TileLayer& layer = m.m_layers.emplace_back();
+        layer.name = "fond";
+        readCells(j.value("cells", Json()), layer);
     }
+    if (m.m_layers.empty()) m.addLayer("fond");
     m.version = version + 1;
     *this = std::move(m);
     return true;
