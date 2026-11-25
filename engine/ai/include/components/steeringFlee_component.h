@@ -73,12 +73,9 @@ struct SteeringFleeComponent
                 delete suprtemp;
                 return false;
             }
-            else
-            {
-                temp->next = temp->next->next;
-            }
-            return true;
+                temp = temp->next;
         }
+        return true;
     }
 };
 template<>
