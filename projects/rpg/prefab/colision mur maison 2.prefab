@@ -1,0 +1,50 @@
+{
+  "format": "angeVault.prefab",
+  "version": 1,
+  "name": "colision mur maison 2",
+  "entities": [
+    {
+      "id": 239666870656339094,
+      "components": {
+        "Name": {
+          "name": "colision mur maison"
+        },
+        "Transform2D": {
+          "position": [
+            748.9844970703125,
+            893.6484985351563
+          ],
+          "rotation": -26.999998092651367,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            56.70245361328125,
+            7.463958740234375
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            37.51947021484375,
+            6.673492431640625
+          ]
+        }
+      }
+    }
+  ]
+}

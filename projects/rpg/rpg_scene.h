@@ -13,6 +13,7 @@
 #include "systems/interaction_system.h"
 #include "systems/pickup_system.h"
 #include "systems/chest_system.h"
+#include "systems/quest_system.h"
 #include "systems/inventory_log_system.h"
 #include "systems/scene_transition_system.h"
 #include "components/name.h"
@@ -94,6 +95,7 @@ inline void registerRpgSystems(Game& game) {
     auto& interaction = game.systems().addSystem<InteractionSystem>(collision);
     game.systems().addSystem<PickupSystem>(collision, interaction);
     game.systems().addSystem<ChestSystem>(interaction);
+    game.systems().addSystem<QuestSystem>(interaction);
     game.systems().addSystem<InventoryLogSystem>();
     game.systems().addSystem<SceneTransitionSystem>(game, collision, interaction);
     game.systems().addSystem<DialogSystem>(game, interaction);   //

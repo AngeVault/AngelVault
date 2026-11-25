@@ -7,6 +7,7 @@
 //     fpsLimit = 0
 //     shader = assets/shaders/postprocess.frag
 //     shader.contrast = 1.1
+//     font = assets/fonts/pixel.ttf
 //
 // fichier absent ou clé manquante : valeurs par défaut
 #include <map>
@@ -19,6 +20,7 @@ struct GameSettings {
     unsigned fpsLimit = 0;       // 0 = illimité, ignoré si vsync
     std::string shader;          // post-process .frag, relatif au projet (vide = aucun)
     std::map<std::string, float> shaderParams;   // réglages « @param » du shader
+    std::string font;            // police des textes, relative au projet
 
     bool loadFromFile(const std::string& path);   // false si absent / illisible (valeurs inchangées)
     bool saveToFile(const std::string& path) const;

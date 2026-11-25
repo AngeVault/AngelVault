@@ -13,6 +13,7 @@
 #include "components/chest.h"
 #include "components/inventory.h"
 #include "components/pickup.h"
+#include "components/quest.h"
 #include "components/map_transition.h"
 #include "components/name.h"
 #include "components/spawn_point.h"
@@ -559,6 +560,8 @@ std::vector<ComponentDesc> build() {
         d.fields = [](Registry& r, Entity e) {
             std::vector<FieldDesc> f;
             f.push_back(stringRef<UIText>(r,e, QObject::tr("Text"), [](UIText& t) -> std::string& {return t.text;}));
+            f.push_back(boolRef<UIText>(r,e, QObject::tr("est de l'HUD"), [](UIText& t) -> bool& {return t.isHUD;}));
+            f.push_back(vecRef<UIText>(r,e, QObject::tr("Offset"), [](UIText& t) -> sf::Vector2f& {return t.offset;}));
             return f;
         };
         list.push_back(d);
@@ -588,6 +591,7 @@ std::vector<ComponentDesc> build() {
         d.fields = [](Registry& r, Entity e) {
             std::vector<FieldDesc> f;
             f.push_back(stringRef<Dialog>(r,e, QObject::tr("Fichier json"), [](Dialog& di) -> std::string& {return di.filePath;}));
+            f.push_back(floatRef<Dialog>(r,e, QObject::tr("Interval d'apparition des caractère"), [](Dialog& di) -> float& {return di.textSpeed;}));
             return f;
         };
         list.push_back(d);
@@ -1072,6 +1076,43 @@ std::vector<ComponentDesc> build() {
             f.push_back(stringRef<C>(r, e, QObject::tr("Texture ouverte"), [](C& c) -> std::string& { return c.openTexture; }));
             f.push_back(vecRef<C>(r, e, QObject::tr("Décalage ouvert"), [](C& c) -> sf::Vector2f& { return c.openOffset; }));
             f.push_back(floatRef<C>(r, e, QObject::tr("Animation (s)"), [](C& c) -> float& { return c.openTime; }, 0, 5, 0.05));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- QuestGiver
+    {
+        using C = QuestGiver;
+        ComponentDesc d{ "QuestGiver" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<C>(e); };
+        d.add = [](Registry& r, Entity e) {
+            r.addComponent<C>(e);
+            if (!r.hasComponent<Interactable>(e)) r.addComponent<Interactable>(e);
+        };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<C>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            return std::vector<FieldDesc>{ stringRef<C>(r, e, QObject::tr("Quête"), [](C& c) -> std::string& { return c.quest; }) };
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- QuestObjective
+    {
+        using C = QuestObjective;
+        ComponentDesc d{ "QuestObjective" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<C>(e); };
+        d.add = [](Registry& r, Entity e) {
+            r.addComponent<C>(e);
+            if (!r.hasComponent<Interactable>(e)) r.addComponent<Interactable>(e);
+        };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<C>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(stringRef<C>(r, e, QObject::tr("Quête"), [](C& c) -> std::string& { return c.quest; }));
+            f.push_back(stringRef<C>(r, e, QObject::tr("Récompense"), [](C& c) -> std::string& { return c.reward; }));
+            f.push_back(intRef<C>(r, e, QObject::tr("Nombre"), [](C& c) -> int& { return c.rewardCount; }));
+            f.back().min = 0;
             return f;
         };
         list.push_back(d);

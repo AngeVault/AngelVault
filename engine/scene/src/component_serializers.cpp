@@ -13,6 +13,7 @@
 #include "components/chest.h"
 #include "components/inventory.h"
 #include "components/pickup.h"
+#include "components/quest.h"
 #include "components/map_transition.h"
 #include "components/sprite_animator.h"
 #include "components/name.h"
@@ -296,6 +297,8 @@ void registerBuiltins(SerializerRegistry& reg) {
     reg.addReflected<SpriteAnimator>("SpriteAnimator");
     reg.addReflected<Pickup>("Pickup");
     reg.addReflected<Chest>("Chest");
+    reg.addReflected<QuestGiver>("QuestGiver");
+    reg.addReflected<QuestObjective>("QuestObjective");
 
     // "Inventory": { "capacity": 20, "maxStack": 99, "stacks": [ { "item": "potion", "count": 3 } ] }
     reg.add<Inventory>("Inventory",
@@ -350,10 +353,12 @@ void registerBuiltins(SerializerRegistry& reg) {
         });
 
     reg.add<UIText>("UIText",
-        [](UIText& t, const SaveContext&) { return Json{ { "text", t.text } };
+        [](UIText& t, const SaveContext&) { return Json{ { "text", t.text },{"HUD", t.isHUD}, {"offset", vec2(t.offset)} };
         },[](UIText& t, const Json& j, const LoadContext&) {
             t.text = j.value("text", std::string());
             t.defaultText = j.value("text", std::string());
+            t.isHUD = j.value("HUD", t.isHUD);
+            t.offset = vec2(j.value("offset", Json()), t.offset);
         });
 
     reg.add<UIButton>("UIButton",
@@ -364,9 +369,10 @@ void registerBuiltins(SerializerRegistry& reg) {
     });
     //
     reg.add<Dialog>("Dialog",
-        [](Dialog& d, const SaveContext&) { return Json{ {"json", d.filePath }};
+        [](Dialog& d, const SaveContext&) { return Json{ {"json", d.filePath }, {"speed", d.textSpeed }};
         },[](Dialog& d, const Json& j, const LoadContext&) {
             d.filePath = j.value("json", "");
+            d.textSpeed = j.value("speed", 0.04f);
     });
 
     // ---- Script : liste de comportements, chacun = son nom (BehaviorFactory) + ses PROPERTY

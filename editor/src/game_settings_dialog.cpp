@@ -83,6 +83,29 @@ GameSettingsDialog::GameSettingsDialog(const QString& path, const QString& proje
     });
     connect(fps, &QSpinBox::valueChanged, this, [this](int v) { m_settings.fpsLimit = unsigned(v); save(); });
 
+    auto* fontRow = new QHBoxLayout;
+    auto* font = new QLineEdit(QString::fromStdString(m_settings.font));
+    auto* fontBrowse = new QToolButton;
+    fontBrowse->setText("...");
+    fontBrowse->setToolTip(tr("Police"));
+    fontRow->addWidget(font, 1);
+    fontRow->addWidget(fontBrowse);
+    form->addRow(tr("Police"), fontRow);
+    connect(font, &QLineEdit::editingFinished, this, [this, font] {
+        if (font->text().trimmed().toStdString() == m_settings.font) return;
+        m_settings.font = font->text().trimmed().toStdString();
+        save();
+    });
+    connect(fontBrowse, &QToolButton::clicked, this, [this, font] {
+        const QString file = QFileDialog::getOpenFileName(this, tr("Police"), m_projectDir, tr("Police (*.ttf *.otf)"));
+        if (file.isEmpty()) return;
+        QString relative = QDir(m_projectDir).relativeFilePath(file);
+        if (relative.startsWith("..")) relative = file;
+        font->setText(relative);
+        m_settings.font = relative.toStdString();
+        save();
+    });
+
     // ---- post-process
     auto* postBox = new QGroupBox(tr("Post-process"));
     auto* postLayout = new QVBoxLayout(postBox);

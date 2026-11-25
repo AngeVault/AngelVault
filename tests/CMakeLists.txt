@@ -49,3 +49,7 @@ add_test(NAME test_pickup COMMAND test_pickup)
 add_executable(test_chest test_chest.cpp)
 target_link_libraries(test_chest PRIVATE AngeVault::Gameplay)
 add_test(NAME test_chest COMMAND test_chest)
+
+add_executable(test_quest test_quest.cpp)
+target_link_libraries(test_quest PRIVATE AngeVault::Gameplay)
+add_test(NAME test_quest COMMAND test_quest)
