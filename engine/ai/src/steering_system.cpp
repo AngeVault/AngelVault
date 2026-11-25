@@ -29,7 +29,7 @@ void SteeringSystem::onUpdate(Registry& registry, float dt)
                 steeringComponent.direction = {0.f, 0.f};
             } else {
                 steeringComponent.direction = {0.f, 0.f};
-                std::cerr << "[Steering] le composent steering a une valeur de invalides dans direction" << std::endl;
+                // std::cerr << "[Steering] le composent steering a une valeur de invalides dans direction" << std::endl;
 
             }
         }else
