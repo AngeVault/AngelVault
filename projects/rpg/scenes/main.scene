@@ -5,6 +5,601 @@
   "map": null,
   "entities": [
     {
+      "id": 13387537356817628666,
+      "components": {
+        "Name": {
+          "name": "colision mur maison"
+        },
+        "Transform2D": {
+          "position": [
+            519.8772583007813,
+            1270.787109375
+          ],
+          "rotation": 26.999984741210938,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            -76.85531616210938,
+            8.395233154296875
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            75.89889526367188,
+            7.604766845703125
+          ]
+        }
+      }
+    },
+    {
+      "id": 15064256764930773535,
+      "components": {
+        "Name": {
+          "name": "colision mur maison"
+        },
+        "Transform2D": {
+          "position": [
+            360.54205322265625,
+            1212.841064453125
+          ],
+          "rotation": -26.999984741210938,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            126.94246673583984,
+            7.463958740234375
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            107.75948333740234,
+            6.673492431640625
+          ]
+        }
+      }
+    },
+    {
+      "id": 3519654320871331384,
+      "components": {
+        "Name": {
+          "name": "tilemap_iso_3"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Tilemap": {
+          "file": "maps/tilemap_iso_3.map",
+          "visible": true
+        }
+      }
+    },
+    {
+      "id": 7001000000000000003,
+      "components": {
+        "Name": {
+          "name": "Cle donjon"
+        },
+        "Transform2D": {
+          "position": [
+            898.368896484375,
+            991.08349609375
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Polygon",
+          "points": [
+            [
+              -4.37113897078234e-07,
+              -6.0
+            ],
+            [
+              8.660253524780273,
+              -3.0
+            ],
+            [
+              8.660253524780273,
+              3.0
+            ],
+            [
+              -4.37113897078234e-07,
+              6.0
+            ],
+            [
+              -8.660253524780273,
+              3.000000476837158
+            ],
+            [
+              -8.660252571105957,
+              -3.0000009536743164
+            ]
+          ],
+          "style": {
+            "fill": "#E8C547FF",
+            "outline": "#6B4F1DFF",
+            "outlineThickness": 2.0
+          }
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": true,
+          "restitution": 0.0,
+          "friction": 0.0,
+          "shape": "Box",
+          "halfSize": [
+            18.0,
+            18.0
+          ]
+        },
+        "Pickup": {
+          "item": "cle",
+          "count": 1
+        },
+        "Spin": {
+          "degreesPerSecond": 90.0,
+          "clockwise": true
+        }
+      }
+    },
+    {
+      "id": 3642113923053432003,
+      "components": {
+        "Name": {
+          "name": "pnj"
+        },
+        "Transform2D": {
+          "position": [
+            -188.15176391601563,
+            690.3772583007813
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Sprite",
+          "texture": "assets/characters/body/Idle.png",
+          "rect": [
+            0,
+            0,
+            126,
+            128
+          ],
+          "tint": "#FFFFFFFF"
+        },
+        "Collider2D": {
+          "offset": [
+            -0.928558349609375,
+            4.25469970703125
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            119.75308227539063,
+            96.53982543945313
+          ]
+        },
+        "Interactable": {
+          "enabled": true
+        },
+        "QuestGiver": {
+          "quest": "epee_perdue"
+        },
+        "UIText": {
+          "text": "?",
+          "HUD": false,
+          "offset": [
+            0.0,
+            -80.0
+          ]
+        },
+        "Dialog": {
+          "json": "dialog.dialog",
+          "speed": 0.03999999910593033
+        }
+      }
+    },
+    {
+      "id": 2868801888635660043,
+      "components": {
+        "Name": {
+          "name": "colision mur maison"
+        },
+        "Transform2D": {
+          "position": [
+            955.6411743164063,
+            914.5775146484375
+          ],
+          "rotation": 26.999984741210938,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            -1.353607177734375,
+            8.395233154296875
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            151.40060424804688,
+            7.604766845703125
+          ]
+        }
+      }
+    },
+    {
+      "id": 10802596207832536904,
+      "components": {
+        "Name": {
+          "name": "colision mur maison"
+        },
+        "Transform2D": {
+          "position": [
+            970.269287109375,
+            1035.791748046875
+          ],
+          "rotation": -26.999984741210938,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            16.733871459960938,
+            8.395233154296875
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            107.94828796386719,
+            7.604766845703125
+          ]
+        }
+      }
+    },
+    {
+      "id": 239666870656339094,
+      "components": {
+        "Name": {
+          "name": "colision mur maison"
+        },
+        "Transform2D": {
+          "position": [
+            748.9844970703125,
+            893.6484985351563
+          ],
+          "rotation": -26.999984741210938,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            56.70245361328125,
+            7.463958740234375
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            37.51947021484375,
+            6.673492431640625
+          ]
+        }
+      }
+    },
+    {
+      "id": 8332455512482867600,
+      "components": {
+        "Name": {
+          "name": "colision mur maison"
+        },
+        "Transform2D": {
+          "position": [
+            1475.395751953125,
+            1053.5286865234375
+          ],
+          "rotation": 26.999984741210938,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            28.975677490234375,
+            5.9848175048828125
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            181.72988891601563,
+            5.1943511962890625
+          ]
+        }
+      }
+    },
+    {
+      "id": 7652562273939706333,
+      "components": {
+        "Name": {
+          "name": "colision mur maison"
+        },
+        "Transform2D": {
+          "position": [
+            -22.5621337890625,
+            1274.81201171875
+          ],
+          "rotation": -26.999984741210938,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            269.69464111328125,
+            7.463958740234375
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            250.51165771484375,
+            6.673492431640625
+          ]
+        }
+      }
+    },
+    {
+      "id": 7610683873145555539,
+      "components": {
+        "Name": {
+          "name": "colision mur maison"
+        },
+        "Transform2D": {
+          "position": [
+            580.7194213867188,
+            1109.6893310546875
+          ],
+          "rotation": 26.999984741210938,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            -76.19161987304688,
+            6.093109130859375
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            76.56259155273438,
+            5.302642822265625
+          ]
+        }
+      }
+    },
+    {
+      "id": 13426700980117457759,
+      "components": {
+        "Name": {
+          "name": "colision mur maison"
+        },
+        "Transform2D": {
+          "position": [
+            -7.516792297363281,
+            938.7598266601563
+          ],
+          "rotation": 26.999984741210938,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            -109.93476867675781,
+            8.395233154296875
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            42.81944274902344,
+            7.604766845703125
+          ]
+        }
+      }
+    },
+    {
+      "id": 6034884562892542964,
+      "components": {
+        "Name": {
+          "name": "colision mur maison"
+        },
+        "Transform2D": {
+          "position": [
+            -313.3375549316406,
+            781.0970458984375
+          ],
+          "rotation": 26.999984741210938,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": true,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            -9.088676452636719,
+            8.395233154296875
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            30.303546905517578,
+            7.604766845703125
+          ]
+        }
+      }
+    },
+    {
       "id": 18092514487157541069,
       "components": {
         "Name": {
@@ -195,171 +790,6 @@
       }
     },
     {
-      "id": 3519654320871331384,
-      "components": {
-        "Name": {
-          "name": "tilemap_iso_3"
-        },
-        "Transform2D": {
-          "position": [
-            0.0,
-            0.0
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "Tilemap": {
-          "file": "maps/tilemap_iso_3.map",
-          "visible": true
-        }
-      }
-    },
-    {
-      "id": 7001000000000000003,
-      "components": {
-        "Name": {
-          "name": "Cle donjon"
-        },
-        "Transform2D": {
-          "position": [
-            898.368896484375,
-            991.08349609375
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "Geometry": {
-          "layer": 1,
-          "shape": "Polygon",
-          "points": [
-            [
-              -4.37113897078234e-07,
-              -6.0
-            ],
-            [
-              8.660253524780273,
-              -3.0
-            ],
-            [
-              8.660253524780273,
-              3.0
-            ],
-            [
-              -4.37113897078234e-07,
-              6.0
-            ],
-            [
-              -8.660253524780273,
-              3.000000476837158
-            ],
-            [
-              -8.660252571105957,
-              -3.0000009536743164
-            ]
-          ],
-          "style": {
-            "fill": "#E8C547FF",
-            "outline": "#6B4F1DFF",
-            "outlineThickness": 2.0
-          }
-        },
-        "Collider2D": {
-          "offset": [
-            0.0,
-            0.0
-          ],
-          "isTrigger": true,
-          "restitution": 0.0,
-          "friction": 0.0,
-          "shape": "Box",
-          "halfSize": [
-            18.0,
-            18.0
-          ]
-        },
-        "Pickup": {
-          "item": "cle",
-          "count": 1
-        },
-        "Spin": {
-          "degreesPerSecond": 90.0,
-          "clockwise": true
-        }
-      }
-    },
-    {
-      "id": 3642113923053432003,
-      "components": {
-        "Name": {
-          "name": "pnj"
-        },
-        "Transform2D": {
-          "position": [
-            -181.3368377685547,
-            691.6163940429688
-          ],
-          "rotation": 0.0,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "Geometry": {
-          "layer": 1,
-          "shape": "Sprite",
-          "texture": "assets/characters/body/Idle.png",
-          "rect": [
-            0,
-            0,
-            126,
-            128
-          ],
-          "tint": "#FFFFFFFF"
-        },
-        "Collider2D": {
-          "offset": [
-            -0.928558349609375,
-            4.25469970703125
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            119.75308227539063,
-            96.53982543945313
-          ]
-        },
-        "Interactable": {
-          "enabled": true
-        },
-        "QuestGiver": {
-          "quest": "epee_perdue"
-        },
-        "UIText": {
-          "text": "",
-          "HUD": false,
-          "offset": [
-            0.0,
-            0.0
-          ]
-        },
-        "Dialog": {
-          "json": "dialog.dialog",
-          "speed": 0.03999999910593033
-        }
-      }
-    },
-    {
       "id": 7001000000000000001,
       "components": {
         "Name": {
@@ -466,7 +896,7 @@
             769.2041625976563,
             1009.0025024414063
           ],
-          "rotation": 26.999996185302734,
+          "rotation": 26.999984741210938,
           "scale": [
             1.0,
             1.0
@@ -494,135 +924,6 @@
           "halfSize": [
             151.40060424804688,
             7.604766845703125
-          ]
-        }
-      }
-    },
-    {
-      "id": 2868801888635660043,
-      "components": {
-        "Name": {
-          "name": "colision mur maison"
-        },
-        "Transform2D": {
-          "position": [
-            955.6411743164063,
-            914.5775146484375
-          ],
-          "rotation": 26.9999942779541,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            -1.353607177734375,
-            8.395233154296875
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            151.40060424804688,
-            7.604766845703125
-          ]
-        }
-      }
-    },
-    {
-      "id": 10802596207832536904,
-      "components": {
-        "Name": {
-          "name": "colision mur maison"
-        },
-        "Transform2D": {
-          "position": [
-            970.269287109375,
-            1035.791748046875
-          ],
-          "rotation": -26.999996185302734,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            16.733871459960938,
-            8.395233154296875
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            107.94828796386719,
-            7.604766845703125
-          ]
-        }
-      }
-    },
-    {
-      "id": 239666870656339094,
-      "components": {
-        "Name": {
-          "name": "colision mur maison"
-        },
-        "Transform2D": {
-          "position": [
-            748.9844970703125,
-            893.6484985351563
-          ],
-          "rotation": -26.999996185302734,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            56.70245361328125,
-            7.463958740234375
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            37.51947021484375,
-            6.673492431640625
           ]
         }
       }
@@ -638,7 +939,7 @@
             620.0045776367188,
             963.6773681640625
           ],
-          "rotation": -26.999996185302734,
+          "rotation": -26.999984741210938,
           "scale": [
             1.0,
             1.0
@@ -681,7 +982,7 @@
             1382.421875,
             1288.0262451171875
           ],
-          "rotation": -26.999996185302734,
+          "rotation": -26.999984741210938,
           "scale": [
             1.0,
             1.0
@@ -724,7 +1025,7 @@
             1036.88671875,
             1271.053466796875
           ],
-          "rotation": 26.999996185302734,
+          "rotation": 26.999984741210938,
           "scale": [
             1.0,
             1.0
@@ -767,7 +1068,7 @@
             1153.88037109375,
             1084.8399658203125
           ],
-          "rotation": -26.999996185302734,
+          "rotation": -26.999984741210938,
           "scale": [
             1.0,
             1.0
@@ -800,135 +1101,6 @@
       }
     },
     {
-      "id": 8332455512482867600,
-      "components": {
-        "Name": {
-          "name": "colision mur maison"
-        },
-        "Transform2D": {
-          "position": [
-            1475.395751953125,
-            1053.5286865234375
-          ],
-          "rotation": 26.999996185302734,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            28.975677490234375,
-            5.9848175048828125
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            181.72988891601563,
-            5.1943511962890625
-          ]
-        }
-      }
-    },
-    {
-      "id": 7652562273939706333,
-      "components": {
-        "Name": {
-          "name": "colision mur maison"
-        },
-        "Transform2D": {
-          "position": [
-            -22.5621337890625,
-            1274.81201171875
-          ],
-          "rotation": -26.999996185302734,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            269.69464111328125,
-            7.463958740234375
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            250.51165771484375,
-            6.673492431640625
-          ]
-        }
-      }
-    },
-    {
-      "id": 7610683873145555539,
-      "components": {
-        "Name": {
-          "name": "colision mur maison"
-        },
-        "Transform2D": {
-          "position": [
-            580.7194213867188,
-            1109.6893310546875
-          ],
-          "rotation": 26.999996185302734,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            -76.19161987304688,
-            6.093109130859375
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            76.56259155273438,
-            5.302642822265625
-          ]
-        }
-      }
-    },
-    {
       "id": 1553782563797223698,
       "components": {
         "Name": {
@@ -939,7 +1111,7 @@
             139.79840087890625,
             1337.810546875
           ],
-          "rotation": 26.999996185302734,
+          "rotation": 26.999984741210938,
           "scale": [
             1.0,
             1.0
@@ -982,7 +1154,7 @@
             423.3359069824219,
             1505.133544921875
           ],
-          "rotation": -26.999996185302734,
+          "rotation": -26.999984741210938,
           "scale": [
             1.0,
             1.0
@@ -1025,7 +1197,7 @@
             603.8462524414063,
             1413.3353271484375
           ],
-          "rotation": -26.999996185302734,
+          "rotation": -26.999984741210938,
           "scale": [
             1.0,
             1.0
@@ -1068,7 +1240,7 @@
             575.4276733398438,
             1293.6151123046875
           ],
-          "rotation": 26.999996185302734,
+          "rotation": 26.999984741210938,
           "scale": [
             1.0,
             1.0
@@ -1101,135 +1273,6 @@
       }
     },
     {
-      "id": 13387537356817628666,
-      "components": {
-        "Name": {
-          "name": "colision mur maison"
-        },
-        "Transform2D": {
-          "position": [
-            519.8772583007813,
-            1270.787109375
-          ],
-          "rotation": 26.999996185302734,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            -76.85531616210938,
-            8.395233154296875
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            75.89889526367188,
-            7.604766845703125
-          ]
-        }
-      }
-    },
-    {
-      "id": 15064256764930773535,
-      "components": {
-        "Name": {
-          "name": "colision mur maison"
-        },
-        "Transform2D": {
-          "position": [
-            360.54205322265625,
-            1212.841064453125
-          ],
-          "rotation": -26.999996185302734,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            126.94246673583984,
-            7.463958740234375
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            107.75948333740234,
-            6.673492431640625
-          ]
-        }
-      }
-    },
-    {
-      "id": 13426700980117457759,
-      "components": {
-        "Name": {
-          "name": "colision mur maison"
-        },
-        "Transform2D": {
-          "position": [
-            -7.516792297363281,
-            938.7598266601563
-          ],
-          "rotation": 26.999996185302734,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            -109.93476867675781,
-            8.395233154296875
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            42.81944274902344,
-            7.604766845703125
-          ]
-        }
-      }
-    },
-    {
       "id": 2341437238599285304,
       "components": {
         "Name": {
@@ -1240,7 +1283,7 @@
             -1.9190540313720703,
             874.4485473632813
           ],
-          "rotation": -26.999996185302734,
+          "rotation": -26.999984741210938,
           "scale": [
             1.0,
             1.0
@@ -1283,7 +1326,7 @@
             89.08231353759766,
             676.809326171875
           ],
-          "rotation": 26.999996185302734,
+          "rotation": 26.999984741210938,
           "scale": [
             1.0,
             1.0
@@ -1326,7 +1369,7 @@
             72.41913604736328,
             672.0779418945313
           ],
-          "rotation": 26.999996185302734,
+          "rotation": 26.999984741210938,
           "scale": [
             1.0,
             1.0
@@ -1369,7 +1412,7 @@
             -196.7950439453125,
             671.7974243164063
           ],
-          "rotation": -26.999996185302734,
+          "rotation": -26.999984741210938,
           "scale": [
             1.0,
             1.0
@@ -1400,49 +1443,6 @@
           ]
         }
       }
-    },
-    {
-      "id": 6034884562892542964,
-      "components": {
-        "Name": {
-          "name": "colision mur maison"
-        },
-        "Transform2D": {
-          "position": [
-            -313.3375549316406,
-            781.0970458984375
-          ],
-          "rotation": 26.999996185302734,
-          "scale": [
-            1.0,
-            1.0
-          ],
-          "depth": 0.0
-        },
-        "RigidBody2D": {
-          "mass": 1.0,
-          "linearDrag": 0.05000000074505806,
-          "friction": 0.4000000059604645,
-          "isStatic": true,
-          "useGravity": false,
-          "inertia": 0.0,
-          "fixedRotation": false
-        },
-        "Collider2D": {
-          "offset": [
-            -9.088676452636719,
-            8.395233154296875
-          ],
-          "isTrigger": false,
-          "restitution": 0.20000000298023224,
-          "friction": 0.4000000059604645,
-          "shape": "Box",
-          "halfSize": [
-            30.303546905517578,
-            7.604766845703125
-          ]
-        }
-      }
     }
   ],
   "editor": {
@@ -1461,11 +1461,12 @@
       "colectible": "histoir"
     },
     "entityCategory": {
-      "18092514487157541069": "Personnages",
-      "9932720423414607161": "jours nuit",
+      "13387537356817628666": "colision",
       "3519654320871331384": "map",
       "7001000000000000003": "colectible",
       "3642113923053432003": "pnj",
+      "18092514487157541069": "Personnages",
+      "9932720423414607161": "jours nuit",
       "7001000000000000001": "transi",
       "7001000000000000002": "transi",
       "9654407648574177128": "colectible",
