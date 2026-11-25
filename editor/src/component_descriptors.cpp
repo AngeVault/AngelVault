@@ -925,8 +925,8 @@ std::vector<ComponentDesc> build() {
         d.remove = [](Registry& r, Entity e) { r.removeComponent<SteeringSeekComponent>(e); };
         d.fields = [](Registry& r, Entity e) {
             std::vector<FieldDesc> f;
-            f.push_back(boolRef<SteeringSeekComponent>(r, e, QObject::tr("isActif"), [](SteeringSeekComponent& s) -> bool& { return s.isActif; } ,0));
-            f.push_back(vecRef<SteeringSeekComponent>(r, e, QObject::tr("positionCible"), [](SteeringSeekComponent& s) -> sf::Vector2f& { return s.positionCible; }, 0));
+            f.push_back(boolRef<SteeringSeekComponent>(r, e, QObject::tr("is actif"), [](SteeringSeekComponent& s) -> bool& { return s.isActif; } ,0));
+            f.push_back(vecRef<SteeringSeekComponent>(r, e, QObject::tr("position cible"), [](SteeringSeekComponent& s) -> sf::Vector2f& { return s.positionCible; }, 0));
             return f;
         };
         list.push_back(d);
@@ -939,7 +939,7 @@ std::vector<ComponentDesc> build() {
         d.remove = [](Registry& r, Entity e) { r.removeComponent<SteeringFleeComponent>(e); };
         d.fields = [](Registry& r, Entity e) {
             std::vector<FieldDesc> f;
-            f.push_back(boolRef<SteeringFleeComponent>(r, e, QObject::tr("isActif"), [](SteeringFleeComponent& s) -> bool& { return s.isActif; } ,0));
+            f.push_back(boolRef<SteeringFleeComponent>(r, e, QObject::tr("is actif"), [](SteeringFleeComponent& s) -> bool& { return s.isActif; } ,0));
             return f;
         };
         list.push_back(d);

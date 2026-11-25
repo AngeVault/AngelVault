@@ -5,8 +5,8 @@
 // Composant de jeu « life » (données seulement : la logique va dans un système ou un behavior).
 // Après compilation : Inspector > Ajouter un composant > life, ou glissez ce fichier sur une entité.
 struct Life {
-    float actualLife = 1000.f;
-    float maxLife = 1000.f;
+    float actualLife = 100.f;
+    float maxLife = 100.f;
     float regenlLife = 0.f;
 
 };
