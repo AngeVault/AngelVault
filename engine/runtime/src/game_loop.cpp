@@ -4,6 +4,9 @@
 #include "systems/day_night_system.h"
 #include "systems/render_collision_system.h"
 #include "systems/force_debug_system.h"
+#include "systems/steering_system.h"
+#include "systems/steeringSeek_system.h"
+#include "systems/steeringFlee_system.h"
 #include "system/UI.h"
 #include "system/dialog_system.h"
 #include "systems/sprite_animation_system.h"
@@ -12,7 +15,6 @@
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
-
 
 Game::Game() : Game({ 1920u, 1080u }, "AngeVault") {}
 
@@ -41,6 +43,9 @@ void Game::init() {
     m_systems.addSystem<DayNightSystem>(m_scene);   // composant DayNightCycle : heure + teinte de l'écran
     m_systems.addSystem<RenderCollisionSystem>(m_scene);
     m_systems.addSystem<ForceDebugSystem>(m_scene);
+    m_systems.addSystem<SteeringSystem>();
+    m_systems.addSystem<SteeringSeekSystem>();
+    m_systems.addSystem<SteeringFleeSystem>();
     m_systems.addSystem<SystemUI>(m_scene, *this, *m_window);   // boutons et texte (UIButton + UIText)
     // Systèmes de jeu du projet (REGISTER_SYSTEM, dossier systems/ du projet)
     for (const GameSystemInfo& info : GameSystemRegistry::get().all()) m_systems.add(info.create(*this, m_scene));

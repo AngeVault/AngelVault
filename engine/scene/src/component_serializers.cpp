@@ -21,6 +21,9 @@
 #include "components/rigid_body2d.h"
 #include "components/script_component.h"
 #include "components/transform2d.h"
+#include "components/steering_component.h"
+#include "components/steeringSeek_component.h"
+#include "components/steeringFlee_component.h"
 #include "components/UIText.h"
 #include "components/UIButton.h"
 #include "tilemap/tilemap.h"
@@ -323,6 +326,30 @@ void registerBuiltins(SerializerRegistry& reg) {
             t.file = value<std::string>(j, "file", t.file);
             t.visible = value(j, "visible", t.visible);
             t.data.reset();   // rechargée par loadTilemaps()
+        });
+
+    reg.add<SteeringComponent>("Steering",
+        [](SteeringComponent& s, const SaveContext&) {
+            return Json{ { "direction", vec2(s.direction) }, { "rapidite", s.rapidite } };
+        },
+        [](SteeringComponent& s, const Json& j, const LoadContext&) {
+            s.direction = vec2(j.value("direction", Json()), s.direction);
+            s.rapidite = value(j, "rapidite", s.rapidite);
+        });
+
+    reg.add<SteeringSeekComponent>("SteeringSeek",[](SteeringSeekComponent& s, const SaveContext&) {
+            return Json{ { "isActif",  s.isActif }, { "positionCible", vec2(s.positionCible) } };
+        },
+        [](SteeringSeekComponent& s, const Json& j, const LoadContext&) {
+            s.isActif  = value(j, "isActif", s.isActif);
+            s.positionCible = vec2(j.value("positionCible", Json()), s.positionCible);
+        });
+
+    reg.add<SteeringFleeComponent>("SteeringFlee",[](SteeringFleeComponent& s, const SaveContext&) {
+            return Json{ { "isActif",  s.isActif } };
+        },
+        [](SteeringFleeComponent& s, const Json& j, const LoadContext&) {
+            s.isActif  = value(j, "isActif", s.isActif);
         });
 
     reg.add<UIText>("UIText",
