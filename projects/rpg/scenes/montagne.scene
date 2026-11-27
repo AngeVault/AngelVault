@@ -101,6 +101,11 @@
             1.0
           ]
         },
+        "Inventory": {
+          "capacity": 20,
+          "maxStack": 99,
+          "stacks": []
+        },
         "Script": {
           "behaviors": [
             {
@@ -113,11 +118,6 @@
               }
             }
           ]
-        },
-        "Inventory": {
-          "capacity": 20,
-          "maxStack": 99,
-          "stacks": []
         }
       }
     },
@@ -186,6 +186,97 @@
           "zoomSpeed": 1.5,
           "wheelStep": 0.15000000596046448,
           "zoomSharpness": 12.0
+        }
+      }
+    },
+    {
+      "id": 10986695221944961247,
+      "components": {
+        "Name": {
+          "name": "Nouvelle entité"
+        },
+        "Transform2D": {
+          "position": [
+            0.0,
+            955.666748046875
+          ],
+          "rotation": 0.0,
+          "scale": [
+            1.0,
+            1.0
+          ],
+          "depth": 0.0
+        },
+        "Geometry": {
+          "layer": 1,
+          "shape": "Box",
+          "halfSize": [
+            16.0,
+            16.0
+          ],
+          "style": {
+            "fill": "#FFFFFFFF",
+            "outline": "#00000000",
+            "outlineThickness": 0.0
+          }
+        },
+        "RigidBody2D": {
+          "mass": 1.0,
+          "linearDrag": 0.05000000074505806,
+          "friction": 0.4000000059604645,
+          "isStatic": false,
+          "useGravity": false,
+          "inertia": 0.0,
+          "fixedRotation": false
+        },
+        "Collider2D": {
+          "offset": [
+            0.0,
+            0.0
+          ],
+          "isTrigger": false,
+          "restitution": 0.20000000298023224,
+          "friction": 0.4000000059604645,
+          "shape": "Box",
+          "halfSize": [
+            16.0,
+            16.0
+          ]
+        },
+        "Steering": {
+          "direction": [
+            0.0,
+            0.0
+          ],
+          "rapidite": 0.0
+        },
+        "SteeringSeek": {
+          "isActif": true,
+          "positionCible": [
+            0.0,
+            0.0
+          ]
+        },
+        "SteeringFlee": {
+          "isActif": true
+        },
+        "Life": {
+          "actualLife": 1000.0,
+          "maxLife": 1000.0,
+          "regenlLife": 0.0
+        },
+        "Npc": {
+          "ennemies": true,
+          "vision": 300.0
+        },
+        "Stats": {
+          "force": 2.0,
+          "agilite": 2.0,
+          "constitution": 2.0,
+          "intelligence": 1.0,
+          "sagesse": 1.0,
+          "Volonte": 1.0,
+          "charisme": 1.0
         }
       }
     }

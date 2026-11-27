@@ -25,6 +25,9 @@
 #include "ecs/behavior_factory.h"
 #include "ecs/game_components.h"
 #include "tilemap/tilemap.h"
+#include "components/steering_component.h"
+#include "components/steeringSeek_component.h"
+#include "components/steeringFlee_component.h"
 
 #include <QColor>
 #include <QHash>
@@ -896,6 +899,48 @@ std::vector<ComponentDesc> build() {
                 f.push_back(fd);
             }
             if (f.empty()) f.push_back(label(QObject::tr("(aucun champ)"), QObject::tr("ajoutez FIELD(...) à REGISTER_COMPONENT")));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    // ---------------------------------------------------------------- Steering
+    {
+        ComponentDesc d{ "Steering" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<SteeringComponent>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<SteeringComponent>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<SteeringComponent>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(vecRef<SteeringComponent>(r, e, QObject::tr("direction"), [](SteeringComponent& s) -> sf::Vector2f& { return s.direction; } , 0 ));
+            f.push_back(floatRef<SteeringComponent>(r, e, QObject::tr("rapidite"), [](SteeringComponent& s) -> float& { return s.rapidite; }, 0));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    {
+        ComponentDesc d{ "SteeringSeek" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<SteeringSeekComponent>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<SteeringSeekComponent>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<SteeringSeekComponent>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(boolRef<SteeringSeekComponent>(r, e, QObject::tr("is actif"), [](SteeringSeekComponent& s) -> bool& { return s.isActif; } ,0));
+            f.push_back(vecRef<SteeringSeekComponent>(r, e, QObject::tr("position cible"), [](SteeringSeekComponent& s) -> sf::Vector2f& { return s.positionCible; }, 0));
+            return f;
+        };
+        list.push_back(d);
+    }
+
+    {
+        ComponentDesc d{ "SteeringFlee" };
+        d.has = [](Registry& r, Entity e) { return r.hasComponent<SteeringFleeComponent>(e); };
+        d.add = [](Registry& r, Entity e) { r.addComponent<SteeringFleeComponent>(e); };
+        d.remove = [](Registry& r, Entity e) { r.removeComponent<SteeringFleeComponent>(e); };
+        d.fields = [](Registry& r, Entity e) {
+            std::vector<FieldDesc> f;
+            f.push_back(boolRef<SteeringFleeComponent>(r, e, QObject::tr("is actif"), [](SteeringFleeComponent& s) -> bool& { return s.isActif; } ,0));
             return f;
         };
         list.push_back(d);

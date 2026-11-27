@@ -1,0 +1,5 @@
+if(AV_BUILD_TESTSTEERING)
+  add_executable(TestSteering main.cpp)
+  target_link_libraries(TestSteering PRIVATE AngeVault::Engine)
+  av_copy_assets(TestSteering ${CMAKE_CURRENT_SOURCE_DIR}/assets)
+endif()
