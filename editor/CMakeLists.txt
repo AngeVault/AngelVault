@@ -33,6 +33,8 @@ add_executable(AngeVaultEditor WIN32
     src/external_tools.h
     src/external_tools.cpp
     src/component_descriptors.cpp
+    src/component_visuals.h
+    src/component_visuals.cpp
     src/panels/hierarchy_panel.h
     src/panels/hierarchy_panel.cpp
     src/panels/inspector_panel.h
@@ -41,6 +43,8 @@ add_executable(AngeVaultEditor WIN32
     src/panels/project_panel.cpp
     src/panels/console_panel.h
     src/panels/console_panel.cpp
+    src/panels/component_library_panel.h
+    src/panels/component_library_panel.cpp
     src/scene_toolbar.h
     src/scene_toolbar.cpp
     src/panels/tile_palette_panel.h

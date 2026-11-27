@@ -11,6 +11,7 @@ class EditorContext;
 class QFormLayout;
 class QScrollArea;
 class QVBoxLayout;
+class ComponentDropZone;
 struct FieldDesc;
 
 // Composants de l'entité sélectionnée, avec des champs éditables.
@@ -21,7 +22,8 @@ public:
     explicit InspectorPanel(EditorContext& context, QWidget* parent = nullptr);
 
 protected:
-    void dragEnterEvent(QDragEnterEvent* e) override;   // comportement (.h) glissé depuis le panneau Project
+    void dragEnterEvent(QDragEnterEvent* e) override;   // comportement (.h) du panneau Project ou carte du panneau composants
+    void dragLeaveEvent(QDragLeaveEvent* e) override;
     void dropEvent(QDropEvent* e) override;
 
 private:
@@ -39,4 +41,5 @@ private:
     std::vector<std::function<void()>> m_refreshers;   // relisent les valeurs dans les champs
     QSet<QString> m_collapsed;                         // sections repliées (par nom de composant)
     bool m_rebuildQueued = false;
+    ComponentDropZone* m_dropZone = nullptr;   // refaite à chaque rebuild
 };

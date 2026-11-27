@@ -27,6 +27,7 @@
 #include "tilemap/tilemap.h"
 
 #include <QColor>
+#include <QHash>
 #include <algorithm>
 #include <QPointF>
 #include <cmath>
@@ -1125,9 +1126,47 @@ std::vector<ComponentDesc> build() {
         list.push_back(d);
     }
 
+    // rangement du panneau composants : ce qui n'est pas listé vient du projet (REGISTER_COMPONENT)
+    static const QHash<QString, std::pair<QString, QString>> meta = {
+        { "Transform2D", { "base", "move" } },       { "DontDestroy", { "base", "lock" } },
+        { "Geometry", { "render", "shape" } },       { "SpriteAnimator", { "render", "film" } },
+        { "DayNightCycle", { "render", "sun" } },
+        { "RigidBody2D", { "physics", "weight" } },  { "Collider2D", { "physics", "hexagon" } },
+        { "Camera2d", { "camera", "camera" } },      { "CameraFollow", { "camera", "target" } },
+        { "CameraBounds", { "camera", "frame" } },   { "CameraControl", { "camera", "gamepad" } },
+        { "CameraShake", { "camera", "shake" } },
+        { "Tilemap", { "map", "grid" } },            { "SpawnPoint", { "map", "pin" } },
+        { "MapTransition", { "map", "door" } },
+        { "UIText", { "ui", "text" } },              { "UIButton", { "ui", "button" } },
+        { "Dialog", { "ui", "bubble" } },
+        { "Interactor", { "gameplay", "pointer" } }, { "Interactable", { "gameplay", "spark" } },
+        { "Pickup", { "gameplay", "gem" } },         { "Chest", { "gameplay", "chest" } },
+        { "QuestGiver", { "gameplay", "flag" } },    { "QuestObjective", { "gameplay", "check" } },
+        { "Inventory", { "gameplay", "bag" } },
+    };
+    for (ComponentDesc& d : list) {
+        const auto it = meta.find(d.name);
+        d.category = it != meta.end() ? it.value().first : kGameCategory;
+        d.icon = it != meta.end() ? it.value().second : QStringLiteral("cube");
+    }
     return list;
 }
 } // namespace
+
+const std::vector<ComponentCategory>& componentCategories() {
+    static const std::vector<ComponentCategory> list = {
+        { "base", QObject::tr("base"), "move" },
+        { "render", QObject::tr("rendu"), "image" },
+        { "physics", QObject::tr("physique"), "atom" },
+        { "camera", QObject::tr("caméra"), "camera" },
+        { "map", QObject::tr("carte"), "grid" },
+        { "ui", QObject::tr("interface"), "text" },
+        { "gameplay", QObject::tr("gameplay"), "sword" },
+        { kBehaviorCategory, QObject::tr("comportements"), "code" },
+        { kGameCategory, QObject::tr("jeu"), "cube" },
+    };
+    return list;
+}
 
 /**
  * Returns the global list of component descriptors.

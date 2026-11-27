@@ -150,6 +150,9 @@ public:
     // --- Comportements (Script) et prefabs : glisser-déposer ---
     bool addBehavior(Entity e, const std::string& name);    // ajoute au Script de l'entité (créé si besoin)
     void removeBehavior(Entity e, std::size_t index);       // retire le Script s'il devient vide
+    // carte du panneau composants : "component:<nom>" ou "behavior:<nom>"
+    bool addComponent(Entity e, const QString& key);
+    bool hasComponent(Entity e, const QString& key);
     // Fichiers déposés (panneau Project ou explorateur) :
     //   .prefab   -> une instance (à `position` si donnée, sinon là où le prefab a été créé)
     //   .h / .hpp -> les comportements déclarés dedans (REGISTER_BEHAVIOR) sont ajoutés à `target`

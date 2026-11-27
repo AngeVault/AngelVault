@@ -92,7 +92,7 @@ QDockWidget::title {
     text-align: left;
 }
 QWidget#hierarchyPanel, QWidget#inspectorPanel, QWidget#projectPanel,
-QWidget#consolePanel, QWidget#tilePalettePanel {
+QWidget#consolePanel, QWidget#tilePalettePanel, QWidget#componentLibraryPanel {
     background: rgba(24, 20, 46, 0.78);
     border: 1px solid rgba(169, 154, 230, 0.26);
     border-top: none;
@@ -355,7 +355,7 @@ ads--CDockWidget {
 }
 QScrollArea#dockWidgetScrollArea { background: transparent; border: none; padding: 0px; }
 QWidget#hierarchyPanel, QWidget#inspectorPanel, QWidget#projectPanel,
-QWidget#consolePanel, QWidget#tilePalettePanel {
+QWidget#consolePanel, QWidget#tilePalettePanel, QWidget#componentLibraryPanel {
     background: transparent;
     border: none;
     border-radius: 0px;
@@ -394,3 +394,6 @@ ads--CResizeHandle { background: transparent; }
 /* Panneau flottant (fenêtre à part) */
 ads--CFloatingDockContainer, ads--CFloatingWidgetTitleBar { background: #1e1a38; }
 ads--CFloatingWidgetTitleBar QLabel { color: #ebe4fb; }
+
+/* ----- Panneau composants ----- */
+ComponentLibraryPanel, ComponentDropZone { qproperty-accentColor: #a8457f; }

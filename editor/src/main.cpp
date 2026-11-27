@@ -11,6 +11,7 @@
 #include "input_settings_dialog.h"
 #include "game_settings_dialog.h"
 #include "scene_toolbar.h"
+#include "panels/component_library_panel.h"
 #include "panels/console_panel.h"
 #include "panels/hierarchy_panel.h"
 #include "panels/inspector_panel.h"
@@ -340,6 +341,9 @@ int main(int argc, char** argv) {
     ads::CDockWidget* inspectorDock = makeDock(docks, "Inspector", "dockInspector", new InspectorPanel(ctx));
     ads::CDockWidget* projectDock   = makeDock(docks, "Project", "dockProject", projectPanel);
     ads::CDockWidget* consoleDock   = makeDock(docks, "Console", "dockConsole", new ConsolePanel);
+    auto* libraryPanel = new ComponentLibraryPanel(ctx);
+    ads::CDockWidget* libraryDock   = makeDock(docks, "Composants", "dockComponents", libraryPanel);
+    QObject::connect(libraryPanel, &ComponentLibraryPanel::createCodeRequested, projectPanel, &ProjectPanel::createCode);
     ads::CDockWidget* paletteDock   = makeDock(docks, "Tile Palette", "dockTilePalette", palettePanel);
     window.addActions(palettePanel->toolActions());   // V / B / E / G / I et taille du pinceau partout dans la fenêtre
 
@@ -349,10 +353,11 @@ int main(int argc, char** argv) {
     docks->addDockWidget(ads::RightDockWidgetArea, inspectorDock);
     ads::CDockAreaWidget* bottomArea = docks->addDockWidget(ads::BottomDockWidgetArea, projectDock, sceneArea);
     docks->addDockWidgetTabToArea(consoleDock, bottomArea);
+    docks->addDockWidgetTabToArea(libraryDock, bottomArea);
     projectDock->setAsCurrentTab();
 
     // Affichage > Fenêtres : une case à cocher par panneau
-    const QList<ads::CDockWidget*> panels = { hierarchyDock, inspectorDock, projectDock, consoleDock, paletteDock };
+    const QList<ads::CDockWidget*> panels = { hierarchyDock, inspectorDock, projectDock, consoleDock, paletteDock, libraryDock };
     for (int i = 0; i < panels.size(); ++i) {
         QAction* toggle = panels[i]->toggleViewAction();
         toggle->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key(Qt::Key_1 + i)));
@@ -369,7 +374,7 @@ int main(int argc, char** argv) {
     QAction* resetLayout = windowsMenu->addAction("Réinitialiser la disposition");
 
     // Mémorise la disposition (après l'affichage, quand les tailles sont connues)
-    constexpr int kLayoutVersion = 6;   // 6 : scène et game en docks (plus de widget central)
+    constexpr int kLayoutVersion = 7;   // 7 : dock composants
     QByteArray defaultLayout;
     QTimer::singleShot(0, &window, [&] {
         // Tailles de départ : le séparateur qui contient `area` dans ce sens (si le nombre de parts correspond)

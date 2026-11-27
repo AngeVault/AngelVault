@@ -1,4 +1,5 @@
 #include "editor_context.h"
+#include "component_descriptors.h"
 
 #include "components/camera2d.h"
 #include "components/camera_follow.h"
@@ -592,6 +593,30 @@ bool EditorContext::addBehavior(Entity e, const std::string& name) {
     emit entityModified(e, nullptr);
     emit componentsChanged(e);
     return true;
+}
+
+bool EditorContext::addComponent(Entity e, const QString& key) {
+    if (!isValid(e)) return false;
+    const QString name = key.section(':', 1);
+    if (key.startsWith("behavior:")) return addBehavior(e, name.toStdString());
+    for (const ComponentDesc& d : componentDescriptors()) {
+        if (d.name != name) continue;
+        if (!d.add || d.has(m_scene, e)) return false;
+        d.add(m_scene, e);
+        emit entityModified(e, nullptr);
+        emit componentsChanged(e);
+        return true;
+    }
+    return false;
+}
+
+// un comportement peut être mis plusieurs fois : jamais « déjà présent »
+bool EditorContext::hasComponent(Entity e, const QString& key) {
+    if (!isValid(e) || key.startsWith("behavior:")) return false;
+    const QString name = key.section(':', 1);
+    for (const ComponentDesc& d : componentDescriptors())
+        if (d.name == name) return d.has(m_scene, e);
+    return false;
 }
 
 void EditorContext::removeBehavior(Entity e, std::size_t index) {

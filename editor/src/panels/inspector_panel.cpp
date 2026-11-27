@@ -1,5 +1,6 @@
 #include "inspector_panel.h"
 #include "component_descriptors.h"
+#include "component_visuals.h"
 #include "editor_context.h"
 
 #include "components/script_component.h"
@@ -104,6 +105,7 @@ void InspectorPanel::scheduleRebuild() {
 
 void InspectorPanel::rebuild() {
     m_refreshers.clear();
+    m_dropZone = nullptr;
     auto* content = new QWidget;
     content->setObjectName("inspectorContent");
     auto* v = new QVBoxLayout(content);
@@ -160,6 +162,8 @@ void InspectorPanel::rebuild() {
         }
     }
 
+    m_dropZone = new ComponentDropZone;
+    v->addWidget(m_dropZone);
     v->addWidget(buildAddButton(e));
     v->addStretch();
     m_scroll->setWidget(content);   // l'ancien contenu est détruit
@@ -423,10 +427,32 @@ QStringList droppedFiles(const QMimeData* mime) {
 }
 
 void InspectorPanel::dragEnterEvent(QDragEnterEvent* e) {
-    if (m_ctx.hasSelection() && !droppedFiles(e->mimeData()).isEmpty()) e->acceptProposedAction();
+    if (!m_ctx.hasSelection()) return;
+    if (e->mimeData()->hasFormat(kComponentMimeType)) {
+        const QString key = QString::fromUtf8(e->mimeData()->data(kComponentMimeType));
+        if (m_ctx.hasComponent(m_ctx.selected(), key)) return;   // déjà là : pas de zone, dépôt refusé
+        e->acceptProposedAction();
+        if (m_dropZone) {
+            m_dropZone->setGlyph(componentGlyph(key));
+            m_dropZone->show();
+        }
+        return;
+    }
+    if (!droppedFiles(e->mimeData()).isEmpty()) e->acceptProposedAction();
+}
+
+void InspectorPanel::dragLeaveEvent(QDragLeaveEvent*) {
+    if (m_dropZone) m_dropZone->hide();
 }
 
 void InspectorPanel::dropEvent(QDropEvent* e) {
+    if (m_dropZone) m_dropZone->hide();
+    if (e->mimeData()->hasFormat(kComponentMimeType)) {
+        if (!m_ctx.hasSelection()) return;
+        e->acceptProposedAction();
+        m_ctx.addComponent(m_ctx.selected(), QString::fromUtf8(e->mimeData()->data(kComponentMimeType)));
+        return;
+    }
     const QStringList files = droppedFiles(e->mimeData());
     if (files.isEmpty() || !m_ctx.hasSelection()) return;
     e->acceptProposedAction();

@@ -33,9 +33,17 @@ struct ComponentDesc {
     std::function<void(Registry&, Entity)> add;      // vide = ne peut pas être ajouté depuis l'éditeur
     std::function<void(Registry&, Entity)> remove;
     std::function<std::vector<FieldDesc>(Registry&, Entity)> fields;
+    QString category;   // id de componentCategories(), rangement du panneau composants
+    QString icon;       // glyphe de component_visuals.h
 };
 
 const std::vector<ComponentDesc>& componentDescriptors();
+
+// catégories de base du moteur, dans l'ordre du panneau composants
+struct ComponentCategory { QString id; QString tooltip; QString icon; };
+const std::vector<ComponentCategory>& componentCategories();
+inline const QString kBehaviorCategory = QStringLiteral("behavior");
+inline const QString kGameCategory = QStringLiteral("game");
 
 // Champs d'un comportement (ses PROPERTY) : une section par comportement dans l'Inspector
 struct IBehavior;

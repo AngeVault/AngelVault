@@ -21,6 +21,7 @@ public:
 
     void setCurrentDir(const QString& dir);
     void setRootDir(const QString& dir);   // autre projet ouvert
+    void createCode(int kind);   // clic droit > Créer (C++) : 0 behavior, 1 composant, 2 système
 
 signals:
     void sceneOpenRequested(const QString& path);   // double-clic sur un fichier .scene
@@ -31,7 +32,6 @@ private:
     void openPath(const QString& path);
     void showContextMenu(const QString& path, const QPoint& globalPos, bool canDelete);
     QIcon iconFor(const QString& path, bool isDir);
-    void createCode(int kind);   // clic droit > Créer (C++) : 0 behavior, 1 composant, 2 système
     void createFolder(const QString& parentDir);
     void deletePaths(const QStringList& paths);   // corbeille, jamais la racine du projet
     QStringList selectedFiles() const;
