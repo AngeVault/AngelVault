@@ -20,7 +20,10 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
+#include <QGridLayout>
 #include <QScrollArea>
+#include <QScrollBar>
+#include <QWheelEvent>
 #include <QSignalBlocker>
 #include <QStyledItemDelegate>
 #include <QTimer>
@@ -58,16 +61,28 @@ public:
         setCheckable(true);
         setCursor(Qt::PointingHandCursor);
         setAttribute(Qt::WA_Hover);
+        connect(this, &QAbstractButton::toggled, this, [this] { updateGeometry(); update(); });
     }
+
+    // catégorie choisie : son nom apparaît sous l'icône
+    void setActiveLabel(const QString& label) { m_activeLabel = label; }
+    QString shownLabel() const { return m_label.isEmpty() && isChecked() ? m_activeLabel : m_label; }
 
     std::function<void()> onRemove;
     std::function<void()> onRename;
     std::function<void(const QString&)> onDropKey;
 
     QSize sizeHint() const override {
-        if (m_label.isEmpty()) return { 44, 44 };
-        return { std::clamp(fontMetrics().horizontalAdvance(m_label) + 24, 60, 140), 44 };
+        const QString label = shownLabel();
+        if (label.isEmpty()) return { 44, 44 };
+        QFont f = font();
+        f.setPointSizeF(f.pointSizeF() * 0.85);
+        f.setBold(true);
+        return { std::clamp(QFontMetrics(f).horizontalAdvance(label) + 24, 60, 140), 44 };
     }
+
+    // jamais compressé : la barre défile au lieu d'écraser les icônes
+    QSize minimumSizeHint() const override { return sizeHint(); }
 
     void setDropTarget(bool on) { setAcceptDrops(on); }
 
@@ -87,7 +102,8 @@ protected:
         p.drawRoundedRect(r, 7, 7);
 
         const QColor glyph = m_glyphColor.isValid() ? m_glyphColor : isChecked() ? text : alpha(text, 150);
-        if (m_label.isEmpty()) {
+        const QString label = shownLabel();
+        if (label.isEmpty()) {
             drawGlyph(p, m_glyph, QRectF(width() / 2.0 - 9, height() / 2.0 - 9, 18, 18), glyph);
         } else {
             drawGlyph(p, m_glyph, QRectF(width() / 2.0 - 8, 6, 16, 16), glyph);
@@ -97,7 +113,7 @@ protected:
             p.setFont(f);
             p.setPen(isChecked() ? text : alpha(text, 190));
             const QRectF tr(4, 24, width() - 8, height() - 26);
-            p.drawText(tr, Qt::AlignHCenter | Qt::AlignTop, QFontMetrics(f).elidedText(m_label, Qt::ElideRight, int(tr.width())));
+            p.drawText(tr, Qt::AlignHCenter | Qt::AlignTop, QFontMetrics(f).elidedText(label, Qt::ElideRight, int(tr.width())));
         }
         if (onRemove && underMouse()) {
             p.setPen(Qt::NoPen);
@@ -139,9 +155,22 @@ protected:
 
 private:
     const ComponentLibraryPanel* m_panel;
-    QString m_glyph, m_label;
+    QString m_glyph, m_label, m_activeLabel;
     QColor m_glyphColor;
     bool m_dropHover = false;
+};
+
+// barre d'icônes : la molette fait défiler à l'horizontale
+class ChipScroll : public QScrollArea {
+public:
+    using QScrollArea::QScrollArea;
+protected:
+    void wheelEvent(QWheelEvent* e) override {
+        const QPoint d = e->angleDelta();
+        QScrollBar* bar = horizontalScrollBar();
+        bar->setValue(bar->value() - (std::abs(d.x()) > std::abs(d.y()) ? d.x() : d.y()) / 2);
+        e->accept();
+    }
 };
 
 // les cartes se glissent vers l'Inspector ou un dossier : la donnée est la clé du composant
@@ -149,7 +178,22 @@ class CardList : public QListWidget {
 public:
     using QListWidget::QListWidget;
 
+    // colonnes qui remplissent toute la largeur : une seule colonne pleine largeur en dock vertical
+    void fitGrid() {
+        const int width = viewport()->width() - (verticalScrollBar()->isVisible() ? 0 : verticalScrollBar()->sizeHint().width());
+        const int columns = std::max(1, width / kMinCell);
+        const QSize grid(std::max(120, width / columns), 68);
+        if (grid != gridSize()) setGridSize(grid);
+    }
+
+    static constexpr int kMinCell = 210;
+
 protected:
+    void resizeEvent(QResizeEvent* e) override {
+        QListWidget::resizeEvent(e);
+        fitGrid();
+    }
+
     // dossier ou favoris vides : grand glyphe estompé à la place du texte
     void paintEvent(QPaintEvent* e) override {
         QListWidget::paintEvent(e);
@@ -170,7 +214,7 @@ protected:
 
 class CardDelegate : public QStyledItemDelegate {
 public:
-    CardDelegate(ComponentLibraryPanel* panel) : QStyledItemDelegate(panel), m_panel(panel) {}
+    CardDelegate(ComponentLibraryPanel* panel, QListWidget* list) : QStyledItemDelegate(panel), m_panel(panel), m_list(list) {}
 
     std::function<void(const QString&)> onStar, onRemove;
     std::function<void(int)> onCreate;
@@ -179,7 +223,7 @@ public:
     static QRectF starRect(const QRectF& r) { return QRectF(r.right() - 22, r.top() + 6, 16, 16); }
     static QRectF closeRect(const QRectF& r) { return QRectF(r.right() - 42, r.top() + 6, 16, 16); }
 
-    QSize sizeHint(const QStyleOptionViewItem&, const QModelIndex&) const override { return { 180, 62 }; }
+    QSize sizeHint(const QStyleOptionViewItem&, const QModelIndex&) const override { return m_list->gridSize() - QSize(6, 6); }
 
     void paint(QPainter* p, const QStyleOptionViewItem& opt, const QModelIndex& index) const override {
         p->save();
@@ -244,6 +288,7 @@ public:
 
 private:
     ComponentLibraryPanel* m_panel;
+    QListWidget* m_list;
 };
 }
 
@@ -261,30 +306,34 @@ ComponentLibraryPanel::ComponentLibraryPanel(EditorContext& context, QWidget* pa
     layout->setContentsMargins(8, 6, 8, 6);
     layout->setSpacing(6);
 
-    auto* top = new QHBoxLayout;
-    top->setSpacing(8);
+    m_header = new QGridLayout;
+    m_header->setHorizontalSpacing(8);
+    m_header->setVerticalSpacing(6);
     auto* chipsHost = new QWidget;
     m_chips = new QHBoxLayout(chipsHost);
     m_chips->setContentsMargins(0, 0, 0, 0);
     m_chips->setSpacing(4);
-    auto* chipsScroll = new QScrollArea;
-    chipsScroll->setWidget(chipsHost);
-    chipsScroll->setWidgetResizable(true);
-    chipsScroll->setFrameShape(QFrame::NoFrame);
-    chipsScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    chipsScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    chipsScroll->setFixedHeight(52);
-    chipsScroll->setStyleSheet("QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; }");
-    top->addWidget(chipsScroll, 1);
+    m_chipsScroll = new ChipScroll;
+    m_chipsScroll->setWidget(chipsHost);
+    m_chipsScroll->setWidgetResizable(true);
+    m_chipsScroll->setFrameShape(QFrame::NoFrame);
+    m_chipsScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_chipsScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    m_chipsScroll->setFixedHeight(52);
+    // barre fine : signale qu'il y a d'autres icônes sans manger la hauteur
+    m_chipsScroll->setStyleSheet("QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; }"
+                                 "QScrollBar:horizontal { height: 4px; background: transparent; border: none; margin: 0; }"
+                                 "QScrollBar::handle:horizontal { background: rgba(140, 140, 140, 0.45); border-radius: 2px; min-width: 24px; }"
+                                 "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }"
+                                 "QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: transparent; }");
 
     m_search = new QLineEdit;
     m_search->setObjectName("componentSearch");
     m_search->setClearButtonEnabled(true);
     m_search->addAction(glyphIcon("search", QColor(140, 140, 140)), QLineEdit::LeadingPosition);
-    m_search->setFixedWidth(200);
     m_search->setToolTip(tr("chercher"));
-    top->addWidget(m_search, 0, Qt::AlignVCenter);
-    layout->addLayout(top);
+    layout->addLayout(m_header);
+    updateHeaderLayout();
 
     layout->addWidget(new Rule);
 
@@ -294,7 +343,7 @@ ComponentLibraryPanel::ComponentLibraryPanel(EditorContext& context, QWidget* pa
     m_cards->setViewMode(QListView::IconMode);
     m_cards->setMovement(QListView::Static);
     m_cards->setResizeMode(QListView::Adjust);
-    m_cards->setGridSize(QSize(186, 68));
+    m_cards->setGridSize(QSize(CardList::kMinCell, 68));
     m_cards->setUniformItemSizes(true);
     m_cards->setWrapping(true);
     m_cards->setDragEnabled(true);
@@ -303,7 +352,7 @@ ComponentLibraryPanel::ComponentLibraryPanel(EditorContext& context, QWidget* pa
     m_cards->setSelectionMode(QAbstractItemView::SingleSelection);
     m_cards->setMouseTracking(true);
     m_cards->viewport()->setAttribute(Qt::WA_Hover);
-    auto* delegate = new CardDelegate(this);
+    auto* delegate = new CardDelegate(this, m_cards);
     delegate->onStar = [this](const QString& key) { QTimer::singleShot(0, this, [this, key] { toggleFavorite(key); }); };
     delegate->onRemove = [this](const QString& key) { QTimer::singleShot(0, this, [this, key] { removeFromView(key); }); };
     delegate->onCreate = [this](int kind) { QTimer::singleShot(0, this, [this, kind] { emit createCodeRequested(kind); }); };
@@ -325,6 +374,31 @@ ComponentLibraryPanel::ComponentLibraryPanel(EditorContext& context, QWidget* pa
         if (file != m_file) load();
     });
     load();
+}
+
+void ComponentLibraryPanel::resizeEvent(QResizeEvent* e) {
+    QWidget::resizeEvent(e);
+    updateHeaderLayout();
+}
+
+void ComponentLibraryPanel::updateHeaderLayout() {
+    const int narrow = width() < 560 ? 1 : 0;
+    if (narrow == m_narrow) return;
+    m_narrow = narrow;
+    m_header->removeWidget(m_chipsScroll);
+    m_header->removeWidget(m_search);
+    if (narrow) {
+        m_search->setMinimumWidth(0);
+        m_search->setMaximumWidth(QWIDGETSIZE_MAX);
+        m_header->addWidget(m_search, 0, 0);
+        m_header->addWidget(m_chipsScroll, 1, 0);
+    } else {
+        m_search->setFixedWidth(200);
+        m_header->addWidget(m_chipsScroll, 0, 0);
+        m_header->addWidget(m_search, 0, 1, Qt::AlignVCenter);
+    }
+    m_header->setColumnStretch(0, 1);
+    m_header->setColumnStretch(1, 0);
 }
 
 void ComponentLibraryPanel::setAccentColor(const QColor& c) {
@@ -385,14 +459,19 @@ void ComponentLibraryPanel::rebuildChips() {
         return chip;
     };
 
-    for (const ComponentCategory& c : componentCategories())
-        addChip(new LibraryChip(this, c.icon, {}), c.id, c.tooltip);
+    for (const ComponentCategory& c : componentCategories()) {
+        auto* chip = new LibraryChip(this, c.icon, {});
+        chip->setActiveLabel(c.tooltip);
+        addChip(chip, c.id, c.tooltip);
+    }
 
     m_chips->addSpacing(4);
     m_chips->addWidget(new Rule(1, 28), 0, Qt::AlignVCenter);
     m_chips->addSpacing(4);
 
-    auto* fav = addChip(new LibraryChip(this, "star", {}, kFolderColor), kFavorites, tr("favoris"));
+    auto* favChip = new LibraryChip(this, "star", {}, kFolderColor);
+    favChip->setActiveLabel(tr("favoris"));
+    auto* fav = addChip(favChip, kFavorites, tr("favoris"));
     fav->setDropTarget(true);
     fav->onDropKey = [this](const QString& key) {
         if (!m_favorites.contains(key)) { m_favorites << key; save(); m_cards->viewport()->update(); }
@@ -467,6 +546,11 @@ void ComponentLibraryPanel::setView(const QString& view) {
     for (int i = 0; i < m_chips->count(); ++i)
         if (auto* chip = qobject_cast<QAbstractButton*>(m_chips->itemAt(i)->widget()); chip && chip->isCheckable())
             chip->setChecked(chip->property("view").toString() == m_view);
+    QTimer::singleShot(0, this, [this] {
+        for (int i = 0; i < m_chips->count(); ++i)
+            if (auto* chip = qobject_cast<QAbstractButton*>(m_chips->itemAt(i)->widget()); chip && chip->isChecked())
+                m_chipsScroll->ensureWidgetVisible(chip, 24, 0);
+    });
     QSignalBlocker block(m_search);
     m_search->clear();
     rebuildCards();

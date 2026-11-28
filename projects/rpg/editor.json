@@ -1,6 +1,7 @@
 {
     "componentLibrary": {
         "favorites": [
+            "component:Transform2D"
         ],
         "folders": [
         ]

@@ -6,9 +6,11 @@
 #include <vector>
 
 class EditorContext;
+class QGridLayout;
 class QHBoxLayout;
 class QLineEdit;
 class QListWidget;
+class QScrollArea;
 
 // catégories du moteur fixes, favoris et dossiers propres au projet (editor.json)
 class ComponentLibraryPanel : public QWidget {
@@ -24,6 +26,9 @@ public:
     bool isFavorite(const QString& key) const { return m_favorites.contains(key); }
     bool inFolderView() const { return m_view.startsWith(kFolderPrefix); }
 
+protected:
+    void resizeEvent(QResizeEvent* e) override;
+
 signals:
     void createCodeRequested(int kind);   // 0 behavior, 1 composant (C++ du projet)
 
@@ -37,6 +42,7 @@ private:
     void rebuildChips();
     void rebuildCards();
     void refreshPresence();
+    void updateHeaderLayout();   // étroit (dock vertical) : la recherche passe sur sa propre ligne
     void setView(const QString& view);
     void toggleFavorite(const QString& key);
     void removeFromView(const QString& key);
@@ -48,7 +54,10 @@ private:
     QString uniqueFolderName(const QString& base) const;
 
     EditorContext& m_ctx;
+    QGridLayout* m_header = nullptr;
+    QScrollArea* m_chipsScroll = nullptr;
     QHBoxLayout* m_chips = nullptr;
+    int m_narrow = -1;   // -1 : pas encore placé
     QListWidget* m_cards = nullptr;
     QLineEdit* m_search = nullptr;
     QColor m_accent{ 0x3b, 0x82, 0xf6 };
